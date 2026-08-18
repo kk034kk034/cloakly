@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloakly/core/constants.dart';
 import 'package:cloakly/data/models/models.dart';
+import 'package:cloakly/services/stt/stt_engine.dart';
 import 'package:http/http.dart' as http;
 
 class LlmService {
@@ -15,26 +16,31 @@ class LlmService {
     required String system,
     required String user,
     double temperature = 0.4,
+    bool jsonObject = false,
   }) async {
     if (!settings.hasLlm) {
       return _demoAnswer();
     }
 
     final uri = Uri.parse('$openaiApiBaseUrl/chat/completions');
+    final body = <String, dynamic>{
+      'model': settings.chatModel,
+      'temperature': temperature,
+      'messages': [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+      ],
+    };
+    if (jsonObject) {
+      body['response_format'] = {'type': 'json_object'};
+    }
     final response = await http.post(
       uri,
       headers: {
         'Authorization': 'Bearer ${settings.openaiApiKey}',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'model': settings.chatModel,
-        'temperature': temperature,
-        'messages': [
-          {'role': 'system', 'content': system},
-          {'role': 'user', 'content': user},
-        ],
-      }),
+      body: jsonEncode(body),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('語言模型失敗：${response.statusCode} ${response.body}');
@@ -106,18 +112,19 @@ $trigger
 
     final raw = await complete(
       system: '''
-你是會議紀錄秘書。請只輸出一段 JSON，不要 Markdown 圍欄。
+你是會議紀錄秘書。只輸出一個 JSON 物件，不要 Markdown 圍欄，也不要逐字稿陣列。
 JSON 結構：
 {
   "title": "精煉標題",
-  "minutesMarkdown": "繁體中文 Markdown 會議紀錄，含摘要、討論重點、決議、待辦（負責人/期限若可判斷）",
-  "speakers": [{"index": 0, "name": "發言人名稱"}],
-  "lines": [{"id": "原本的id", "speakerIndex": 0, "speaker": "名稱"}]
+  "minutesMarkdown": "繁體中文 Markdown，含 ## 摘要、## 討論重點、## 決議、## 待辦。逐字稿有人報名就用真名。",
+  "speakerNames": {"我": "可選真名", "對方A": "Casey", "對方B": "Lisa"}
 }
 規則：
-- 盡力把同一個人合併。已標成「我／對方A／對方B／發言人 1」的請保留，不要把對方A和對方B併成一個「對方」
-- lines 必須覆蓋所有傳入的 id
-- 不要發明逐字稿內容''',
+- minutesMarkdown 必須是給人看的會議紀錄，不是 JSON
+- 不要輸出 lines
+- 若超過兩位對方，用對方C、對方D，或改成他們的名字
+- 無法判斷就維持對方A／對方B，不要把不同人併成同一個「對方」
+- 不要發明逐字稿裡沒有的事實''',
       user: '''
 會議開始時間：${meeting.startedAt.toIso8601String()}
 現場筆記：
@@ -129,6 +136,7 @@ $projectContext
 逐字稿：
 $transcript''',
       temperature: 0.2,
+      jsonObject: true,
     );
 
     return MinutesResult.parse(raw, fallbackTitle: meeting.title, lines: lines);
@@ -202,44 +210,121 @@ class MinutesResult {
     required String fallbackTitle,
     required List<TranscriptLine> lines,
   }) {
-    final jsonText = _extractJson(raw);
     try {
-      final json = jsonDecode(jsonText) as Map<String, dynamic>;
+      final json = jsonDecode(_extractJson(raw)) as Map<String, dynamic>;
       final title = (json['title'] as String?)?.trim();
-      final markdown = (json['minutesMarkdown'] as String?)?.trim();
-      final updates = <String, ({int index, String speaker})>{};
-      final lineRows = json['lines'] as List<dynamic>? ?? const [];
-      for (final row in lineRows) {
-        final map = row as Map<String, dynamic>;
-        final id = map['id'] as String?;
-        if (id == null) continue;
-        updates[id] = (
-          index: (map['speakerIndex'] as num?)?.toInt() ?? 0,
-          speaker: (map['speaker'] as String?) ?? '發言人',
-        );
+      final markdown = readableMinutesMarkdown(
+            json['minutesMarkdown'] as String? ?? '',
+          ) ??
+          (json['minutesMarkdown'] as String?)?.trim();
+      final names = <String, String>{};
+      final speakerNames = json['speakerNames'];
+      if (speakerNames is Map) {
+        for (final entry in speakerNames.entries) {
+          final name = '${entry.value}'.trim();
+          if (name.isEmpty) continue;
+          names['${entry.key}'.trim()] = name;
+        }
       }
-      final relabeled = lines.map((line) {
-        final update = updates[line.id];
-        if (update == null) return line;
-        return line.copyWith(
-          speakerIndex: update.index,
-          speaker: update.speaker,
-        );
-      }).toList();
+      final speakers = json['speakers'];
+      if (speakers is List) {
+        for (final row in speakers) {
+          if (row is! Map) continue;
+          final name = '${row['name'] ?? ''}'.trim();
+          if (name.isEmpty) continue;
+          final index = (row['index'] as num?)?.toInt();
+          if (index != null) {
+            names[speakerLabelFor(index)] = name;
+          }
+        }
+      }
+      var relabeled = lines;
+      if (names.isNotEmpty) {
+        relabeled = [
+          for (final line in lines)
+            names[line.speaker] == null
+                ? line
+                : line.copyWith(speaker: names[line.speaker]),
+        ];
+      }
       return MinutesResult(
         title: (title == null || title.isEmpty) ? fallbackTitle : title,
-        minutesMarkdown: markdown?.isNotEmpty == true
-            ? markdown!
+        minutesMarkdown: (markdown != null && markdown.isNotEmpty)
+            ? markdown
             : '# $fallbackTitle\n\n（無法產生會議紀錄）',
         relabeled: relabeled,
       );
     } catch (_) {
+      final recovered = readableMinutesMarkdown(raw);
       return MinutesResult(
         title: fallbackTitle,
-        minutesMarkdown: raw.trim().isEmpty ? '# $fallbackTitle' : raw.trim(),
+        minutesMarkdown: recovered ??
+            (raw.trim().isEmpty ? '# $fallbackTitle' : raw.trim()),
         relabeled: lines,
       );
     }
+  }
+
+  /// Turns a stored blob into human markdown, including older broken JSON dumps.
+  static String? readableMinutesMarkdown(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    if (!trimmed.startsWith('{') && !trimmed.contains('"minutesMarkdown"')) {
+      return trimmed;
+    }
+    try {
+      final json = jsonDecode(_extractJson(trimmed)) as Map<String, dynamic>;
+      final markdown = (json['minutesMarkdown'] as String?)?.trim();
+      if (markdown != null &&
+          markdown.isNotEmpty &&
+          !markdown.trimLeft().startsWith('{')) {
+        return markdown;
+      }
+    } catch (_) {}
+    return _fallbackMinutesMarkdown(trimmed);
+  }
+
+  static String? _fallbackMinutesMarkdown(String raw) {
+    const key = '"minutesMarkdown"';
+    final keyAt = raw.indexOf(key);
+    if (keyAt < 0) return null;
+    final colon = raw.indexOf(':', keyAt + key.length);
+    if (colon < 0) return null;
+    var i = colon + 1;
+    while (i < raw.length && raw[i].trim().isEmpty) {
+      i++;
+    }
+    if (i >= raw.length || raw[i] != '"') return null;
+    i++;
+    final buffer = StringBuffer();
+    while (i < raw.length) {
+      final ch = raw[i];
+      if (ch == '\\' && i + 1 < raw.length) {
+        final next = raw[i + 1];
+        buffer.write(switch (next) {
+          'n' => '\n',
+          't' => '\t',
+          'r' => '\r',
+          '"' => '"',
+          '\\' => '\\',
+          _ => next,
+        });
+        i += 2;
+        continue;
+      }
+      if (ch == '"') break;
+      if (ch == '\n') {
+        final rest = raw.substring(i);
+        if (RegExp(r'^\n\s*"(speakers|lines|speakerNames)"').hasMatch(rest)) {
+          break;
+        }
+      }
+      buffer.write(ch);
+      i++;
+    }
+    final markdown = buffer.toString().trim();
+    if (markdown.isEmpty || markdown.startsWith('{')) return null;
+    return markdown;
   }
 
   static String _extractJson(String raw) {

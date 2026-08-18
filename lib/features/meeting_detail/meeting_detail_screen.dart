@@ -1,10 +1,16 @@
+import 'dart:io';
+
 import 'package:cloakly/data/models/models.dart';
+import 'package:cloakly/services/audio/recording_export.dart';
+import 'package:cloakly/services/llm/llm_service.dart';
 import 'package:cloakly/state/providers.dart';
 import 'package:cloakly/widgets/meeting_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class MeetingDetailScreen extends ConsumerWidget {
@@ -30,8 +36,8 @@ class MeetingDetailScreen extends ConsumerWidget {
             title: Text(data.meeting.title),
             actions: [
               IconButton(
-                tooltip: '分享會議紀錄',
-                onPressed: () => _share(data),
+                tooltip: '分享',
+                onPressed: () => _showShareOptions(context, data),
                 icon: const Icon(Icons.ios_share),
               ),
             ],
@@ -61,7 +67,53 @@ class MeetingDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _share(MeetingBundle data) async {
+  Future<void> _showShareOptions(
+    BuildContext context,
+    MeetingBundle data,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.notes_outlined),
+                title: const Text('分享會議紀錄'),
+                subtitle: const Text('文字，可貼到訊息或文件'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _shareText(context, data);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: const Text('儲存錄音到檔案'),
+                subtitle: const Text('複製到下載／檔案 App，不走網路'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _saveAudio(context, data);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.ios_share),
+                title: const Text('分享錄音檔'),
+                subtitle: const Text('傳到 Drive 或 Line'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _shareAudio(context, data);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _shareText(BuildContext context, MeetingBundle data) async {
     final buffer = StringBuffer()
       ..writeln('# ${data.meeting.title}')
       ..writeln()
@@ -69,14 +121,93 @@ class MeetingDetailScreen extends ConsumerWidget {
         DateFormat('yyyy/MM/dd HH:mm').format(data.meeting.startedAt),
       )
       ..writeln()
-      ..writeln(data.meeting.minutesMarkdown ?? '（尚無會議紀錄）')
+      ..writeln(
+        MinutesResult.readableMinutesMarkdown(
+              data.meeting.minutesMarkdown ?? '',
+            ) ??
+            data.meeting.minutesMarkdown ??
+            '（尚無會議紀錄）',
+      )
       ..writeln()
       ..writeln('## 逐字稿')
       ..writeln();
     for (final line in data.lines) {
       buffer.writeln('${line.speaker}：${line.text}');
     }
-    await SharePlus.instance.share(ShareParams(text: buffer.toString()));
+    await SharePlus.instance.share(
+      ShareParams(
+        text: buffer.toString(),
+        subject: data.meeting.title,
+        sharePositionOrigin: _shareOrigin(context),
+      ),
+    );
+  }
+
+  Future<void> _saveAudio(BuildContext context, MeetingBundle data) async {
+    final source = await RecordingExport.find(data.meeting);
+    if (!context.mounted) return;
+    if (source == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('這場會議沒有錄音檔可以儲存。')),
+      );
+      return;
+    }
+    try {
+      final saved = await RecordingExport.saveToUserFolder(
+        source: source,
+        fileName: RecordingExport.fileNameFor(data.meeting, source),
+      );
+      if (!context.mounted) return;
+      final where = Platform.isIOS
+          ? '檔案 App → 我的 iPhone → Cloakly'
+          : Platform.isAndroid
+              ? '下載 / Cloakly'
+              : saved;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已存到$where')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('儲存失敗：$error')),
+      );
+    }
+  }
+
+  Future<void> _shareAudio(BuildContext context, MeetingBundle data) async {
+    final source = await RecordingExport.find(data.meeting);
+    if (!context.mounted) return;
+    if (source == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('這場會議沒有錄音檔可以分享。')),
+      );
+      return;
+    }
+
+    final name = RecordingExport.fileNameFor(data.meeting, source);
+    final dest = File(p.join((await getTemporaryDirectory()).path, name));
+    if (await dest.exists()) {
+      await dest.delete();
+    }
+    await source.copy(dest.path);
+    if (!context.mounted) return;
+
+    final mime = p.extension(name).toLowerCase() == '.m4a'
+        ? 'audio/mp4'
+        : 'audio/wav';
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(dest.path, mimeType: mime, name: name)],
+        subject: data.meeting.title,
+        sharePositionOrigin: _shareOrigin(context),
+      ),
+    );
+  }
+
+  Rect? _shareOrigin(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 }
 
@@ -92,7 +223,7 @@ class _MinutesTab extends StatelessWidget {
       return const Center(child: Text('還沒有會議紀錄。'));
     }
     return Markdown(
-      data: markdown,
+      data: MinutesResult.readableMinutesMarkdown(markdown) ?? markdown,
       padding: const EdgeInsets.all(20),
     );
   }

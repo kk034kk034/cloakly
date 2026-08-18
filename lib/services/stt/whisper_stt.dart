@@ -19,9 +19,8 @@ class WhisperStt implements SttEngine {
   final _controller = StreamController<TranscriptEvent>.broadcast();
   final BytesBuilder _buffer = BytesBuilder(copy: false);
   bool _busy = false;
-  bool _diarizeBroken = false;
 
-  bool get _wantDiarize => !_diarizeBroken && lane != SttLane.self;
+  bool get _wantDiarize => lane != SttLane.self;
 
   @override
   Stream<TranscriptEvent> get events => _controller.stream;
@@ -38,7 +37,7 @@ class WhisperStt implements SttEngine {
   Future<void> flush() async {
     if (_busy) return;
     final pcm = _buffer.takeBytes();
-    final minSeconds = _wantDiarize ? 2.5 : 0.6;
+    final minSeconds = _wantDiarize ? 6 : 0.6;
     if (pcm.length < pcmBytesPerSecond * minSeconds) {
       if (pcm.isNotEmpty) _buffer.add(pcm);
       return;
@@ -70,8 +69,7 @@ class WhisperStt implements SttEngine {
       ..fields['response_format'] = diarize ? 'diarized_json' : 'json';
     if (diarize) {
       request.fields['chunking_strategy'] = 'auto';
-    }
-    if (settings.language == 'zh') {
+    } else if (settings.language == 'zh') {
       request.fields['language'] = 'zh';
     } else if (settings.language == 'en') {
       request.fields['language'] = 'en';
@@ -81,7 +79,6 @@ class WhisperStt implements SttEngine {
     final body = await streamed.stream.bytesToString();
     if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
       if (diarize) {
-        _diarizeBroken = true;
         await _transcribe(pcm, diarize: false);
         return;
       }

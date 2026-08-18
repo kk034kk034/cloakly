@@ -73,7 +73,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             controller: _chatModel,
             decoration: const InputDecoration(
               labelText: '對話模型',
-              helperText: '例如 gpt-4o-mini。轉寫固定用 OpenAI，系統聲音會拆對方A/B。',
+              helperText: '例如 gpt-4o-mini。轉寫固定用 OpenAI，系統聲音會拆對方A／B／C。',
             ),
           ),
           const SizedBox(height: 24),
@@ -83,7 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             contentPadding: EdgeInsets.zero,
             title: const Text('擷取電腦正在播放的聲音'),
             subtitle: const Text(
-              '戴耳機開 Teams / Meet / Zoom 時，才能聽到客戶。麥克風是「我」；系統聲音會依聲紋拆成對方A、對方B。手機做不到，請用電腦版。',
+              '戴耳機開 Teams / Meet / Zoom 時，才能聽到客戶。麥克風是「我」；系統聲音會依聲紋拆成對方A、對方B、對方C。手機做不到，請用電腦版。',
             ),
             value: _captureSystemAudio,
             onChanged: (value) => setState(() => _captureSystemAudio = value),

@@ -13,6 +13,7 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     SystemAudioBridge.register(with: flutterViewController.engine.binaryMessenger)
+    AudioEncodeBridge.register(with: flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
   }

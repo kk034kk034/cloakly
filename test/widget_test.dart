@@ -1,4 +1,5 @@
 import 'package:cloakly/services/detection/question_detector.dart';
+import 'package:cloakly/services/llm/llm_service.dart';
 import 'package:cloakly/services/project/project_indexer.dart';
 import 'package:cloakly/services/stt/stt_engine.dart';
 import 'package:cloakly/services/stt/whisper_stt.dart';
@@ -46,7 +47,27 @@ void main() {
       '對方A:進度如何',
       '對方B:下週能上線嗎',
     ]);
+    expect(diarizedIndexFromSpeaker('C'), 2);
+    expect(SpeakerId.label(lane: SttLane.remote, diarized: 2), '對方C');
     expect(diarizedIndexFromSpeaker('SPEAKER_01'), 1);
+  });
+
+  test('壞掉的會議紀錄 JSON 會抽出 Markdown', () {
+    const raw = '''
+{
+  "title": "英語學習討論",
+  "minutesMarkdown": "## 摘要
+對方A 提到個別分享。
+
+## 討論重點
+- Casey、Lisa、Kate 分享學習經驗
+",
+  "speakers": [{"index": 0, "name": "對方A"}]
+}
+''';
+    final markdown = MinutesResult.readableMinutesMarkdown(raw);
+    expect(markdown, contains('Casey、Lisa、Kate'));
+    expect(markdown, isNot(contains('"title"')));
   });
 
   test('時間格式', () {

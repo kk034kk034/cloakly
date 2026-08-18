@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cloakly/core/constants.dart';
 import 'package:cloakly/data/models/models.dart';
+import 'package:cloakly/services/audio/aac_encoder.dart';
 import 'package:cloakly/services/audio/audio_capture_service.dart';
 import 'package:cloakly/services/audio/pcm_vad.dart';
+import 'package:cloakly/services/audio/pcm_wav_writer.dart';
 import 'package:cloakly/services/audio/system_audio_capture.dart';
 import 'package:cloakly/services/detection/question_detector.dart';
 import 'package:cloakly/services/llm/llm_service.dart';
@@ -135,7 +138,8 @@ class SessionController extends Notifier<SessionState> {
   final _detector = QuestionDetector();
   final _audio = AudioCaptureService();
   final _systemAudio = SystemAudioCapture();
-  final _systemVad = PcmVad();
+  final _systemWav = PcmWavWriter();
+  final _systemVad = PcmVad(silenceMsToEnd: 1200, maxUtteranceMs: 14000);
 
   SttEngine? _micStt;
   SttEngine? _systemStt;
@@ -148,6 +152,8 @@ class SessionController extends Notifier<SessionState> {
   DateTime? _startedAt;
   DateTime? _lastSuggestionAt;
   String? _audioPath;
+  String? _micTempPath;
+  String? _systemAudioPath;
   bool _llmBusy = false;
 
   @override
@@ -180,7 +186,10 @@ class SessionController extends Notifier<SessionState> {
     await repo.upsertMeeting(meeting);
 
     final dir = await getApplicationDocumentsDirectory();
-    _audioPath = p.join(dir.path, 'cloakly', 'audio', '$id.wav');
+    final audioDir = p.join(dir.path, 'cloakly', 'audio');
+    _audioPath = p.join(audioDir, '$id.wav');
+    _systemAudioPath = p.join(audioDir, '$id-system.tmp.wav');
+    _micTempPath = p.join(audioDir, '$id-mic.tmp.wav');
 
     state = SessionState(
       phase: SessionPhase.live,
@@ -233,7 +242,9 @@ class SessionController extends Notifier<SessionState> {
           );
           await _systemStt!.start();
           _systemVad.reset();
+          await _systemWav.open(_systemAudioPath!);
           _systemPcmSub = _systemAudio.start().listen((pcm) {
+            _systemWav.add(pcm);
             _systemStt?.addAudio(pcm);
             _systemVad.accept(
               pcm,
@@ -242,6 +253,7 @@ class SessionController extends Notifier<SessionState> {
           });
           systemOn = true;
         } catch (error) {
+          await _systemWav.close();
           systemHint = '系統聲音啟動失敗：$error';
           systemOn = false;
         }
@@ -265,7 +277,7 @@ class SessionController extends Notifier<SessionState> {
     if (!settings.isDemo) {
       try {
         await _audio.start(
-          wavPath: _audioPath!,
+          wavPath: _micTempPath!,
           onPcm: (pcm) => _micStt?.addAudio(pcm),
           onUtteranceEnd: () => unawaited(_micStt?.flush()),
         );
@@ -290,7 +302,7 @@ class SessionController extends Notifier<SessionState> {
     String? fallback,
   }) {
     if (settings.hasLiveDiarize && systemOn) {
-      return '耳機會議：你是「我」。系統聲音會拆成對方A、對方B。';
+      return '耳機會議：你是「我」。系統聲音會拆成對方A、對方B、對方C。';
     }
     if (settings.hasLiveDiarize && !systemOn) {
       return '現場會議：同一支麥克風會拆成發言人 1、2、3。';
@@ -525,6 +537,7 @@ class SessionController extends Notifier<SessionState> {
     _pauseTimer?.cancel();
     await _systemPcmSub?.cancel();
     _systemPcmSub = null;
+    await _systemWav.close();
     await _systemAudio.stop();
     await _micSttSub?.cancel();
     await _systemSttSub?.cancel();
@@ -533,6 +546,37 @@ class SessionController extends Notifier<SessionState> {
     _micStt = null;
     _systemStt = null;
     await _audio.stop();
+    final micTemp = _micTempPath;
+    final systemTemp = _systemAudioPath;
+    final outPath = _audioPath;
+    if (micTemp != null && outPath != null) {
+      try {
+        await mixMonoWavFiles(
+          micPath: micTemp,
+          systemPath: systemTemp,
+          outPath: outPath,
+        );
+      } catch (_) {
+        final leftover = File(micTemp);
+        if (await leftover.exists() && micTemp != outPath) {
+          await leftover.copy(outPath);
+        }
+      }
+      final mixed = File(outPath);
+      if (await mixed.exists()) {
+        try {
+          final m4aPath = await AacEncoder.encodeWav(outPath);
+          if (m4aPath != outPath) {
+            await mixed.delete();
+            _audioPath = m4aPath;
+          }
+        } catch (_) {
+          // Keep the wav if AAC encoding is unavailable.
+        }
+      }
+    }
+    _micTempPath = null;
+    _systemAudioPath = null;
     await WakelockPlus.disable();
   }
 }

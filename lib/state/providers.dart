@@ -40,12 +40,16 @@ final meetingsProvider =
 
 class MeetingsNotifier extends AsyncNotifier<List<Meeting>> {
   @override
-  Future<List<Meeting>> build() {
-    return ref.read(meetingRepositoryProvider).list();
+  Future<List<Meeting>> build() async {
+    final repo = ref.read(meetingRepositoryProvider);
+    await repo.purgeOrphanAudio();
+    return repo.list();
   }
 
   Future<void> refresh() async {
-    state = AsyncData(await ref.read(meetingRepositoryProvider).list());
+    final repo = ref.read(meetingRepositoryProvider);
+    await repo.purgeOrphanAudio();
+    state = AsyncData(await repo.list());
   }
 
   Future<void> remove(String id) async {

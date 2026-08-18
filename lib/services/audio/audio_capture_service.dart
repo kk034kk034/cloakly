@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cloakly/core/constants.dart';
+import 'package:cloakly/services/audio/pcm_wav_writer.dart';
 import 'package:cloakly/services/audio/wav.dart';
 import 'package:record/record.dart';
 
@@ -10,10 +10,8 @@ class AudioCaptureService {
   AudioCaptureService();
 
   final AudioRecorder _recorder = AudioRecorder();
+  final _wav = PcmWavWriter();
   StreamSubscription<Uint8List>? _sub;
-  RandomAccessFile? _file;
-  Future<void> _writeQueue = Future.value();
-  int _dataLength = 0;
   bool _inSpeech = false;
   int _silenceMs = 0;
   int _speechMs = 0;
@@ -35,11 +33,7 @@ class AudioCaptureService {
       throw StateError('沒有麥克風權限');
     }
 
-    final file = File(wavPath);
-    await file.parent.create(recursive: true);
-    _file = await file.open(mode: FileMode.write);
-    await _file!.writeFrom(Uint8List(44));
-    _dataLength = 0;
+    await _wav.open(wavPath);
     _inSpeech = false;
     _silenceMs = 0;
     _speechMs = 0;
@@ -58,10 +52,7 @@ class AudioCaptureService {
     _sub = stream.listen((pcm) {
       final chunk = Uint8List.fromList(pcm);
       _lastChunkAt = DateTime.now();
-      _writeQueue = _writeQueue.then((_) async {
-        await _file?.writeFrom(chunk);
-      });
-      _dataLength += chunk.length;
+      _wav.add(chunk);
       onPcm(chunk);
 
       final durationMs =
@@ -105,14 +96,7 @@ class AudioCaptureService {
         await _recorder.stop();
       } catch (_) {}
     }
-    await _writeQueue;
-    if (_file != null) {
-      final header = wavHeader(dataLength: _dataLength);
-      await _file!.setPosition(0);
-      await _file!.writeFrom(header);
-      await _file!.close();
-      _file = null;
-    }
+    await _wav.close();
   }
 
   DateTime? get lastChunkAt => _lastChunkAt;

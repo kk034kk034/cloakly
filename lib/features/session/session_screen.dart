@@ -271,7 +271,7 @@ class _Toolbar extends ConsumerWidget {
               size: 16,
             ),
             label: Text(
-              session.systemAudioOn ? '系統聲音：對方A/B 依聲紋拆開' : '僅麥克風',
+              session.systemAudioOn ? '系統聲音：對方A/B/C 依聲紋拆開' : '僅麥克風',
             ),
           ),
         ],

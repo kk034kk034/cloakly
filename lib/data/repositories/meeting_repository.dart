@@ -1,6 +1,14 @@
+import 'dart:io';
+
 import 'package:cloakly/data/db/app_database.dart';
 import 'package:cloakly/data/models/models.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+
+final _uuidPrefix = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+);
 
 class MeetingRepository {
   MeetingRepository(this._db);
@@ -51,11 +59,67 @@ class MeetingRepository {
   }
 
   Future<void> deleteMeeting(String id) async {
+    final meeting = await getById(id);
     final db = _db.db;
     await db.delete('transcript_lines', where: 'meeting_id = ?', whereArgs: [id]);
     await db.delete('notes', where: 'meeting_id = ?', whereArgs: [id]);
     await db.delete('suggestions', where: 'meeting_id = ?', whereArgs: [id]);
     await db.delete('meetings', where: 'id = ?', whereArgs: [id]);
+    await _deleteAudioFiles(id, meeting?.audioPath);
+    await purgeOrphanAudio();
+  }
+
+  Future<void> purgeOrphanAudio() async {
+    final keep = {for (final meeting in await list()) meeting.id};
+    final dir = await _audioDir();
+    if (!await dir.exists()) return;
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      final id = _meetingIdFromAudioName(p.basename(entity.path));
+      if (id == null || keep.contains(id)) continue;
+      try {
+        await entity.delete();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _deleteAudioFiles(String id, String? audioPath) async {
+    final dir = audioPath == null || audioPath.isEmpty
+        ? await _audioDir()
+        : Directory(p.dirname(audioPath));
+    final paths = <String>{
+      if (audioPath != null && audioPath.isNotEmpty) audioPath,
+      p.join(dir.path, '$id.m4a'),
+      p.join(dir.path, '$id.wav'),
+      p.join(dir.path, '$id-mic.wav'),
+      p.join(dir.path, '$id-system.wav'),
+      p.join(dir.path, '$id-mic.tmp.wav'),
+      p.join(dir.path, '$id-system.tmp.wav'),
+    };
+    for (final path in paths) {
+      try {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
+    }
+  }
+
+  Future<Directory> _audioDir() async {
+    final docs = await getApplicationDocumentsDirectory();
+    return Directory(p.join(docs.path, 'cloakly', 'audio'));
+  }
+
+  String? _meetingIdFromAudioName(String name) {
+    final match = _uuidPrefix.firstMatch(name);
+    if (match == null || match.start != 0) return null;
+    final rest = name.substring(match.end);
+    if (rest == '.wav' ||
+        rest == '.m4a' ||
+        (rest.startsWith('-') &&
+            (rest.endsWith('.wav') || rest.endsWith('.m4a')))) {
+      return match.group(0);
+    }
+    return null;
   }
 
   Future<List<TranscriptLine>> listLines(String meetingId) async {
