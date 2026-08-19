@@ -104,29 +104,39 @@ class MeetingRepository {
   Future<void> deleteMeeting(String id) async {
     final meeting = await getById(id);
     final db = _db.db;
-    await db.delete('transcript_lines', where: 'meeting_id = ?', whereArgs: [id]);
+    await db.delete(
+      'transcript_lines',
+      where: 'meeting_id = ?',
+      whereArgs: [id],
+    );
     await db.delete('notes', where: 'meeting_id = ?', whereArgs: [id]);
     await db.delete('suggestions', where: 'meeting_id = ?', whereArgs: [id]);
     await db.delete('meetings', where: 'id = ?', whereArgs: [id]);
-    await _deleteAudioFiles(id, meeting?.audioPath);
+    await _deleteInternalAudioFiles(id, meeting?.audioPath);
     await purgeOrphanAudio();
   }
 
   Future<void> purgeOrphanAudio() async {
     final keep = {for (final meeting in await list()) meeting.id};
-    final root = await _audioRoot();
-    if (!await root.exists()) return;
-    await for (final entity in root.list(recursive: true, followLinks: false)) {
-      if (entity is! File) continue;
-      final id = _meetingIdFromAudioName(p.basename(entity.path));
-      if (id == null || keep.contains(id)) continue;
-      try {
-        await entity.delete();
-      } catch (_) {}
+    final roots = [await _audioRoot()];
+    for (final root in roots) {
+      if (!await root.exists()) continue;
+      await for (final entity in root.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        if (entity is! File) continue;
+        final name = p.basename(entity.path);
+        final id = _meetingIdFromAudioName(name);
+        if (id == null || keep.contains(id)) continue;
+        try {
+          await entity.delete();
+        } catch (_) {}
+      }
     }
   }
 
-  Future<void> _deleteAudioFiles(String id, String? audioPath) async {
+  Future<void> _deleteInternalAudioFiles(String id, String? audioPath) async {
     final dir = audioPath == null || audioPath.isEmpty
         ? await audioDirFor(null)
         : Directory(p.dirname(audioPath));
@@ -134,8 +144,6 @@ class MeetingRepository {
       if (audioPath != null && audioPath.isNotEmpty) audioPath,
       p.join(dir.path, '$id.m4a'),
       p.join(dir.path, '$id.wav'),
-      p.join(dir.path, '$id-mic.wav'),
-      p.join(dir.path, '$id-system.wav'),
       p.join(dir.path, '$id-mic.tmp.wav'),
       p.join(dir.path, '$id-system.tmp.wav'),
     };
@@ -148,17 +156,20 @@ class MeetingRepository {
   }
 
   Future<Directory> audioDirFor(String? projectId) async {
-    final folder = (projectId == null || projectId.isEmpty)
-        ? '_inbox'
-        : projectId;
-    final dir = Directory(p.join((await _audioRoot()).path, folder));
+    final dir = projectId == null || projectId.isEmpty
+        ? await _audioRoot()
+        : Directory(p.join((await _audioRoot()).path, projectId));
     await dir.create(recursive: true);
     return dir;
   }
 
+  Future<Directory> _storageRoot() async {
+    final support = await getApplicationSupportDirectory();
+    return Directory(p.join(support.path, 'cloakly'));
+  }
+
   Future<Directory> _audioRoot() async {
-    final docs = await getApplicationDocumentsDirectory();
-    return Directory(p.join(docs.path, 'cloakly', 'audio'));
+    return Directory(p.join((await _storageRoot()).path, 'recordings'));
   }
 
   String? _meetingIdFromAudioName(String name) {

@@ -582,9 +582,30 @@ class SessionController extends Notifier<SessionState> {
           // Keep the wav if AAC encoding is unavailable.
         }
       }
+      await _deleteScratchAudioFiles(
+        micTemp: micTemp,
+        systemTemp: systemTemp,
+        wavPath: _audioPath == outPath ? null : outPath,
+      );
     }
     _micTempPath = null;
     _systemAudioPath = null;
     await WakelockPlus.disable();
+  }
+
+  Future<void> _deleteScratchAudioFiles({
+    required String micTemp,
+    String? systemTemp,
+    String? wavPath,
+  }) async {
+    final paths = <String>{micTemp, ?systemTemp, ?wavPath};
+    for (final path in paths) {
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {}
+    }
   }
 }

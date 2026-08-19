@@ -189,9 +189,10 @@ class MeetingDetailScreen extends ConsumerWidget {
       return;
     }
     try {
+      final exportSource = await RecordingExport.preferredM4a(source);
       final saved = await RecordingExport.saveToUserFolder(
-        source: source,
-        fileName: RecordingExport.fileNameFor(data.meeting, source),
+        source: exportSource,
+        fileName: RecordingExport.fileNameFor(data.meeting, exportSource),
         projectFolder: projectFolder,
       );
       if (!context.mounted) return;
@@ -225,12 +226,13 @@ class MeetingDetailScreen extends ConsumerWidget {
       return;
     }
 
-    final name = RecordingExport.fileNameFor(data.meeting, source);
+    final exportSource = await RecordingExport.preferredM4a(source);
+    final name = RecordingExport.fileNameFor(data.meeting, exportSource);
     final dest = File(p.join((await getTemporaryDirectory()).path, name));
     if (await dest.exists()) {
       await dest.delete();
     }
-    await source.copy(dest.path);
+    await exportSource.copy(dest.path);
     if (!context.mounted) return;
 
     final mime = p.extension(name).toLowerCase() == '.m4a'
