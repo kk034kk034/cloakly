@@ -1,5 +1,7 @@
 import 'package:cloakly/app.dart';
 import 'package:cloakly/data/db/app_database.dart';
+import 'package:cloakly/data/repositories/meeting_repository.dart';
+import 'package:cloakly/data/repositories/project_repository.dart';
 import 'package:cloakly/data/repositories/settings_repository.dart';
 import 'package:cloakly/state/providers.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = await AppDatabase.open();
   bootSettings = await SettingsRepository().load();
+  final migrated = await ProjectRepository().loadLibrary();
+  if (migrated.migratedProjectId != null) {
+    await MeetingRepository(database)
+        .assignUnassignedTo(migrated.migratedProjectId!);
+  }
   runApp(
     ProviderScope(
       overrides: [

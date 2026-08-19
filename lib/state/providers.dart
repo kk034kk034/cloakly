@@ -2,6 +2,7 @@ import 'package:cloakly/data/db/app_database.dart';
 import 'package:cloakly/data/models/models.dart';
 import 'package:cloakly/data/repositories/meeting_repository.dart';
 import 'package:cloakly/data/repositories/settings_repository.dart';
+import 'package:cloakly/state/project_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 AppSettings? bootSettings;
@@ -43,13 +44,22 @@ class MeetingsNotifier extends AsyncNotifier<List<Meeting>> {
   Future<List<Meeting>> build() async {
     final repo = ref.read(meetingRepositoryProvider);
     await repo.purgeOrphanAudio();
-    return repo.list();
+    final library = await ref.watch(projectsProvider.future);
+    if (!library.hasSelection) {
+      return repo.list(unassignedOnly: true);
+    }
+    return repo.list(projectId: library.active!.id);
   }
 
   Future<void> refresh() async {
     final repo = ref.read(meetingRepositoryProvider);
     await repo.purgeOrphanAudio();
-    state = AsyncData(await repo.list());
+    final library = ref.read(projectsProvider).valueOrNull;
+    if (library == null || !library.hasSelection) {
+      state = AsyncData(await repo.list(unassignedOnly: true));
+      return;
+    }
+    state = AsyncData(await repo.list(projectId: library.active!.id));
   }
 
   Future<void> remove(String id) async {

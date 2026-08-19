@@ -53,7 +53,7 @@ class ProjectIndexer {
   static const maxDocs = 80;
   static const maxIncluded = 20;
 
-  Future<ProjectPack> index(String folderPath) async {
+  Future<ProjectPack> index(String folderPath, {String? id}) async {
     final root = Directory(folderPath);
     if (!await root.exists()) {
       throw StateError('找不到資料夾：$folderPath');
@@ -75,6 +75,7 @@ class ProjectIndexer {
     ];
 
     return ProjectPack(
+      id: id ?? '',
       folderPath: folderPath,
       name: p.basename(folderPath),
       indexedAt: DateTime.now(),

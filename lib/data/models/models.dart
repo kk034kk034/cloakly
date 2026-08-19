@@ -8,10 +8,10 @@ class Meeting {
     required this.title,
     required this.startedAt,
     required this.status,
-    required this.listenMode,
     this.endedAt,
     this.minutesMarkdown,
     this.audioPath,
+    this.projectId,
   });
 
   final String id;
@@ -21,7 +21,7 @@ class Meeting {
   final MeetingStatus status;
   final String? minutesMarkdown;
   final String? audioPath;
-  final ListenMode listenMode;
+  final String? projectId;
 
   Duration get duration {
     final end = endedAt ?? DateTime.now();
@@ -34,7 +34,6 @@ class Meeting {
     MeetingStatus? status,
     String? minutesMarkdown,
     String? audioPath,
-    ListenMode? listenMode,
   }) {
     return Meeting(
       id: id,
@@ -44,7 +43,7 @@ class Meeting {
       status: status ?? this.status,
       minutesMarkdown: minutesMarkdown ?? this.minutesMarkdown,
       audioPath: audioPath ?? this.audioPath,
-      listenMode: listenMode ?? this.listenMode,
+      projectId: projectId,
     );
   }
 
@@ -56,10 +55,12 @@ class Meeting {
         'status': status.name,
         'minutes_markdown': minutesMarkdown,
         'audio_path': audioPath,
-        'listen_mode': listenMode.name,
+        'listen_mode': 'meeting',
+        'project_id': projectId,
       };
 
   factory Meeting.fromMap(Map<String, Object?> map) {
+    final rawProjectId = map['project_id'] as String?;
     return Meeting(
       id: map['id']! as String,
       title: map['title']! as String,
@@ -71,7 +72,9 @@ class Meeting {
       status: MeetingStatus.values.byName(map['status']! as String),
       minutesMarkdown: map['minutes_markdown'] as String?,
       audioPath: map['audio_path'] as String?,
-      listenMode: ListenMode.values.byName(map['listen_mode']! as String),
+      projectId: rawProjectId == null || rawProjectId.isEmpty
+          ? null
+          : rawProjectId,
     );
   }
 }
@@ -215,7 +218,6 @@ class AppSettings {
     required this.personalContext,
     required this.autoTrigger,
     required this.pace,
-    required this.listenMode,
     this.captureSystemAudio = true,
   });
 
@@ -225,7 +227,6 @@ class AppSettings {
   final String personalContext;
   final AutoTrigger autoTrigger;
   final Pace pace;
-  final ListenMode listenMode;
   final bool captureSystemAudio;
 
   bool get hasLlm => openaiApiKey.trim().isNotEmpty;
@@ -239,7 +240,6 @@ class AppSettings {
         personalContext: '',
         autoTrigger: AutoTrigger.questions,
         pace: Pace.balanced,
-        listenMode: ListenMode.meeting,
         captureSystemAudio: true,
       );
 
@@ -250,7 +250,6 @@ class AppSettings {
     String? personalContext,
     AutoTrigger? autoTrigger,
     Pace? pace,
-    ListenMode? listenMode,
     bool? captureSystemAudio,
   }) {
     return AppSettings(
@@ -260,7 +259,6 @@ class AppSettings {
       personalContext: personalContext ?? this.personalContext,
       autoTrigger: autoTrigger ?? this.autoTrigger,
       pace: pace ?? this.pace,
-      listenMode: listenMode ?? this.listenMode,
       captureSystemAudio: captureSystemAudio ?? this.captureSystemAudio,
     );
   }

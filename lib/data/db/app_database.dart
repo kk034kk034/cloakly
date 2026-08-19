@@ -25,7 +25,7 @@ class AppDatabase {
     final database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 1,
+        version: 2,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE meetings (
@@ -36,7 +36,8 @@ class AppDatabase {
               status TEXT NOT NULL,
               minutes_markdown TEXT,
               audio_path TEXT,
-              listen_mode TEXT NOT NULL
+              listen_mode TEXT NOT NULL,
+              project_id TEXT
             )
           ''');
           await db.execute('''
@@ -68,6 +69,13 @@ class AppDatabase {
               created_at INTEGER NOT NULL
             )
           ''');
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await db.execute(
+              'ALTER TABLE meetings ADD COLUMN project_id TEXT',
+            );
+          }
         },
       ),
     );

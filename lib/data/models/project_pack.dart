@@ -66,6 +66,7 @@ class KnowledgeDoc {
 
 class ProjectPack {
   const ProjectPack({
+    required this.id,
     required this.folderPath,
     required this.name,
     required this.indexedAt,
@@ -73,6 +74,7 @@ class ProjectPack {
     this.briefing,
   });
 
+  final String id;
   final String folderPath;
   final String name;
   final DateTime indexedAt;
@@ -85,20 +87,26 @@ class ProjectPack {
   int get includedCount => includedDocs.length;
 
   ProjectPack copyWith({
+    String? id,
+    String? folderPath,
+    String? name,
+    DateTime? indexedAt,
     List<KnowledgeDoc>? docs,
     String? briefing,
     bool clearBriefing = false,
   }) {
     return ProjectPack(
-      folderPath: folderPath,
-      name: name,
-      indexedAt: indexedAt,
+      id: id ?? this.id,
+      folderPath: folderPath ?? this.folderPath,
+      name: name ?? this.name,
+      indexedAt: indexedAt ?? this.indexedAt,
       docs: docs ?? this.docs,
       briefing: clearBriefing ? null : (briefing ?? this.briefing),
     );
   }
 
   Map<String, Object?> toJson() => {
+        'id': id,
         'folderPath': folderPath,
         'name': name,
         'indexedAt': indexedAt.millisecondsSinceEpoch,
@@ -108,8 +116,12 @@ class ProjectPack {
 
   factory ProjectPack.fromJson(Map<String, dynamic> json) {
     final rawDocs = json['docs'] as List<dynamic>? ?? const [];
+    final folderPath = json['folderPath']! as String;
     return ProjectPack(
-      folderPath: json['folderPath']! as String,
+      id: (json['id'] as String?)?.trim().isNotEmpty == true
+          ? json['id'] as String
+          : folderPath,
+      folderPath: folderPath,
       name: json['name']! as String,
       indexedAt:
           DateTime.fromMillisecondsSinceEpoch(json['indexedAt']! as int),
@@ -122,5 +134,27 @@ class ProjectPack {
           .toList(),
       briefing: json['briefing'] as String?,
     );
+  }
+}
+
+class ProjectLibrary {
+  const ProjectLibrary({
+    this.projects = const [],
+    this.activeId,
+  });
+
+  static const unassignedId = '__unassigned__';
+
+  final List<ProjectPack> projects;
+  final String? activeId;
+
+  bool get hasSelection => active != null;
+
+  ProjectPack? get active {
+    if (activeId == null || activeId == unassignedId) return null;
+    for (final project in projects) {
+      if (project.id == activeId) return project;
+    }
+    return null;
   }
 }

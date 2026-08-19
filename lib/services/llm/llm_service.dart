@@ -52,7 +52,6 @@ class LlmService {
   }
 
   Future<String> suggestAnswer({
-    required ListenMode mode,
     required List<TranscriptLine> recent,
     required String trigger,
     String projectContext = '',
@@ -67,7 +66,7 @@ class LlmService {
         ? '（尚未選定專案資料夾。沒有規格、WBS、Issue 時，禁止編造時程與承諾。）'
         : projectContext.trim();
     return complete(
-      system: mode.systemPrompt,
+      system: suggestionSystemPrompt,
       user: '''
 個人背景：
 $personal

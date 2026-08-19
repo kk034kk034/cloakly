@@ -1,3 +1,5 @@
+import 'package:cloakly/data/models/models.dart';
+import 'package:cloakly/data/models/project_pack.dart';
 import 'package:cloakly/services/detection/question_detector.dart';
 import 'package:cloakly/services/llm/llm_service.dart';
 import 'package:cloakly/services/project/project_indexer.dart';
@@ -73,5 +75,43 @@ void main() {
   test('時間格式', () {
     expect(formatDuration(const Duration(seconds: 75)), '01:15');
     expect(formatDuration(const Duration(hours: 1, minutes: 2, seconds: 3)), '1:02:03');
+  });
+
+  test('舊專案 JSON 沒有 id 時會用資料夾路徑當 id', () {
+    final pack = ProjectPack.fromJson({
+      'folderPath': r'C:\work\alpha',
+      'name': 'alpha',
+      'indexedAt': 0,
+      'docs': const [],
+    });
+    expect(pack.id, r'C:\work\alpha');
+    expect(pack.name, 'alpha');
+  });
+
+  test('會議可綁定專案，缺 project_id 視為未分類', () {
+    final assigned = Meeting.fromMap({
+      'id': 'm1',
+      'title': '週會',
+      'started_at': 0,
+      'ended_at': null,
+      'status': 'completed',
+      'minutes_markdown': null,
+      'audio_path': null,
+      'listen_mode': 'meeting',
+      'project_id': 'p1',
+    });
+    expect(assigned.projectId, 'p1');
+
+    final legacy = Meeting.fromMap({
+      'id': 'm2',
+      'title': '舊會議',
+      'started_at': 0,
+      'ended_at': null,
+      'status': 'completed',
+      'minutes_markdown': null,
+      'audio_path': null,
+      'listen_mode': 'meeting',
+    });
+    expect(legacy.projectId, isNull);
   });
 }

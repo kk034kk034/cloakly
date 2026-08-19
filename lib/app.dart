@@ -13,24 +13,26 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/',
       builder: (context, state) => const HomeScreen(),
-    ),
-    GoRoute(
-      path: '/session',
-      builder: (context, state) => const SessionScreen(),
-    ),
-    GoRoute(
-      path: '/meeting/:id',
-      builder: (context, state) => MeetingDetailScreen(
-        meetingId: state.pathParameters['id']!,
-      ),
-    ),
-    GoRoute(
-      path: '/project',
-      builder: (context, state) => const ProjectScreen(),
-    ),
-    GoRoute(
-      path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
+      routes: [
+        GoRoute(
+          path: 'session',
+          builder: (context, state) => const SessionScreen(),
+        ),
+        GoRoute(
+          path: 'meeting/:id',
+          builder: (context, state) => MeetingDetailScreen(
+            meetingId: state.pathParameters['id']!,
+          ),
+        ),
+        GoRoute(
+          path: 'project',
+          builder: (context, state) => const ProjectScreen(),
+        ),
+        GoRoute(
+          path: 'settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
+      ],
     ),
   ],
 );

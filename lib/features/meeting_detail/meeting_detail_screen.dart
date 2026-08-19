@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:cloakly/data/models/models.dart';
 import 'package:cloakly/services/audio/recording_export.dart';
 import 'package:cloakly/services/llm/llm_service.dart';
+import 'package:cloakly/state/project_provider.dart';
 import 'package:cloakly/state/providers.dart';
 import 'package:cloakly/widgets/meeting_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -22,22 +24,28 @@ class MeetingDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bundle = ref.watch(meetingBundleProvider(meetingId));
     return bundle.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      loading: () => Scaffold(
+        appBar: AppBar(
+          leading: BackButton(onPressed: () => _goHome(context)),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(
+          leading: BackButton(onPressed: () => _goHome(context)),
+        ),
         body: Center(child: Text('讀取失敗：$error')),
       ),
       data: (data) => DefaultTabController(
         length: 4,
         child: Scaffold(
           appBar: AppBar(
+            leading: BackButton(onPressed: () => _goHome(context)),
             title: Text(data.meeting.title),
             actions: [
               IconButton(
                 tooltip: '分享',
-                onPressed: () => _showShareOptions(context, data),
+                onPressed: () => _showShareOptions(context, ref, data),
                 icon: const Icon(Icons.ios_share),
               ),
             ],
@@ -67,10 +75,20 @@ class MeetingDetailScreen extends ConsumerWidget {
     );
   }
 
+  void _goHome(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
   Future<void> _showShareOptions(
     BuildContext context,
+    WidgetRef ref,
     MeetingBundle data,
   ) async {
+    final projectFolder = _projectFolder(ref, data.meeting);
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -91,10 +109,14 @@ class MeetingDetailScreen extends ConsumerWidget {
               ListTile(
                 leading: const Icon(Icons.folder_outlined),
                 title: const Text('儲存錄音到檔案'),
-                subtitle: const Text('複製到下載／檔案 App，不走網路'),
+                subtitle: Text(
+                  projectFolder == null
+                      ? '沒有專案時會存到下載資料夾'
+                      : '存到專案資料夾裡的「錄音」',
+                ),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  _saveAudio(context, data);
+                  _saveAudio(context, data, projectFolder);
                 },
               ),
               ListTile(
@@ -111,6 +133,16 @@ class MeetingDetailScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  String? _projectFolder(WidgetRef ref, Meeting meeting) {
+    final id = meeting.projectId;
+    if (id == null || id.isEmpty) return null;
+    final projects = ref.read(projectsProvider).valueOrNull?.projects ?? const [];
+    for (final project in projects) {
+      if (project.id == id) return project.folderPath;
+    }
+    return null;
   }
 
   Future<void> _shareText(BuildContext context, MeetingBundle data) async {
@@ -143,7 +175,11 @@ class MeetingDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _saveAudio(BuildContext context, MeetingBundle data) async {
+  Future<void> _saveAudio(
+    BuildContext context,
+    MeetingBundle data,
+    String? projectFolder,
+  ) async {
     final source = await RecordingExport.find(data.meeting);
     if (!context.mounted) return;
     if (source == null) {
@@ -156,15 +192,20 @@ class MeetingDetailScreen extends ConsumerWidget {
       final saved = await RecordingExport.saveToUserFolder(
         source: source,
         fileName: RecordingExport.fileNameFor(data.meeting, source),
+        projectFolder: projectFolder,
       );
       if (!context.mounted) return;
-      final where = Platform.isIOS
-          ? '檔案 App → 我的 iPhone → Cloakly'
-          : Platform.isAndroid
-              ? '下載 / Cloakly'
-              : saved;
+      final inProject = projectFolder != null &&
+          p.normalize(saved).startsWith(p.normalize(projectFolder));
+      final where = inProject
+          ? saved
+          : Platform.isIOS
+              ? '檔案 App → 我的 iPhone → Cloakly'
+              : Platform.isAndroid
+                  ? '下載 / Cloakly'
+                  : saved;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已存到$where')),
+        SnackBar(content: Text('已存到 $where')),
       );
     } catch (error) {
       if (!context.mounted) return;

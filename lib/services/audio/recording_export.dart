@@ -2,17 +2,21 @@ import 'dart:io';
 
 import 'package:cloakly/data/models/models.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class RecordingExport {
   static const _channel = MethodChannel('cloakly/files');
+  static const recordingsSubdir = '錄音';
 
   static String fileNameFor(Meeting meeting, [File? file]) {
-    final cleaned = meeting.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+    final cleaned =
+        meeting.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
     final title = cleaned.isEmpty ? 'cloakly' : cleaned;
     final ext = file == null ? '.m4a' : p.extension(file.path);
-    return '$title${ext.isEmpty ? '.m4a' : ext}';
+    final stamp = DateFormat('yyyyMMdd-HHmm').format(meeting.startedAt);
+    return '$stamp $title${ext.isEmpty ? '.m4a' : ext}';
   }
 
   static String formatBytes(int bytes) {
@@ -35,6 +39,24 @@ class RecordingExport {
         meeting.audioPath!,
       p.join(docs.path, 'cloakly', 'audio', '${meeting.id}.m4a'),
       p.join(docs.path, 'cloakly', 'audio', '${meeting.id}.wav'),
+      p.join(docs.path, 'cloakly', 'audio', '_inbox', '${meeting.id}.m4a'),
+      p.join(docs.path, 'cloakly', 'audio', '_inbox', '${meeting.id}.wav'),
+      if (meeting.projectId != null && meeting.projectId!.isNotEmpty) ...[
+        p.join(
+          docs.path,
+          'cloakly',
+          'audio',
+          meeting.projectId!,
+          '${meeting.id}.m4a',
+        ),
+        p.join(
+          docs.path,
+          'cloakly',
+          'audio',
+          meeting.projectId!,
+          '${meeting.id}.wav',
+        ),
+      ],
     };
     for (final path in paths) {
       final file = File(path);
@@ -45,11 +67,24 @@ class RecordingExport {
     return null;
   }
 
-  /// Copies the recording to a user-visible folder. No upload.
+  /// Copies the recording to the project folder when possible. No upload.
   static Future<String> saveToUserFolder({
     required File source,
     required String fileName,
+    String? projectFolder,
   }) async {
+    if (projectFolder != null && projectFolder.trim().isNotEmpty) {
+      try {
+        return await saveToProjectFolder(
+          source: source,
+          projectFolder: projectFolder,
+          fileName: fileName,
+        );
+      } catch (_) {
+        // Fall back to Downloads if the project folder is not writable.
+      }
+    }
+
     if (Platform.isAndroid) {
       final saved = await _channel.invokeMethod<String>('saveToDownloads', {
         'sourcePath': source.path,
@@ -73,6 +108,16 @@ class RecordingExport {
         'Cloakly',
       ),
     );
+    await dir.create(recursive: true);
+    return _copyTo(p.join(dir.path, fileName), source);
+  }
+
+  static Future<String> saveToProjectFolder({
+    required File source,
+    required String projectFolder,
+    required String fileName,
+  }) async {
+    final dir = Directory(p.join(projectFolder, recordingsSubdir));
     await dir.create(recursive: true);
     return _copyTo(p.join(dir.path, fileName), source);
   }

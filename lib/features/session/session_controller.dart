@@ -7,6 +7,7 @@ import 'package:cloakly/services/audio/aac_encoder.dart';
 import 'package:cloakly/services/audio/audio_capture_service.dart';
 import 'package:cloakly/services/audio/pcm_vad.dart';
 import 'package:cloakly/services/audio/pcm_wav_writer.dart';
+import 'package:cloakly/services/audio/recording_keep_alive.dart';
 import 'package:cloakly/services/audio/system_audio_capture.dart';
 import 'package:cloakly/services/detection/question_detector.dart';
 import 'package:cloakly/services/llm/llm_service.dart';
@@ -17,7 +18,6 @@ import 'package:cloakly/state/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -31,7 +31,6 @@ class SessionState {
     required this.phase,
     required this.meetingId,
     required this.title,
-    required this.mode,
     required this.trigger,
     required this.pace,
     required this.lines,
@@ -45,12 +44,12 @@ class SessionState {
     required this.queuedQuestion,
     required this.systemAudioOn,
     this.systemAudioHint,
+    this.projectName,
   });
 
   final SessionPhase phase;
   final String meetingId;
   final String title;
-  final ListenMode mode;
   final AutoTrigger trigger;
   final Pace pace;
   final List<TranscriptLine> lines;
@@ -64,6 +63,7 @@ class SessionState {
   final String? queuedQuestion;
   final bool systemAudioOn;
   final String? systemAudioHint;
+  final String? projectName;
 
   Suggestion? get latestSuggestion =>
       suggestions.isEmpty ? null : suggestions.last;
@@ -72,7 +72,6 @@ class SessionState {
         phase: SessionPhase.idle,
         meetingId: '',
         title: '',
-        mode: ListenMode.meeting,
         trigger: AutoTrigger.questions,
         pace: Pace.balanced,
         lines: [],
@@ -86,13 +85,13 @@ class SessionState {
         queuedQuestion: null,
         systemAudioOn: false,
         systemAudioHint: null,
+        projectName: null,
       );
 
   SessionState copyWith({
     SessionPhase? phase,
     String? meetingId,
     String? title,
-    ListenMode? mode,
     AutoTrigger? trigger,
     Pace? pace,
     List<TranscriptLine>? lines,
@@ -106,6 +105,7 @@ class SessionState {
     String? queuedQuestion,
     bool? systemAudioOn,
     String? systemAudioHint,
+    String? projectName,
     bool clearError = false,
     bool clearPartial = false,
     bool clearQueued = false,
@@ -114,7 +114,6 @@ class SessionState {
       phase: phase ?? this.phase,
       meetingId: meetingId ?? this.meetingId,
       title: title ?? this.title,
-      mode: mode ?? this.mode,
       trigger: trigger ?? this.trigger,
       pace: pace ?? this.pace,
       lines: lines ?? this.lines,
@@ -129,6 +128,7 @@ class SessionState {
           clearQueued ? null : (queuedQuestion ?? this.queuedQuestion),
       systemAudioOn: systemAudioOn ?? this.systemAudioOn,
       systemAudioHint: systemAudioHint ?? this.systemAudioHint,
+      projectName: projectName ?? this.projectName,
     );
   }
 }
@@ -154,6 +154,7 @@ class SessionController extends Notifier<SessionState> {
   String? _audioPath;
   String? _micTempPath;
   String? _systemAudioPath;
+  String? _projectId;
   bool _llmBusy = false;
 
   @override
@@ -166,12 +167,13 @@ class SessionController extends Notifier<SessionState> {
 
   Future<void> start({
     required String title,
-    required ListenMode mode,
     required AutoTrigger trigger,
     required Pace pace,
   }) async {
     final settings = ref.read(settingsProvider);
     final repo = ref.read(meetingRepositoryProvider);
+    final project = ref.read(projectsProvider).valueOrNull?.active;
+    _projectId = project?.id;
     final id = _uuid.v4();
     final now = DateTime.now();
     final meeting = Meeting(
@@ -181,12 +183,11 @@ class SessionController extends Notifier<SessionState> {
           : title.trim(),
       startedAt: now,
       status: MeetingStatus.recording,
-      listenMode: mode,
+      projectId: _projectId,
     );
     await repo.upsertMeeting(meeting);
 
-    final dir = await getApplicationDocumentsDirectory();
-    final audioDir = p.join(dir.path, 'cloakly', 'audio');
+    final audioDir = (await repo.audioDirFor(_projectId)).path;
     _audioPath = p.join(audioDir, '$id.wav');
     _systemAudioPath = p.join(audioDir, '$id-system.tmp.wav');
     _micTempPath = p.join(audioDir, '$id-mic.tmp.wav');
@@ -195,7 +196,6 @@ class SessionController extends Notifier<SessionState> {
       phase: SessionPhase.live,
       meetingId: id,
       title: meeting.title,
-      mode: mode,
       trigger: trigger,
       pace: pace,
       lines: const [],
@@ -209,6 +209,7 @@ class SessionController extends Notifier<SessionState> {
       queuedQuestion: null,
       systemAudioOn: false,
       systemAudioHint: null,
+      projectName: project?.name,
     );
 
     _startedAt = now;
@@ -276,12 +277,18 @@ class SessionController extends Notifier<SessionState> {
 
     if (!settings.isDemo) {
       try {
+        final allowed = await _audio.hasPermission();
+        if (!allowed) {
+          throw StateError('沒有麥克風權限');
+        }
+        await RecordingKeepAlive.start();
         await _audio.start(
           wavPath: _micTempPath!,
           onPcm: (pcm) => _micStt?.addAudio(pcm),
           onUtteranceEnd: () => unawaited(_micStt?.flush()),
         );
       } catch (error) {
+        await RecordingKeepAlive.stop();
         state = state.copyWith(error: error.toString());
       }
     }
@@ -313,21 +320,19 @@ class SessionController extends Notifier<SessionState> {
   Future<void> pause() async {
     if (state.phase != SessionPhase.live) return;
     await _audio.pause();
+    await RecordingKeepAlive.stop();
     state = state.copyWith(phase: SessionPhase.paused);
   }
 
   Future<void> resume() async {
     if (state.phase != SessionPhase.paused) return;
+    await RecordingKeepAlive.start();
     await _audio.resume();
     state = state.copyWith(phase: SessionPhase.live);
   }
 
   void setTrigger(AutoTrigger trigger) {
     state = state.copyWith(trigger: trigger);
-  }
-
-  void setMode(ListenMode mode) {
-    state = state.copyWith(mode: mode);
   }
 
   Future<void> addNote(String text) async {
@@ -367,7 +372,9 @@ class SessionController extends Notifier<SessionState> {
 
     try {
       final projectContext =
-          await ref.read(projectProvider.notifier).contextBlock();
+          await ref
+              .read(projectsProvider.notifier)
+              .contextBlock(projectId: _projectId);
       final result = await llm.generateMinutes(
         meeting: existing,
         lines: state.lines.where((line) => line.isFinal).toList(),
@@ -381,7 +388,6 @@ class SessionController extends Notifier<SessionState> {
         status: MeetingStatus.completed,
         minutesMarkdown: result.minutesMarkdown,
         audioPath: _audioPath,
-        listenMode: state.mode,
       );
       await repo.upsertMeeting(updated);
     } catch (error) {
@@ -494,9 +500,10 @@ class SessionController extends Notifier<SessionState> {
       final contextLines =
           recent.length > 12 ? recent.sublist(recent.length - 12) : recent;
       final projectContext =
-          await ref.read(projectProvider.notifier).contextBlock();
+          await ref
+              .read(projectsProvider.notifier)
+              .contextBlock(projectId: _projectId);
       final answer = await llm.suggestAnswer(
-        mode: state.mode,
         recent: contextLines,
         trigger: trigger,
         projectContext: projectContext,
@@ -546,6 +553,7 @@ class SessionController extends Notifier<SessionState> {
     _micStt = null;
     _systemStt = null;
     await _audio.stop();
+    await RecordingKeepAlive.stop();
     final micTemp = _micTempPath;
     final systemTemp = _systemAudioPath;
     final outPath = _audioPath;

@@ -10,6 +10,10 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Cloakly 需要麥克風來即時轉寫會議並產生筆記與回答提示。</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

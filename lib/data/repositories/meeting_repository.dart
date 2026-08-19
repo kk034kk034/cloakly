@@ -15,12 +15,55 @@ class MeetingRepository {
 
   final AppDatabase _db;
 
-  Future<List<Meeting>> list() async {
-    final rows = await _db.db.query(
-      'meetings',
-      orderBy: 'started_at DESC',
-    );
+  Future<List<Meeting>> list({String? projectId, bool unassignedOnly = false}) async {
+    final List<Map<String, Object?>> rows;
+    if (unassignedOnly) {
+      rows = await _db.db.query(
+        'meetings',
+        where: 'project_id IS NULL OR project_id = ?',
+        whereArgs: [''],
+        orderBy: 'started_at DESC',
+      );
+    } else if (projectId != null) {
+      rows = await _db.db.query(
+        'meetings',
+        where: 'project_id = ?',
+        whereArgs: [projectId],
+        orderBy: 'started_at DESC',
+      );
+    } else {
+      rows = await _db.db.query(
+        'meetings',
+        orderBy: 'started_at DESC',
+      );
+    }
     return rows.map(Meeting.fromMap).toList();
+  }
+
+  Future<int> countUnassigned() async {
+    final rows = await _db.db.rawQuery(
+      'SELECT COUNT(*) AS c FROM meetings WHERE project_id IS NULL OR project_id = ?',
+      [''],
+    );
+    return (rows.first['c'] as int?) ?? 0;
+  }
+
+  Future<void> assignUnassignedTo(String projectId) async {
+    await _db.db.update(
+      'meetings',
+      {'project_id': projectId},
+      where: 'project_id IS NULL OR project_id = ?',
+      whereArgs: [''],
+    );
+  }
+
+  Future<void> unassignProject(String projectId) async {
+    await _db.db.update(
+      'meetings',
+      {'project_id': null},
+      where: 'project_id = ?',
+      whereArgs: [projectId],
+    );
   }
 
   Future<Meeting?> getById(String id) async {
@@ -71,9 +114,9 @@ class MeetingRepository {
 
   Future<void> purgeOrphanAudio() async {
     final keep = {for (final meeting in await list()) meeting.id};
-    final dir = await _audioDir();
-    if (!await dir.exists()) return;
-    await for (final entity in dir.list()) {
+    final root = await _audioRoot();
+    if (!await root.exists()) return;
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final id = _meetingIdFromAudioName(p.basename(entity.path));
       if (id == null || keep.contains(id)) continue;
@@ -85,7 +128,7 @@ class MeetingRepository {
 
   Future<void> _deleteAudioFiles(String id, String? audioPath) async {
     final dir = audioPath == null || audioPath.isEmpty
-        ? await _audioDir()
+        ? await audioDirFor(null)
         : Directory(p.dirname(audioPath));
     final paths = <String>{
       if (audioPath != null && audioPath.isNotEmpty) audioPath,
@@ -104,7 +147,16 @@ class MeetingRepository {
     }
   }
 
-  Future<Directory> _audioDir() async {
+  Future<Directory> audioDirFor(String? projectId) async {
+    final folder = (projectId == null || projectId.isEmpty)
+        ? '_inbox'
+        : projectId;
+    final dir = Directory(p.join((await _audioRoot()).path, folder));
+    await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<Directory> _audioRoot() async {
     final docs = await getApplicationDocumentsDirectory();
     return Directory(p.join(docs.path, 'cloakly', 'audio'));
   }

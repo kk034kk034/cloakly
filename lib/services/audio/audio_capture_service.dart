@@ -46,6 +46,15 @@ class AudioCaptureService {
         autoGain: true,
         echoCancel: true,
         noiseSuppress: true,
+        audioInterruption: AudioInterruptionMode.none,
+        iosConfig: IosRecordConfig(
+          categoryOptions: [
+            IosAudioCategoryOption.mixWithOthers,
+            IosAudioCategoryOption.defaultToSpeaker,
+            IosAudioCategoryOption.allowBluetooth,
+            IosAudioCategoryOption.allowBluetoothA2DP,
+          ],
+        ),
       ),
     );
 

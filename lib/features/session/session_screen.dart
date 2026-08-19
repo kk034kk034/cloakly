@@ -1,6 +1,4 @@
-import 'package:cloakly/core/constants.dart';
 import 'package:cloakly/features/session/session_controller.dart';
-import 'package:cloakly/state/project_provider.dart';
 import 'package:cloakly/widgets/meeting_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,7 +35,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
     final controller = ref.read(sessionControllerProvider.notifier);
     final wrapping = session.phase == SessionPhase.wrappingUp;
     final wide = MediaQuery.sizeOf(context).width >= 980;
-    final projectName = ref.watch(projectProvider).valueOrNull?.name;
+    final projectName = session.projectName;
 
     return PopScope(
       canPop: !wrapping && session.phase != SessionPhase.live,
@@ -73,7 +71,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
                 children: [
                   Text(session.title.isEmpty ? '即時會議' : session.title),
                   Text(
-                    '${formatDuration(session.elapsed)} · ${session.mode.label}'
+                    '${formatDuration(session.elapsed)}'
                     '${projectName == null ? '' : ' · $projectName'}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -113,7 +111,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
             ),
             body: Column(
               children: [
-                _Toolbar(session: session),
                 if (session.error != null)
                   MaterialBanner(
                     content: Text(session.error!),
@@ -125,16 +122,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text('示範模式：正在播放模擬對話，不必對著麥克風說話。'),
-                    ),
-                  ),
-                if (!session.systemAudioOn &&
-                    session.systemAudioHint != null &&
-                    session.systemAudioHint!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(session.systemAudioHint!),
                     ),
                   ),
                 Expanded(
@@ -223,60 +210,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
         await ref.read(sessionControllerProvider.notifier).stopAndWrapUp();
     if (!mounted || id == null) return;
     context.go('/meeting/$id');
-  }
-}
-
-class _Toolbar extends ConsumerWidget {
-  const _Toolbar({required this.session});
-
-  final SessionState session;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ...ListenMode.values.map((mode) {
-            return ChoiceChip(
-              label: Text(mode.label),
-              selected: session.mode == mode,
-              onSelected: (_) =>
-                  ref.read(sessionControllerProvider.notifier).setMode(mode),
-            );
-          }),
-          const SizedBox(width: 8),
-          DropdownButton<AutoTrigger>(
-            value: session.trigger,
-            onChanged: (value) {
-              if (value != null) {
-                ref.read(sessionControllerProvider.notifier).setTrigger(value);
-              }
-            },
-            items: AutoTrigger.values
-                .map(
-                  (trigger) => DropdownMenuItem(
-                    value: trigger,
-                    child: Text('自動提示：${trigger.label}'),
-                  ),
-                )
-                .toList(),
-          ),
-          Chip(
-            avatar: Icon(
-              session.systemAudioOn ? Icons.headset : Icons.mic_none,
-              size: 16,
-            ),
-            label: Text(
-              session.systemAudioOn ? '系統聲音：對方A/B/C 依聲紋拆開' : '僅麥克風',
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

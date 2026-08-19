@@ -18,7 +18,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late String _language;
   late AutoTrigger _trigger;
   late Pace _pace;
-  late ListenMode _mode;
   late bool _captureSystemAudio;
 
   @override
@@ -31,7 +30,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _language = settings.language;
     _trigger = settings.autoTrigger;
     _pace = settings.pace;
-    _mode = settings.listenMode;
     _captureSystemAudio = settings.captureSystemAudio;
   }
 
@@ -105,23 +103,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 24),
           Text('預設會議行為', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          DropdownButtonFormField<ListenMode>(
-            key: ValueKey(_mode),
-            initialValue: _mode,
-            decoration: const InputDecoration(labelText: '預設模式'),
-            items: ListenMode.values
-                .map(
-                  (mode) => DropdownMenuItem(
-                    value: mode,
-                    child: Text(mode.label),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value != null) setState(() => _mode = value);
-            },
-          ),
-          const SizedBox(height: 12),
           DropdownButtonFormField<AutoTrigger>(
             key: ValueKey(_trigger),
             initialValue: _trigger,
@@ -179,7 +160,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       personalContext: _context.text,
       autoTrigger: _trigger,
       pace: _pace,
-      listenMode: _mode,
       captureSystemAudio: _captureSystemAudio,
     );
     await ref.read(settingsProvider.notifier).update(next);

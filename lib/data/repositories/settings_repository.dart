@@ -20,9 +20,6 @@ class SettingsRepository {
       pace: Pace.values.byName(
         prefs.getString('${_prefix}pace') ?? defaults.pace.name,
       ),
-      listenMode: ListenMode.values.byName(
-        prefs.getString('${_prefix}listenMode') ?? defaults.listenMode.name,
-      ),
       captureSystemAudio:
           prefs.getBool('${_prefix}captureSystemAudio') ?? defaults.captureSystemAudio,
     );
@@ -39,7 +36,7 @@ class SettingsRepository {
     await prefs.setString('${_prefix}personalContext', settings.personalContext);
     await prefs.setString('${_prefix}autoTrigger', settings.autoTrigger.name);
     await prefs.setString('${_prefix}pace', settings.pace.name);
-    await prefs.setString('${_prefix}listenMode', settings.listenMode.name);
+    await prefs.remove('${_prefix}listenMode');
     await prefs.setBool(
       '${_prefix}captureSystemAudio',
       settings.captureSystemAudio,

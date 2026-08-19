@@ -1,6 +1,8 @@
 package com.cloakly.cloakly
 
+import android.Manifest
 import android.content.ContentValues
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -32,6 +34,21 @@ class MainActivity : FlutterActivity() {
                     result.error("save_failed", error.message, null)
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cloakly/recording_keep_alive")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        requestNotificationPermission()
+                        RecordingKeepAliveService.start(this)
+                        result.success(true)
+                    }
+                    "stop" -> {
+                        RecordingKeepAliveService.stop(this)
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cloakly/audio_encode")
             .setMethodCallHandler { call, result ->
                 if (call.method != "encodeWavToM4a") {
@@ -55,6 +72,16 @@ class MainActivity : FlutterActivity() {
                     }
                 }.start()
             }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2001)
     }
 
     private fun saveToDownloads(
