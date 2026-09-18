@@ -1,6 +1,7 @@
 import 'package:cloakly/features/session/session_controller.dart';
 import 'package:cloakly/widgets/meeting_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,23 +12,25 @@ class SessionScreen extends ConsumerStatefulWidget {
   ConsumerState<SessionScreen> createState() => _SessionScreenState();
 }
 
-class _SessionScreenState extends ConsumerState<SessionScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
+class _SessionScreenState extends ConsumerState<SessionScreen> {
   final _noteController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _tabs = TabController(length: 3, vsync: this);
-  }
+  final Set<String> _selectedIds = {};
+  var _showTranscript = true;
+  var _showHints = true;
+  var _showNotes = true;
+  var _mobileIndex = 0;
 
   @override
   void dispose() {
-    _tabs.dispose();
     _noteController.dispose();
     super.dispose();
   }
+
+  List<_Pane> get _visiblePanes => [
+    if (_showTranscript) _Pane.transcript,
+    if (_showHints) _Pane.hints,
+    if (_showNotes) _Pane.notes,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +81,27 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
                 ],
               ),
               actions: [
+                _PaneToggle(
+                  tooltip: '逐字稿',
+                  icon: Icons.subtitles_outlined,
+                  selectedIcon: Icons.subtitles,
+                  selected: _showTranscript,
+                  onPressed: () => _toggle(_Pane.transcript),
+                ),
+                _PaneToggle(
+                  tooltip: '提示',
+                  icon: Icons.lightbulb_outline,
+                  selectedIcon: Icons.lightbulb,
+                  selected: _showHints,
+                  onPressed: () => _toggle(_Pane.hints),
+                ),
+                _PaneToggle(
+                  tooltip: '筆記',
+                  icon: Icons.edit_note,
+                  selectedIcon: Icons.edit_note,
+                  selected: _showNotes,
+                  onPressed: () => _toggle(_Pane.notes),
+                ),
                 if (session.phase == SessionPhase.paused)
                   IconButton(
                     tooltip: '繼續',
@@ -98,16 +122,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
                   icon: const Icon(Icons.stop_circle_outlined),
                 ),
               ],
-              bottom: wide
-                  ? null
-                  : TabBar(
-                      controller: _tabs,
-                      tabs: const [
-                        Tab(text: '逐字稿'),
-                        Tab(text: '筆記'),
-                        Tab(text: '提示'),
-                      ],
-                    ),
             ),
             body: Column(
               children: [
@@ -125,52 +139,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
                     ),
                   ),
                 Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      if (constraints.maxWidth >= 980) {
-                        return Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: TranscriptList(lines: session.lines),
-                            ),
-                            const VerticalDivider(width: 1),
-                            Expanded(
-                              flex: 2,
-                              child: _NotesPane(
-                                session: session,
-                                controller: _noteController,
-                                onSubmit: _submitNote,
-                              ),
-                            ),
-                            const VerticalDivider(width: 1),
-                            Expanded(
-                              flex: 2,
-                              child: _HintPane(
-                                session: session,
-                                onSuggest: controller.suggestNow,
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      return TabBarView(
-                        controller: _tabs,
-                        children: [
-                          TranscriptList(lines: session.lines),
-                          _NotesPane(
-                            session: session,
-                            controller: _noteController,
-                            onSubmit: _submitNote,
-                          ),
-                          _HintPane(
-                            session: session,
-                            onSuggest: controller.suggestNow,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                  child: wide
+                      ? _wideLayout(session)
+                      : _narrowLayout(session),
                 ),
               ],
             ),
@@ -198,6 +169,188 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
     );
   }
 
+  Widget _wideLayout(SessionState session) {
+    final sidebar = _showHints || _showNotes;
+    return Row(
+      children: [
+        if (_showTranscript) ...[
+          Expanded(flex: sidebar ? 3 : 1, child: _transcript(session)),
+          if (sidebar) const VerticalDivider(width: 1),
+        ],
+        if (sidebar)
+          Expanded(
+            flex: _showTranscript ? 2 : 1,
+            child: Column(
+              children: [
+                if (_showHints)
+                  Expanded(
+                    child: _HintPane(
+                      session: session,
+                      title: _showNotes ? '提示' : null,
+                    ),
+                  ),
+                if (_showHints && _showNotes) const Divider(height: 1),
+                if (_showNotes)
+                  Expanded(
+                    child: _NotesPane(
+                      session: session,
+                      controller: _noteController,
+                      onSubmit: _submitNote,
+                      title: _showHints ? '筆記' : null,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _narrowLayout(SessionState session) {
+    final panes = _visiblePanes;
+    final index = _mobileIndex.clamp(0, panes.length - 1);
+    return Column(
+      children: [
+        if (panes.length > 1)
+          Material(
+            color: Theme.of(context).colorScheme.surface,
+            child: Row(
+              children: [
+                for (var i = 0; i < panes.length; i++)
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _mobileIndex = i),
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              width: 2,
+                              color: i == index
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          panes[i].label,
+                          style: TextStyle(
+                            fontWeight: i == index
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: i == index
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        Expanded(child: _pane(panes[index], session)),
+      ],
+    );
+  }
+
+  Widget _pane(_Pane pane, SessionState session) {
+    return switch (pane) {
+      _Pane.transcript => _transcript(session),
+      _Pane.hints => _HintPane(session: session),
+      _Pane.notes => _NotesPane(
+        session: session,
+        controller: _noteController,
+        onSubmit: _submitNote,
+      ),
+    };
+  }
+
+  void _toggle(_Pane pane) {
+    final visible = _visiblePanes;
+    final hiding = visible.contains(pane);
+    if (hiding && visible.length == 1) return;
+    setState(() {
+      switch (pane) {
+        case _Pane.transcript:
+          _showTranscript = !_showTranscript;
+        case _Pane.hints:
+          _showHints = !_showHints;
+        case _Pane.notes:
+          _showNotes = !_showNotes;
+      }
+      final next = _visiblePanes;
+      if (_mobileIndex >= next.length) _mobileIndex = next.length - 1;
+    });
+  }
+
+  Widget _transcript(SessionState session) {
+    final ids = _selectedIds.intersection(
+      session.lines
+          .where((line) => line.isFinal)
+          .map((line) => line.id)
+          .toSet(),
+    );
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                ids.isEmpty
+                    ? '點選發言，可多選後取得回覆建議。灰字與人物標籤仍可能更新。'
+                    : '已選取 ${ids.length} 段發言',
+              ),
+              FilledButton.icon(
+                onPressed:
+                    ids.isEmpty ||
+                        session.busyHint ||
+                        session.phase == SessionPhase.wrappingUp
+                    ? null
+                    : () {
+                        ref
+                            .read(sessionControllerProvider.notifier)
+                            .suggestForLines(ids);
+                        setState(() {
+                          _showHints = true;
+                          final panes = [
+                            if (_showTranscript) _Pane.transcript,
+                            _Pane.hints,
+                            if (_showNotes) _Pane.notes,
+                          ];
+                          _mobileIndex = panes.indexOf(_Pane.hints);
+                        });
+                      },
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('建議回覆'),
+              ),
+              if (ids.isNotEmpty)
+                TextButton(
+                  onPressed: () => setState(_selectedIds.clear),
+                  child: const Text('清除選取'),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TranscriptList(
+            lines: session.lines,
+            followLatest: true,
+            selectedIds: ids,
+            onToggle: (id) => setState(() {
+              if (!_selectedIds.add(id)) _selectedIds.remove(id);
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _submitNote() async {
     await ref
         .read(sessionControllerProvider.notifier)
@@ -206,10 +359,48 @@ class _SessionScreenState extends ConsumerState<SessionScreen>
   }
 
   Future<void> _finish() async {
-    final id =
-        await ref.read(sessionControllerProvider.notifier).stopAndWrapUp();
+    final id = await ref
+        .read(sessionControllerProvider.notifier)
+        .stopAndWrapUp();
     if (!mounted || id == null) return;
-    context.go('/meeting/$id');
+    context.go('/home/meeting/$id');
+  }
+}
+
+enum _Pane {
+  transcript('逐字稿'),
+  hints('提示'),
+  notes('筆記');
+
+  const _Pane(this.label);
+  final String label;
+}
+
+class _PaneToggle extends StatelessWidget {
+  const _PaneToggle({
+    required this.tooltip,
+    required this.icon,
+    required this.selectedIcon,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return IconButton(
+      tooltip: selected ? '隱藏$tooltip' : '顯示$tooltip',
+      isSelected: selected,
+      onPressed: onPressed,
+      icon: Icon(icon, color: scheme.onSurfaceVariant),
+      selectedIcon: Icon(selectedIcon, color: scheme.primary),
+    );
   }
 }
 
@@ -218,16 +409,20 @@ class _NotesPane extends StatelessWidget {
     required this.session,
     required this.controller,
     required this.onSubmit,
+    this.title,
   });
 
   final SessionState session;
   final TextEditingController controller;
   final VoidCallback onSubmit;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        if (title != null)
+          _PaneHeader(title: title!),
         Expanded(
           child: session.notes.isEmpty
               ? Center(
@@ -245,7 +440,16 @@ class _NotesPane extends StatelessWidget {
                     final note = session.notes[index];
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.edit_note),
+                      leading: SizedBox(
+                        width: 48,
+                        child: Text(
+                          formatElapsedSince(
+                            note.createdAt,
+                            session.startedAt,
+                          ),
+                          style: elapsedTimeStyle(context),
+                        ),
+                      ),
                       title: Text(note.text),
                     );
                   },
@@ -256,12 +460,34 @@ class _NotesPane extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  minLines: 1,
-                  maxLines: 3,
-                  decoration: const InputDecoration(hintText: '寫下現場筆記'),
-                  onSubmitted: (_) => onSubmit(),
+                child: Focus(
+                  onKeyEvent: (node, event) {
+                    if (event is! KeyDownEvent) {
+                      return KeyEventResult.ignored;
+                    }
+                    if (event.logicalKey != LogicalKeyboardKey.enter &&
+                        event.logicalKey != LogicalKeyboardKey.numpadEnter) {
+                      return KeyEventResult.ignored;
+                    }
+                    if (HardwareKeyboard.instance.isShiftPressed) {
+                      _insertNewline(controller);
+                      return KeyEventResult.handled;
+                    }
+                    onSubmit();
+                    return KeyEventResult.handled;
+                  },
+                  child: TextField(
+                    controller: controller,
+                    minLines: 1,
+                    maxLines: 4,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.send,
+                    decoration: const InputDecoration(
+                      hintText: '寫下現場筆記',
+                      helperText: 'Enter 送出 · Shift+Enter 換行',
+                    ),
+                    onSubmitted: (_) => onSubmit(),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -277,42 +503,76 @@ class _NotesPane extends StatelessWidget {
   }
 }
 
+void _insertNewline(TextEditingController controller) {
+  final value = controller.value;
+  final start = value.selection.start;
+  final end = value.selection.end;
+  if (start < 0 || end < 0) return;
+  final next = value.text.replaceRange(start, end, '\n');
+  controller.value = value.copyWith(
+    text: next,
+    selection: TextSelection.collapsed(offset: start + 1),
+    composing: TextRange.empty,
+  );
+}
+
 class _HintPane extends StatelessWidget {
-  const _HintPane({
-    required this.session,
-    required this.onSuggest,
-  });
+  const _HintPane({required this.session, this.title});
 
   final SessionState session;
-  final VoidCallback onSuggest;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        FilledButton.icon(
-          onPressed: onSuggest,
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('給我提示'),
-        ),
-        const SizedBox(height: 12),
-        SuggestionCard(
-          suggestion: session.latestSuggestion,
-          busy: session.busyHint,
-        ),
-        if (session.suggestions.length > 1) ...[
-          const SizedBox(height: 16),
-          Text('稍早的提示', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          ...session.suggestions.reversed.skip(1).map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: SuggestionCard(suggestion: item),
-                ),
+        if (title != null) _PaneHeader(title: title!),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              SuggestionCard(
+                suggestion: session.latestSuggestion,
+                busy: session.busyHint,
+                startedAt: session.startedAt,
               ),
-        ],
+              if (session.suggestions.length > 1) ...[
+                const SizedBox(height: 16),
+                Text('稍早的提示', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                ...session.suggestions.reversed
+                    .skip(1)
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: SuggestionCard(
+                          suggestion: item,
+                          startedAt: session.startedAt,
+                        ),
+                      ),
+                    ),
+              ],
+            ],
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _PaneHeader extends StatelessWidget {
+  const _PaneHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+      ),
     );
   }
 }

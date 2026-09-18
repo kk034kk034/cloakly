@@ -1,23 +1,15 @@
-enum KnowledgeKind {
-  background,
-  wbs,
-  spec,
-  agenda,
-  issue,
-  commitment,
-  other,
-}
+enum KnowledgeKind { background, wbs, spec, agenda, issue, commitment, other }
 
 extension KnowledgeKindX on KnowledgeKind {
   String get label => switch (this) {
-        KnowledgeKind.background => '專案背景',
-        KnowledgeKind.wbs => 'WBS / 時程',
-        KnowledgeKind.spec => 'API / 規格',
-        KnowledgeKind.agenda => '會議議程',
-        KnowledgeKind.issue => '已知 Issue',
-        KnowledgeKind.commitment => '客戶承諾',
-        KnowledgeKind.other => '其他文件',
-      };
+    KnowledgeKind.background => '專案背景',
+    KnowledgeKind.wbs => 'WBS / 時程',
+    KnowledgeKind.spec => 'API / 規格',
+    KnowledgeKind.agenda => '會議議程',
+    KnowledgeKind.issue => '已知 Issue',
+    KnowledgeKind.commitment => '客戶承諾',
+    KnowledgeKind.other => '其他文件',
+  };
 }
 
 class KnowledgeDoc {
@@ -46,12 +38,12 @@ class KnowledgeDoc {
   }
 
   Map<String, Object?> toJson() => {
-        'relativePath': relativePath,
-        'kind': kind.name,
-        'byteLength': byteLength,
-        'included': included,
-        'score': score,
-      };
+    'relativePath': relativePath,
+    'kind': kind.name,
+    'byteLength': byteLength,
+    'included': included,
+    'score': score,
+  };
 
   factory KnowledgeDoc.fromJson(Map<String, dynamic> json) {
     return KnowledgeDoc(
@@ -72,6 +64,8 @@ class ProjectPack {
     required this.indexedAt,
     required this.docs,
     this.briefing,
+    this.personalContext = '',
+    this.transcriptionTerms = '',
   });
 
   final String id;
@@ -80,6 +74,8 @@ class ProjectPack {
   final DateTime indexedAt;
   final List<KnowledgeDoc> docs;
   final String? briefing;
+  final String personalContext;
+  final String transcriptionTerms;
 
   List<KnowledgeDoc> get includedDocs =>
       docs.where((doc) => doc.included).toList();
@@ -94,8 +90,12 @@ class ProjectPack {
     List<KnowledgeDoc>? docs,
     String? briefing,
     bool clearBriefing = false,
+    String? personalContext,
+    String? transcriptionTerms,
   }) {
     return ProjectPack(
+      personalContext: personalContext ?? this.personalContext,
+      transcriptionTerms: transcriptionTerms ?? this.transcriptionTerms,
       id: id ?? this.id,
       folderPath: folderPath ?? this.folderPath,
       name: name ?? this.name,
@@ -106,13 +106,15 @@ class ProjectPack {
   }
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'folderPath': folderPath,
-        'name': name,
-        'indexedAt': indexedAt.millisecondsSinceEpoch,
-        'docs': docs.map((doc) => doc.toJson()).toList(),
-        'briefing': briefing,
-      };
+    'id': id,
+    'folderPath': folderPath,
+    'name': name,
+    'indexedAt': indexedAt.millisecondsSinceEpoch,
+    'docs': docs.map((doc) => doc.toJson()).toList(),
+    'briefing': briefing,
+    'personalContext': personalContext,
+    'transcriptionTerms': transcriptionTerms,
+  };
 
   factory ProjectPack.fromJson(Map<String, dynamic> json) {
     final rawDocs = json['docs'] as List<dynamic>? ?? const [];
@@ -123,25 +125,22 @@ class ProjectPack {
           : folderPath,
       folderPath: folderPath,
       name: json['name']! as String,
-      indexedAt:
-          DateTime.fromMillisecondsSinceEpoch(json['indexedAt']! as int),
+      indexedAt: DateTime.fromMillisecondsSinceEpoch(json['indexedAt']! as int),
       docs: rawDocs
           .map(
-            (item) => KnowledgeDoc.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
+            (item) =>
+                KnowledgeDoc.fromJson(Map<String, dynamic>.from(item as Map)),
           )
           .toList(),
       briefing: json['briefing'] as String?,
+      personalContext: json['personalContext'] as String? ?? '',
+      transcriptionTerms: json['transcriptionTerms'] as String? ?? '',
     );
   }
 }
 
 class ProjectLibrary {
-  const ProjectLibrary({
-    this.projects = const [],
-    this.activeId,
-  });
+  const ProjectLibrary({this.projects = const [], this.activeId});
 
   static const unassignedId = '__unassigned__';
 

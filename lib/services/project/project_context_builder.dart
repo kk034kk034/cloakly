@@ -7,11 +7,20 @@ class ProjectContextBuilder {
   static const maxTotalChars = 48000;
   static const maxFileChars = 10000;
 
-  Future<String> build(ProjectPack pack) async {
+  Future<String> build(
+    ProjectPack pack, {
+    String personalContext = '',
+  }) async {
+    final background = personalContext.trim().isNotEmpty
+        ? personalContext.trim()
+        : pack.personalContext.trim();
     final buffer = StringBuffer()
       ..writeln('專案：${pack.name}')
-      ..writeln('資料夾：${pack.folderPath}')
-      ..writeln();
+      ..writeln('資料夾：${pack.folderPath}');
+    if (background.isNotEmpty) {
+      buffer.writeln('角色與背景：$background');
+    }
+    buffer.writeln();
 
     var used = buffer.length;
     final included = [...pack.includedDocs]

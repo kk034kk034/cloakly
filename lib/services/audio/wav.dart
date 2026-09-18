@@ -32,11 +32,7 @@ Uint8List wavHeader({
   return header.buffer.asUint8List();
 }
 
-Uint8List pcmToWav(
-  Uint8List pcm, {
-  int sampleRate = 16000,
-  int channels = 1,
-}) {
+Uint8List pcmToWav(Uint8List pcm, {int sampleRate = 16000, int channels = 1}) {
   final header = wavHeader(
     dataLength: pcm.length,
     sampleRate: sampleRate,

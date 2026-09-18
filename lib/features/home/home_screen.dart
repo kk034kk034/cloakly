@@ -19,18 +19,19 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(active?.name ?? 'Cloakly'),
+        leading: IconButton(
+          tooltip: '切換專案',
+          onPressed: () => context.go('/'),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        title: Text(active?.name ?? '未分類'),
         actions: [
-          IconButton(
-            tooltip: '專案',
-            onPressed: () => context.push('/project'),
-            icon: const Icon(Icons.folder_outlined),
-          ),
-          IconButton(
-            tooltip: '設定',
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(Icons.settings_outlined),
-          ),
+          if (active != null)
+            IconButton(
+              tooltip: '專案設定',
+              onPressed: () => context.push('/home/project'),
+              icon: const Icon(Icons.settings_outlined),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -43,12 +44,12 @@ class HomeScreen extends ConsumerWidget {
           if (settings.isDemo)
             MaterialBanner(
               content: const Text(
-                '目前是示範模式：沒有 API 金鑰時會播放模擬會議。填入 OpenAI 金鑰後即可即時轉寫。',
+                '目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。',
               ),
               actions: [
                 TextButton(
-                  onPressed: () => context.push('/settings'),
-                  child: const Text('前往設定'),
+                  onPressed: () => context.go('/'),
+                  child: const Text('回專案列表'),
                 ),
               ],
             ),
@@ -56,29 +57,13 @@ class HomeScreen extends ConsumerWidget {
             child: meetings.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: Text('讀取失敗：$error')),
-              data: (items) {
-                if (items.isEmpty) {
-                  return _EmptyState(
-                    hasProject: active != null,
-                    projectName: active?.name,
-                  );
-                }
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final meeting = items[index];
-                    return _MeetingTile(
-                      meeting: meeting,
-                      onOpen: () => context.push('/meeting/${meeting.id}'),
-                      onDelete: () => ref
-                          .read(meetingsProvider.notifier)
-                          .remove(meeting.id),
-                    );
-                  },
-                );
-              },
+              data: (items) => _MeetingList(
+                items: items,
+                hasProject: active != null,
+                projectName: active?.name,
+                onOpen: (id) => context.push('/home/meeting/$id'),
+                onDelete: (id) => ref.read(meetingsProvider.notifier).remove(id),
+              ),
             ),
           ),
         ],
@@ -87,14 +72,64 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Future<void> _startMeeting(BuildContext context, WidgetRef ref) async {
-    final settings = ref.read(settingsProvider);
-    await ref.read(sessionControllerProvider.notifier).start(
-          title: '',
-          trigger: settings.autoTrigger,
-          pace: settings.pace,
-        );
+    await ref.read(sessionControllerProvider.notifier).start(title: '');
     if (!context.mounted) return;
-    context.push('/session');
+    final session = ref.read(sessionControllerProvider);
+    if (session.phase != SessionPhase.live) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(session.error ?? '無法開始會議，請檢查設定。'),
+          action: SnackBarAction(
+            label: '回專案列表',
+            onPressed: () => context.go('/'),
+          ),
+        ),
+      );
+      return;
+    }
+    context.push('/home/session');
+  }
+}
+
+class _MeetingList extends StatelessWidget {
+  const _MeetingList({
+    required this.items,
+    required this.hasProject,
+    required this.onOpen,
+    required this.onDelete,
+    this.projectName,
+  });
+
+  final List<Meeting> items;
+  final bool hasProject;
+  final String? projectName;
+  final ValueChanged<String> onOpen;
+  final ValueChanged<String> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
+        child: _EmptyState(hasProject: hasProject, projectName: projectName),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      children: [
+        Text('會議', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _MeetingTile(
+            meeting: items[i],
+            onOpen: () => onOpen(items[i].id),
+            onDelete: () => onDelete(items[i].id),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -109,37 +144,32 @@ class _EmptyState extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                hasProject ? Icons.graphic_eq : Icons.folder_open,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              hasProject ? Icons.graphic_eq : Icons.inbox_outlined,
+              size: 56,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              hasProject ? '${projectName ?? '這個專案'}還沒有會議' : '還沒有未分類會議',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              hasProject
+                  ? '開始會議後，錄音與逐字稿會存在這個專案底下。右上角可勾選要納入提示的文件。'
+                  : '這裡只顯示沒有綁定專案的會議。要依專案文件給提示，請回到專案列表選一個專案。',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.5,
               ),
-              const SizedBox(height: 16),
-              Text(
-                hasProject
-                    ? '${projectName ?? '這個專案'}還沒有會議'
-                    : '還沒有會議',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                hasProject
-                    ? '開始會議後，錄音與逐字稿會存在這個專案底下。'
-                    : '可以直接開始會議。要依專案文件給提示，再到右上角資料夾選一個專案。',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.5,
-                    ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -171,9 +201,7 @@ class _MeetingTile extends StatelessWidget {
           ),
         ),
         title: Text(meeting.title),
-        subtitle: Text(
-          '$date · ${formatDuration(meeting.duration)}',
-        ),
+        subtitle: Text('$date · ${formatDuration(meeting.duration)}'),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),
           onPressed: () async {

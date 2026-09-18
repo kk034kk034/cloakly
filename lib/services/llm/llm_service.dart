@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:cloakly/core/constants.dart';
 import 'package:cloakly/data/models/models.dart';
-import 'package:cloakly/services/stt/stt_engine.dart';
 import 'package:http/http.dart' as http;
 
 class LlmService {
@@ -59,18 +58,13 @@ class LlmService {
     final transcript = recent
         .map((line) => '${line.speaker}：${line.text}')
         .join('\n');
-    final personal = settings.personalContext.trim().isEmpty
-        ? '（未填個人背景）'
-        : settings.personalContext.trim();
     final project = projectContext.trim().isEmpty
         ? '（尚未選定專案資料夾。沒有規格、WBS、Issue 時，禁止編造時程與承諾。）'
         : projectContext.trim();
     return complete(
       system: suggestionSystemPrompt,
-      user: '''
-個人背景：
-$personal
-
+      user:
+          '''
 專案資料（會議前選定的資料夾，回答必須以此為準）：
 $project
 
@@ -95,18 +89,16 @@ $trigger
     String projectContext = '',
   }) async {
     final transcript = lines
-        .map((line) => '[${_formatMs(line.startMs)}] ${line.speaker}：${line.text}')
+        .map(
+          (line) => '[${_formatMs(line.startMs)}] ${line.speaker}：${line.text}',
+        )
         .join('\n');
     final noteText = notes.isEmpty
         ? '（沒有現場筆記）'
         : notes.map((note) => '- ${note.text}').join('\n');
 
     if (!settings.hasLlm) {
-      return _localMinutes(
-        meeting: meeting,
-        lines: lines,
-        notes: notes,
-      );
+      return _localMinutes(meeting: meeting, lines: lines, notes: notes);
     }
 
     final raw = await complete(
@@ -123,8 +115,10 @@ JSON 結構：
 - 不要輸出 lines
 - 若超過兩位對方，用對方C、對方D，或改成他們的名字
 - 無法判斷就維持對方A／對方B，不要把不同人併成同一個「對方」
+- speakerNames 只供會議紀錄參考，不會覆寫原始逐字稿
 - 不要發明逐字稿裡沒有的事實''',
-      user: '''
+      user:
+          '''
 會議開始時間：${meeting.startedAt.toIso8601String()}
 現場筆記：
 $noteText
@@ -152,11 +146,12 @@ $transcript''',
     final transcript = lines
         .map((line) => '- **${line.speaker}**：${line.text}')
         .join('\n');
-    final markdown = '''
+    final markdown =
+        '''
 # ${meeting.title}
 
 ## 摘要
-（示範模式：填入 API 金鑰後會自動整理討論重點、決議與待辦。）
+（尚未設定 OpenAI 金鑰，以下保留現場筆記與逐字稿，未產生 AI 摘要。）
 
 ## 現場筆記
 $noteBlock
@@ -212,53 +207,22 @@ class MinutesResult {
     try {
       final json = jsonDecode(_extractJson(raw)) as Map<String, dynamic>;
       final title = (json['title'] as String?)?.trim();
-      final markdown = readableMinutesMarkdown(
-            json['minutesMarkdown'] as String? ?? '',
-          ) ??
+      final markdown =
+          readableMinutesMarkdown(json['minutesMarkdown'] as String? ?? '') ??
           (json['minutesMarkdown'] as String?)?.trim();
-      final names = <String, String>{};
-      final speakerNames = json['speakerNames'];
-      if (speakerNames is Map) {
-        for (final entry in speakerNames.entries) {
-          final name = '${entry.value}'.trim();
-          if (name.isEmpty) continue;
-          names['${entry.key}'.trim()] = name;
-        }
-      }
-      final speakers = json['speakers'];
-      if (speakers is List) {
-        for (final row in speakers) {
-          if (row is! Map) continue;
-          final name = '${row['name'] ?? ''}'.trim();
-          if (name.isEmpty) continue;
-          final index = (row['index'] as num?)?.toInt();
-          if (index != null) {
-            names[speakerLabelFor(index)] = name;
-          }
-        }
-      }
-      var relabeled = lines;
-      if (names.isNotEmpty) {
-        relabeled = [
-          for (final line in lines)
-            names[line.speaker] == null
-                ? line
-                : line.copyWith(speaker: names[line.speaker]),
-        ];
-      }
       return MinutesResult(
         title: (title == null || title.isEmpty) ? fallbackTitle : title,
         minutesMarkdown: (markdown != null && markdown.isNotEmpty)
             ? markdown
             : '# $fallbackTitle\n\n（無法產生會議紀錄）',
-        relabeled: relabeled,
+        relabeled: lines,
       );
     } catch (_) {
       final recovered = readableMinutesMarkdown(raw);
       return MinutesResult(
         title: fallbackTitle,
-        minutesMarkdown: recovered ??
-            (raw.trim().isEmpty ? '# $fallbackTitle' : raw.trim()),
+        minutesMarkdown:
+            recovered ?? (raw.trim().isEmpty ? '# $fallbackTitle' : raw.trim()),
         relabeled: lines,
       );
     }

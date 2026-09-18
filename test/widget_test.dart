@@ -72,9 +72,60 @@ void main() {
     expect(markdown, isNot(contains('"title"')));
   });
 
+  test('會議紀錄產生的 speakerNames 不覆寫逐字稿人員配對', () {
+    final lines = [
+      const TranscriptLine(
+        id: 'l1',
+        meetingId: 'm1',
+        speaker: '對方A',
+        speakerIndex: 1,
+        text: '下週能上線嗎？',
+        isFinal: true,
+        startMs: 0,
+        endMs: 1000,
+      ),
+      const TranscriptLine(
+        id: 'l2',
+        meetingId: 'm1',
+        speaker: '對方B',
+        speakerIndex: 2,
+        text: '文件還沒好。',
+        isFinal: true,
+        startMs: 1200,
+        endMs: 2000,
+      ),
+    ];
+
+    const raw = '''
+{
+  "title": "週會",
+  "minutesMarkdown": "## 摘要\\nCasey 問上線時程。",
+  "speakerNames": {"對方A": "Casey", "對方B": "Lisa"}
+}
+''';
+
+    final result = MinutesResult.parse(
+      raw,
+      fallbackTitle: '原始標題',
+      lines: lines,
+    );
+
+    expect(result.relabeled.map((line) => line.speaker), ['對方A', '對方B']);
+  });
+
   test('時間格式', () {
     expect(formatDuration(const Duration(seconds: 75)), '01:15');
-    expect(formatDuration(const Duration(hours: 1, minutes: 2, seconds: 3)), '1:02:03');
+    expect(
+      formatDuration(const Duration(hours: 1, minutes: 2, seconds: 3)),
+      '1:02:03',
+    );
+    expect(
+      formatElapsedSince(
+        DateTime(2026, 9, 18, 10, 5, 23),
+        DateTime(2026, 9, 18, 10, 0),
+      ),
+      '05:23',
+    );
   });
 
   test('舊專案 JSON 沒有 id 時會用資料夾路徑當 id', () {

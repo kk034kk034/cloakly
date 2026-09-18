@@ -72,9 +72,7 @@ class AppDatabase {
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) {
-            await db.execute(
-              'ALTER TABLE meetings ADD COLUMN project_id TEXT',
-            );
+            await db.execute('ALTER TABLE meetings ADD COLUMN project_id TEXT');
           }
         },
       ),

@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -25,15 +24,11 @@ class MeetingDetailScreen extends ConsumerWidget {
     final bundle = ref.watch(meetingBundleProvider(meetingId));
     return bundle.when(
       loading: () => Scaffold(
-        appBar: AppBar(
-          leading: BackButton(onPressed: () => _goHome(context)),
-        ),
+        appBar: AppBar(leading: BackButton(onPressed: () => _goHome(context))),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
-        appBar: AppBar(
-          leading: BackButton(onPressed: () => _goHome(context)),
-        ),
+        appBar: AppBar(leading: BackButton(onPressed: () => _goHome(context))),
         body: Center(child: Text('讀取失敗：$error')),
       ),
       data: (data) => DefaultTabController(
@@ -62,12 +57,12 @@ class MeetingDetailScreen extends ConsumerWidget {
           body: TabBarView(
             children: [
               _MinutesTab(meeting: data.meeting),
-              TranscriptList(
-                lines: data.lines,
-                emptyLabel: '這場會議沒有逐字稿。',
+              TranscriptList(lines: data.lines, emptyLabel: '這場會議沒有逐字稿。'),
+              _NotesTab(notes: data.notes, startedAt: data.meeting.startedAt),
+              _HintsTab(
+                suggestions: data.suggestions,
+                startedAt: data.meeting.startedAt,
               ),
-              _NotesTab(notes: data.notes),
-              _HintsTab(suggestions: data.suggestions),
             ],
           ),
         ),
@@ -79,7 +74,7 @@ class MeetingDetailScreen extends ConsumerWidget {
     if (context.canPop()) {
       context.pop();
     } else {
-      context.go('/');
+      context.go('/home');
     }
   }
 
@@ -110,9 +105,7 @@ class MeetingDetailScreen extends ConsumerWidget {
                 leading: const Icon(Icons.folder_outlined),
                 title: const Text('儲存錄音到檔案'),
                 subtitle: Text(
-                  projectFolder == null
-                      ? '沒有專案時會存到下載資料夾'
-                      : '存到專案資料夾裡的「錄音」',
+                  projectFolder == null ? '沒有專案時會存到下載資料夾' : '存到專案資料夾裡的「錄音」',
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -138,7 +131,8 @@ class MeetingDetailScreen extends ConsumerWidget {
   String? _projectFolder(WidgetRef ref, Meeting meeting) {
     final id = meeting.projectId;
     if (id == null || id.isEmpty) return null;
-    final projects = ref.read(projectsProvider).valueOrNull?.projects ?? const [];
+    final projects =
+        ref.read(projectsProvider).valueOrNull?.projects ?? const [];
     for (final project in projects) {
       if (project.id == id) return project.folderPath;
     }
@@ -149,9 +143,7 @@ class MeetingDetailScreen extends ConsumerWidget {
     final buffer = StringBuffer()
       ..writeln('# ${data.meeting.title}')
       ..writeln()
-      ..writeln(
-        DateFormat('yyyy/MM/dd HH:mm').format(data.meeting.startedAt),
-      )
+      ..writeln(formatMeetingWhen(data.meeting))
       ..writeln()
       ..writeln(
         MinutesResult.readableMinutesMarkdown(
@@ -164,7 +156,34 @@ class MeetingDetailScreen extends ConsumerWidget {
       ..writeln('## 逐字稿')
       ..writeln();
     for (final line in data.lines) {
-      buffer.writeln('${line.speaker}：${line.text}');
+      buffer.writeln(
+        '[${formatDuration(Duration(milliseconds: line.startMs))}] ${line.speaker}：${line.text}',
+      );
+    }
+    if (data.notes.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## 筆記')
+        ..writeln();
+      for (final note in data.notes) {
+        buffer.writeln(
+          '[${formatElapsedSince(note.createdAt, data.meeting.startedAt)}] ${note.text}',
+        );
+      }
+    }
+    if (data.suggestions.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## 提示')
+        ..writeln();
+      for (final hint in data.suggestions) {
+        buffer
+          ..writeln(
+            '[${formatElapsedSince(hint.createdAt, data.meeting.startedAt)}]',
+          )
+          ..writeln(hint.answer)
+          ..writeln();
+      }
     }
     await SharePlus.instance.share(
       ShareParams(
@@ -183,9 +202,9 @@ class MeetingDetailScreen extends ConsumerWidget {
     final source = await RecordingExport.find(data.meeting);
     if (!context.mounted) return;
     if (source == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('這場會議沒有錄音檔可以儲存。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('這場會議沒有錄音檔可以儲存。')));
       return;
     }
     try {
@@ -196,23 +215,24 @@ class MeetingDetailScreen extends ConsumerWidget {
         projectFolder: projectFolder,
       );
       if (!context.mounted) return;
-      final inProject = projectFolder != null &&
+      final inProject =
+          projectFolder != null &&
           p.normalize(saved).startsWith(p.normalize(projectFolder));
       final where = inProject
           ? saved
           : Platform.isIOS
-              ? '檔案 App → 我的 iPhone → Cloakly'
-              : Platform.isAndroid
-                  ? '下載 / Cloakly'
-                  : saved;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已存到 $where')),
-      );
+          ? '檔案 App → 我的 iPhone → Cloakly'
+          : Platform.isAndroid
+          ? '下載 / Cloakly'
+          : saved;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已存到 $where')));
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('儲存失敗：$error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('儲存失敗：$error')));
     }
   }
 
@@ -220,9 +240,9 @@ class MeetingDetailScreen extends ConsumerWidget {
     final source = await RecordingExport.find(data.meeting);
     if (!context.mounted) return;
     if (source == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('這場會議沒有錄音檔可以分享。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('這場會議沒有錄音檔可以分享。')));
       return;
     }
 
@@ -262,20 +282,50 @@ class _MinutesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final markdown = meeting.minutesMarkdown;
+    final when = formatMeetingWhen(meeting);
     if (markdown == null || markdown.trim().isEmpty) {
-      return const Center(child: Text('還沒有會議紀錄。'));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                when,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('還沒有會議紀錄。'),
+            ],
+          ),
+        ),
+      );
     }
-    return Markdown(
-      data: MinutesResult.readableMinutesMarkdown(markdown) ?? markdown,
-      padding: const EdgeInsets.all(20),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      children: [
+        Text(
+          when,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        MarkdownBody(
+          data: MinutesResult.readableMinutesMarkdown(markdown) ?? markdown,
+        ),
+      ],
     );
   }
 }
 
 class _NotesTab extends StatelessWidget {
-  const _NotesTab({required this.notes});
+  const _NotesTab({required this.notes, required this.startedAt});
 
   final List<Note> notes;
+  final DateTime startedAt;
 
   @override
   Widget build(BuildContext context) {
@@ -289,9 +339,15 @@ class _NotesTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final note = notes[index];
         return ListTile(
-          leading: const Icon(Icons.edit_note),
+          contentPadding: EdgeInsets.zero,
+          leading: SizedBox(
+            width: 48,
+            child: Text(
+              formatElapsedSince(note.createdAt, startedAt),
+              style: elapsedTimeStyle(context),
+            ),
+          ),
           title: Text(note.text),
-          subtitle: Text(DateFormat('HH:mm').format(note.createdAt)),
         );
       },
     );
@@ -299,9 +355,10 @@ class _NotesTab extends StatelessWidget {
 }
 
 class _HintsTab extends StatelessWidget {
-  const _HintsTab({required this.suggestions});
+  const _HintsTab({required this.suggestions, required this.startedAt});
 
   final List<Suggestion> suggestions;
+  final DateTime startedAt;
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +371,10 @@ class _HintsTab extends StatelessWidget {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: SuggestionCard(suggestion: suggestions[index]),
+          child: SuggestionCard(
+            suggestion: suggestions[index],
+            startedAt: startedAt,
+          ),
         );
       },
     );

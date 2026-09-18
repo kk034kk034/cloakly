@@ -5,10 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class SystemAudioSupport {
-  const SystemAudioSupport({
-    required this.supported,
-    required this.hint,
-  });
+  const SystemAudioSupport({required this.supported, required this.hint});
 
   final bool supported;
   final String hint;
@@ -27,15 +24,13 @@ class SystemAudioCapture {
 
   Future<SystemAudioSupport> probe() async {
     if (kIsWeb) {
-      return const SystemAudioSupport(
-        supported: false,
-        hint: '瀏覽器無法擷取系統聲音。',
-      );
+      return const SystemAudioSupport(supported: false, hint: '瀏覽器無法擷取系統聲音。');
     }
     if (Platform.isAndroid || Platform.isIOS) {
       return const SystemAudioSupport(
         supported: false,
-        hint: '手機無法穩定擷取 Teams / Meet / Zoom 的對方聲音。請用 Windows / macOS / Linux 電腦版，戴耳機也能聽客戶。',
+        hint:
+            '手機無法穩定擷取 Teams / Meet / Zoom 的對方聲音。請用 Windows / macOS / Linux 電腦版，戴耳機也能聽客戶。',
       );
     }
     try {
@@ -49,10 +44,7 @@ class SystemAudioCapture {
         hint: '這個平台還沒接上系統聲音擷取。',
       );
     } catch (error) {
-      return SystemAudioSupport(
-        supported: false,
-        hint: '系統聲音無法使用：$error',
-      );
+      return SystemAudioSupport(supported: false, hint: '系統聲音無法使用：$error');
     }
   }
 

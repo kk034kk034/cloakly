@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:cloakly/core/constants.dart';
 import 'package:cloakly/services/audio/pcm_wav_writer.dart';
-import 'package:cloakly/services/audio/wav.dart';
+import 'package:cloakly/services/audio/pcm_vad.dart';
 import 'package:record/record.dart';
 
 class AudioCaptureService {
@@ -12,9 +12,6 @@ class AudioCaptureService {
   final AudioRecorder _recorder = AudioRecorder();
   final _wav = PcmWavWriter();
   StreamSubscription<Uint8List>? _sub;
-  bool _inSpeech = false;
-  int _silenceMs = 0;
-  int _speechMs = 0;
   DateTime? _lastChunkAt;
 
   bool get isRecording => _sub != null;
@@ -34,9 +31,7 @@ class AudioCaptureService {
     }
 
     await _wav.open(wavPath);
-    _inSpeech = false;
-    _silenceMs = 0;
-    _speechMs = 0;
+    final vad = PcmVad(rmsThreshold: rmsThreshold);
 
     final stream = await _recorder.startStream(
       const RecordConfig(
@@ -64,26 +59,7 @@ class AudioCaptureService {
       _wav.add(chunk);
       onPcm(chunk);
 
-      final durationMs =
-          (pcm.length / pcmBytesPerSecond * 1000).round().clamp(20, 250);
-      final rms = pcmRms(pcm);
-      if (rms >= rmsThreshold) {
-        _inSpeech = true;
-        _silenceMs = 0;
-        _speechMs += durationMs;
-        if (_speechMs >= 8000) {
-          onUtteranceEnd();
-          _speechMs = 0;
-        }
-      } else if (_inSpeech) {
-        _silenceMs += durationMs;
-        if (_silenceMs >= 700) {
-          _inSpeech = false;
-          _speechMs = 0;
-          _silenceMs = 0;
-          onUtteranceEnd();
-        }
-      }
+      vad.accept(chunk, onUtteranceEnd: onUtteranceEnd);
     });
   }
 

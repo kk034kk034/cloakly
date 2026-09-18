@@ -4,16 +4,17 @@ class AppTheme {
   static const seed = Color(0xFF1F8A7A);
 
   static ThemeData dark() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: seed,
-      brightness: Brightness.dark,
-    ).copyWith(
-      surface: const Color(0xFF101614),
-      surfaceContainerLowest: const Color(0xFF0B100F),
-      surfaceContainerLow: const Color(0xFF151C1A),
-      surfaceContainer: const Color(0xFF1B2421),
-      surfaceContainerHigh: const Color(0xFF222C29),
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: seed,
+          brightness: Brightness.dark,
+        ).copyWith(
+          surface: const Color(0xFF101614),
+          surfaceContainerLowest: const Color(0xFF0B100F),
+          surfaceContainerLow: const Color(0xFF151C1A),
+          surfaceContainer: const Color(0xFF1B2421),
+          surfaceContainerHigh: const Color(0xFF222C29),
+        );
 
     return ThemeData(
       useMaterial3: true,

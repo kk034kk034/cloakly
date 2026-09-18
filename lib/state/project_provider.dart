@@ -15,8 +15,8 @@ final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
 
 final projectsProvider =
     AsyncNotifierProvider<ProjectsNotifier, ProjectLibrary>(
-  ProjectsNotifier.new,
-);
+      ProjectsNotifier.new,
+    );
 
 class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
   final _indexer = ProjectIndexer();
@@ -60,6 +60,12 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
       }
       final id = previous?.id ?? _uuid.v4();
       var pack = await _indexer.index(folderPath, id: id);
+      if (previous != null) {
+        pack = pack.copyWith(
+          personalContext: previous.personalContext,
+          transcriptionTerms: previous.transcriptionTerms,
+        );
+      }
       if (previous != null && previous.docs.isNotEmpty) {
         final previousIncluded = {
           for (final doc in previous.docs)
@@ -69,7 +75,8 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
           docs: [
             for (final doc in pack.docs)
               doc.copyWith(
-                included: previousIncluded.contains(doc.relativePath) ||
+                included:
+                    previousIncluded.contains(doc.relativePath) ||
                     (previousIncluded.isEmpty && doc.included),
               ),
           ],
@@ -89,12 +96,16 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
   }
 
   Future<void> reindex([String? projectId]) async {
-    final pack = _byId(projectId) ?? active;
+    final pack = _byId(projectId);
     if (pack == null) return;
     await indexFolder(pack.folderPath);
   }
 
-  Future<void> toggle(String relativePath, bool included, {String? projectId}) async {
+  Future<void> toggle(
+    String relativePath,
+    bool included, {
+    String? projectId,
+  }) async {
     final current = state.valueOrNull;
     final pack = _byId(projectId) ?? current?.active;
     if (current == null || pack == null) return;
@@ -108,6 +119,27 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
       ],
     );
     await _replace(updated);
+  }
+
+  Future<void> setAllIncluded(bool included, {String? projectId}) async {
+    final current = state.valueOrNull;
+    final pack = _byId(projectId) ?? current?.active;
+    if (current == null || pack == null) return;
+    await _replace(
+      pack.copyWith(
+        docs: [
+          for (final doc in pack.docs) doc.copyWith(included: included),
+        ],
+      ),
+    );
+  }
+
+  Future<void> updateDetails(String id, String background, String terms) async {
+    final pack = _byId(id);
+    if (pack == null) throw StateError('專案已不存在');
+    await _replace(
+      pack.copyWith(personalContext: background, transcriptionTerms: terms),
+    );
   }
 
   Future<void> remove(String id) async {
@@ -125,13 +157,21 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
     state = AsyncData(next);
   }
 
-  Future<String> contextBlock({String? projectId}) async {
-    final pack = _byId(projectId) ?? active;
+  Future<String> contextBlock({
+    String? projectId,
+    String? personalContext,
+  }) async {
+    final pack = _byId(projectId);
     if (pack == null) return '（尚未選定專案資料夾）';
+    final background = (personalContext ?? pack.personalContext).trim();
     if (!Directory(pack.folderPath).existsSync()) {
-      return '（專案資料夾已不存在：${pack.folderPath}）';
+      return [
+        '專案：${pack.name}',
+        if (background.isNotEmpty) '角色與背景：$background',
+        '（專案資料夾已不存在）',
+      ].join('\n');
     }
-    return _contextBuilder.build(pack);
+    return _contextBuilder.build(pack, personalContext: background);
   }
 
   Future<void> _replace(ProjectPack pack) async {

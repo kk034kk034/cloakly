@@ -15,7 +15,10 @@ class MeetingRepository {
 
   final AppDatabase _db;
 
-  Future<List<Meeting>> list({String? projectId, bool unassignedOnly = false}) async {
+  Future<List<Meeting>> list({
+    String? projectId,
+    bool unassignedOnly = false,
+  }) async {
     final List<Map<String, Object?>> rows;
     if (unassignedOnly) {
       rows = await _db.db.query(
@@ -32,10 +35,7 @@ class MeetingRepository {
         orderBy: 'started_at DESC',
       );
     } else {
-      rows = await _db.db.query(
-        'meetings',
-        orderBy: 'started_at DESC',
-      );
+      rows = await _db.db.query('meetings', orderBy: 'started_at DESC');
     }
     return rows.map(Meeting.fromMap).toList();
   }
@@ -64,6 +64,14 @@ class MeetingRepository {
       where: 'project_id = ?',
       whereArgs: [projectId],
     );
+  }
+
+  Future<int> deleteByProject(String projectId) async {
+    final meetings = await list(projectId: projectId);
+    for (final meeting in meetings) {
+      await deleteMeeting(meeting.id);
+    }
+    return meetings.length;
   }
 
   Future<Meeting?> getById(String id) async {
@@ -203,7 +211,10 @@ class MeetingRepository {
     );
   }
 
-  Future<void> replaceLines(String meetingId, List<TranscriptLine> lines) async {
+  Future<void> replaceLines(
+    String meetingId,
+    List<TranscriptLine> lines,
+  ) async {
     final db = _db.db;
     await db.delete(
       'transcript_lines',

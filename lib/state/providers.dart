@@ -19,8 +19,9 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   return SettingsRepository();
 });
 
-final settingsProvider =
-    NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
+  SettingsNotifier.new,
+);
 
 class SettingsNotifier extends Notifier<AppSettings> {
   @override
@@ -36,8 +37,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 }
 
-final meetingsProvider =
-    AsyncNotifierProvider<MeetingsNotifier, List<Meeting>>(MeetingsNotifier.new);
+final meetingsProvider = AsyncNotifierProvider<MeetingsNotifier, List<Meeting>>(
+  MeetingsNotifier.new,
+);
 
 class MeetingsNotifier extends AsyncNotifier<List<Meeting>> {
   @override
@@ -68,7 +70,9 @@ class MeetingsNotifier extends AsyncNotifier<List<Meeting>> {
   }
 }
 
-final meetingBundleProvider =
-    FutureProvider.family<MeetingBundle, String>((ref, id) {
+final meetingBundleProvider = FutureProvider.family<MeetingBundle, String>((
+  ref,
+  id,
+) {
   return ref.watch(meetingRepositoryProvider).loadBundle(id);
 });

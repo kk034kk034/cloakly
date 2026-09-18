@@ -12,8 +12,9 @@ class RecordingExport {
   static const recordingsSubdir = '錄音';
 
   static String fileNameFor(Meeting meeting, [File? file]) {
-    final cleaned =
-        meeting.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+    final cleaned = meeting.title
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+        .trim();
     final title = cleaned.isEmpty ? 'cloakly' : cleaned;
     final ext = file == null ? '.m4a' : p.extension(file.path);
     final stamp = DateFormat('yyyyMMdd-HHmm').format(meeting.startedAt);
@@ -76,7 +77,9 @@ class RecordingExport {
     }
     final m4aPath = await AacEncoder.encodeWav(source.path);
     final m4a = File(m4aPath);
-    if (m4aPath != source.path && await m4a.exists() && await m4a.length() > 64) {
+    if (m4aPath != source.path &&
+        await m4a.exists() &&
+        await m4a.length() > 64) {
       return m4a;
     }
     return source;

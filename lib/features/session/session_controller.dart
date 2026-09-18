@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cloakly/core/constants.dart';
 import 'package:cloakly/data/models/models.dart';
 import 'package:cloakly/services/audio/aac_encoder.dart';
 import 'package:cloakly/services/audio/audio_capture_service.dart';
@@ -9,7 +8,6 @@ import 'package:cloakly/services/audio/pcm_vad.dart';
 import 'package:cloakly/services/audio/pcm_wav_writer.dart';
 import 'package:cloakly/services/audio/recording_keep_alive.dart';
 import 'package:cloakly/services/audio/system_audio_capture.dart';
-import 'package:cloakly/services/detection/question_detector.dart';
 import 'package:cloakly/services/llm/llm_service.dart';
 import 'package:cloakly/services/stt/stt_engine.dart';
 import 'package:cloakly/services/stt/stt_factory.dart';
@@ -31,8 +29,6 @@ class SessionState {
     required this.phase,
     required this.meetingId,
     required this.title,
-    required this.trigger,
-    required this.pace,
     required this.lines,
     required this.notes,
     required this.suggestions,
@@ -41,17 +37,15 @@ class SessionState {
     required this.partialText,
     required this.error,
     required this.busyHint,
-    required this.queuedQuestion,
     required this.systemAudioOn,
     this.systemAudioHint,
     this.projectName,
+    this.startedAt,
   });
 
   final SessionPhase phase;
   final String meetingId;
   final String title;
-  final AutoTrigger trigger;
-  final Pace pace;
   final List<TranscriptLine> lines;
   final List<Note> notes;
   final List<Suggestion> suggestions;
@@ -60,40 +54,36 @@ class SessionState {
   final String? partialText;
   final String? error;
   final bool busyHint;
-  final String? queuedQuestion;
   final bool systemAudioOn;
   final String? systemAudioHint;
   final String? projectName;
+  final DateTime? startedAt;
 
   Suggestion? get latestSuggestion =>
       suggestions.isEmpty ? null : suggestions.last;
 
   factory SessionState.idle() => const SessionState(
-        phase: SessionPhase.idle,
-        meetingId: '',
-        title: '',
-        trigger: AutoTrigger.questions,
-        pace: Pace.balanced,
-        lines: [],
-        notes: [],
-        suggestions: [],
-        elapsed: Duration.zero,
-        isDemo: true,
-        partialText: null,
-        error: null,
-        busyHint: false,
-        queuedQuestion: null,
-        systemAudioOn: false,
-        systemAudioHint: null,
-        projectName: null,
-      );
+    phase: SessionPhase.idle,
+    meetingId: '',
+    title: '',
+    lines: [],
+    notes: [],
+    suggestions: [],
+    elapsed: Duration.zero,
+    isDemo: true,
+    partialText: null,
+    error: null,
+    busyHint: false,
+    systemAudioOn: false,
+    systemAudioHint: null,
+    projectName: null,
+    startedAt: null,
+  );
 
   SessionState copyWith({
     SessionPhase? phase,
     String? meetingId,
     String? title,
-    AutoTrigger? trigger,
-    Pace? pace,
     List<TranscriptLine>? lines,
     List<Note>? notes,
     List<Suggestion>? suggestions,
@@ -102,20 +92,17 @@ class SessionState {
     String? partialText,
     String? error,
     bool? busyHint,
-    String? queuedQuestion,
     bool? systemAudioOn,
     String? systemAudioHint,
     String? projectName,
+    DateTime? startedAt,
     bool clearError = false,
     bool clearPartial = false,
-    bool clearQueued = false,
   }) {
     return SessionState(
       phase: phase ?? this.phase,
       meetingId: meetingId ?? this.meetingId,
       title: title ?? this.title,
-      trigger: trigger ?? this.trigger,
-      pace: pace ?? this.pace,
       lines: lines ?? this.lines,
       notes: notes ?? this.notes,
       suggestions: suggestions ?? this.suggestions,
@@ -124,22 +111,22 @@ class SessionState {
       partialText: clearPartial ? null : (partialText ?? this.partialText),
       error: clearError ? null : (error ?? this.error),
       busyHint: busyHint ?? this.busyHint,
-      queuedQuestion:
-          clearQueued ? null : (queuedQuestion ?? this.queuedQuestion),
       systemAudioOn: systemAudioOn ?? this.systemAudioOn,
       systemAudioHint: systemAudioHint ?? this.systemAudioHint,
       projectName: projectName ?? this.projectName,
+      startedAt: startedAt ?? this.startedAt,
     );
   }
 }
 
 class SessionController extends Notifier<SessionState> {
   final _uuid = const Uuid();
-  final _detector = QuestionDetector();
   final _audio = AudioCaptureService();
   final _systemAudio = SystemAudioCapture();
   final _systemWav = PcmWavWriter();
-  final _systemVad = PcmVad(silenceMsToEnd: 1200, maxUtteranceMs: 14000);
+  final _systemVad = PcmVad();
+  final List<Future<void>> _lineWrites = [];
+  bool _disposed = false;
 
   SttEngine? _micStt;
   SttEngine? _systemStt;
@@ -148,32 +135,47 @@ class SessionController extends Notifier<SessionState> {
   StreamSubscription<dynamic>? _systemPcmSub;
   final Map<int, String> _livePartialIds = {};
   Timer? _ticker;
-  Timer? _pauseTimer;
   DateTime? _startedAt;
-  DateTime? _lastSuggestionAt;
   String? _audioPath;
   String? _micTempPath;
   String? _systemAudioPath;
   String? _projectId;
   bool _llmBusy = false;
+  String _projectContext = '';
 
   @override
   SessionState build() {
     ref.onDispose(() {
+      _disposed = true;
       unawaited(_disposeCapture());
     });
     return SessionState.idle();
   }
 
-  Future<void> start({
-    required String title,
-    required AutoTrigger trigger,
-    required Pace pace,
-  }) async {
-    final settings = ref.read(settingsProvider);
-    final repo = ref.read(meetingRepositoryProvider);
+  Future<void> start({required String title}) async {
     final project = ref.read(projectsProvider).valueOrNull?.active;
+    final settings = ref.read(settingsProvider).copyWith(
+      language: 'auto',
+      transcriptionTerms: (project?.transcriptionTerms.trim().isNotEmpty ?? false)
+          ? project!.transcriptionTerms
+          : null,
+    );
+    if (state.phase == SessionPhase.live ||
+        state.phase == SessionPhase.wrappingUp) {
+      return;
+    }
+    if (!settings.isDemo && !settings.hasLiveDiarize) {
+      state = state.copyWith(error: '請先在設定填入 Soniox API 金鑰，才能開始多人串流轉寫。');
+      return;
+    }
+    final repo = ref.read(meetingRepositoryProvider);
     _projectId = project?.id;
+    final background = (project?.personalContext.trim().isNotEmpty ?? false)
+        ? project!.personalContext
+        : settings.personalContext;
+    _projectContext = await ref
+        .read(projectsProvider.notifier)
+        .contextBlock(projectId: _projectId, personalContext: background);
     final id = _uuid.v4();
     final now = DateTime.now();
     final meeting = Meeting(
@@ -196,8 +198,6 @@ class SessionController extends Notifier<SessionState> {
       phase: SessionPhase.live,
       meetingId: id,
       title: meeting.title,
-      trigger: trigger,
-      pace: pace,
       lines: const [],
       notes: const [],
       suggestions: const [],
@@ -206,14 +206,14 @@ class SessionController extends Notifier<SessionState> {
       partialText: null,
       error: null,
       busyHint: false,
-      queuedQuestion: null,
       systemAudioOn: false,
       systemAudioHint: null,
       projectName: project?.name,
+      startedAt: now,
     );
 
     _startedAt = now;
-    _lastSuggestionAt = null;
+    _livePartialIds.clear();
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_startedAt == null || state.phase != SessionPhase.live) return;
@@ -224,8 +224,7 @@ class SessionController extends Notifier<SessionState> {
 
     var systemOn = false;
     String? systemHint;
-    final wantSystem =
-        settings.captureSystemAudio && !settings.isDemo;
+    final wantSystem = settings.captureSystemAudio && !settings.isDemo;
     if (wantSystem) {
       final support = await _systemAudio.probe();
       systemHint = support.hint;
@@ -234,10 +233,12 @@ class SessionController extends Notifier<SessionState> {
           _systemStt = createSttEngine(
             settings,
             lane: SttLane.remote,
+            elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
           );
           _systemSttSub = _systemStt!.events.listen(
             _onTranscript,
             onError: (error) {
+              if (_disposed) return;
               state = state.copyWith(error: error.toString());
             },
           );
@@ -245,6 +246,7 @@ class SessionController extends Notifier<SessionState> {
           _systemVad.reset();
           await _systemWav.open(_systemAudioPath!);
           _systemPcmSub = _systemAudio.start().listen((pcm) {
+            if (state.phase != SessionPhase.live) return;
             _systemWav.add(pcm);
             _systemStt?.addAudio(pcm);
             _systemVad.accept(
@@ -254,6 +256,12 @@ class SessionController extends Notifier<SessionState> {
           });
           systemOn = true;
         } catch (error) {
+          await _systemPcmSub?.cancel();
+          _systemPcmSub = null;
+          await _systemStt?.stop();
+          await _systemSttSub?.cancel();
+          _systemStt = null;
+          _systemSttSub = null;
           await _systemWav.close();
           systemHint = '系統聲音啟動失敗：$error';
           systemOn = false;
@@ -266,14 +274,23 @@ class SessionController extends Notifier<SessionState> {
     _micStt = createSttEngine(
       settings,
       lane: systemOn ? SttLane.self : SttLane.room,
+      elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
     );
     _micSttSub = _micStt!.events.listen(
       _onTranscript,
       onError: (error) {
+        if (_disposed) return;
         state = state.copyWith(error: error.toString());
       },
     );
-    await _micStt!.start();
+    try {
+      await _micStt!.start();
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+      await _disposeCapture();
+      state = state.copyWith(phase: SessionPhase.idle);
+      return;
+    }
 
     if (!settings.isDemo) {
       try {
@@ -309,10 +326,10 @@ class SessionController extends Notifier<SessionState> {
     String? fallback,
   }) {
     if (settings.hasLiveDiarize && systemOn) {
-      return '耳機會議：你是「我」。系統聲音會拆成對方A、對方B、對方C。';
+      return '串流轉寫：你是「我」，對方在同一連線內持續區分。灰色文字與人物標籤可能更新。';
     }
     if (settings.hasLiveDiarize && !systemOn) {
-      return '現場會議：同一支麥克風會拆成發言人 1、2、3。';
+      return '${fallback == null || fallback.isEmpty ? '' : '$fallback\n'}串流轉寫：同一支麥克風內持續區分發言人。灰色文字與人物標籤可能更新。';
     }
     return fallback;
   }
@@ -322,6 +339,11 @@ class SessionController extends Notifier<SessionState> {
     await _audio.pause();
     await RecordingKeepAlive.stop();
     state = state.copyWith(phase: SessionPhase.paused);
+    await Future.wait([
+      if (_micStt != null) _micStt!.flush(),
+      if (_systemStt != null) _systemStt!.flush(),
+    ]);
+    _systemVad.reset();
   }
 
   Future<void> resume() async {
@@ -329,10 +351,6 @@ class SessionController extends Notifier<SessionState> {
     await RecordingKeepAlive.start();
     await _audio.resume();
     state = state.copyWith(phase: SessionPhase.live);
-  }
-
-  void setTrigger(AutoTrigger trigger) {
-    state = state.copyWith(trigger: trigger);
   }
 
   Future<void> addNote(String text) async {
@@ -348,14 +366,35 @@ class SessionController extends Notifier<SessionState> {
     state = state.copyWith(notes: [...state.notes, note]);
   }
 
-  Future<void> suggestNow() async {
-    final recent = state.lines.where((line) => line.isFinal).toList();
-    if (recent.isEmpty) return;
+  Future<void> suggestForLines(Set<String> ids) async {
+    if (state.phase != SessionPhase.live &&
+        state.phase != SessionPhase.paused) {
+      return;
+    }
+    if (!ref.read(settingsProvider).hasLlm && !state.isDemo) {
+      state = state.copyWith(error: '逐字稿可繼續使用；回答建議需要 OpenAI API 金鑰。');
+      return;
+    }
+    final selected = state.lines
+        .where((line) => ids.contains(line.id) && line.isFinal)
+        .toList();
+    if (selected.isEmpty) return;
+    final first = state.lines.indexWhere(
+      (line) => line.id == selected.first.id,
+    );
+    final last = state.lines.indexWhere((line) => line.id == selected.last.id);
+    final contextLines = state.lines
+        .sublist(
+          first > 6 ? first - 6 : 0,
+          last + 4 < state.lines.length ? last + 4 : state.lines.length,
+        )
+        .where((line) => line.isFinal)
+        .toList();
     await _requestSuggestion(
-      trigger: recent.length >= 3
-          ? recent.sublist(recent.length - 3).map((l) => l.text).join(' ')
-          : recent.last.text,
-      force: true,
+      trigger: selected
+          .map((line) => '${line.speaker}：${line.text}')
+          .join('\n'),
+      contextLines: contextLines,
     );
   }
 
@@ -371,10 +410,7 @@ class SessionController extends Notifier<SessionState> {
     if (existing == null) return state.meetingId;
 
     try {
-      final projectContext =
-          await ref
-              .read(projectsProvider.notifier)
-              .contextBlock(projectId: _projectId);
+      final projectContext = _projectContext;
       final result = await llm.generateMinutes(
         meeting: existing,
         lines: state.lines.where((line) => line.isFinal).toList(),
@@ -407,15 +443,29 @@ class SessionController extends Notifier<SessionState> {
   }
 
   void _onTranscript(TranscriptEvent event) {
-    if (state.phase != SessionPhase.live && state.phase != SessionPhase.paused) {
+    if (_disposed ||
+        (state.phase != SessionPhase.live &&
+            state.phase != SessionPhase.paused &&
+            state.phase != SessionPhase.wrappingUp)) {
       return;
     }
     final elapsedMs = state.elapsed.inMilliseconds;
     final speaker = event.speakerLabel ?? speakerLabelFor(event.speakerIndex);
+    if (event.isRemoved && event.utteranceId != null) {
+      state = state.copyWith(
+        lines: state.lines
+            .where((line) => line.id != event.utteranceId || line.isFinal)
+            .toList(),
+      );
+      return;
+    }
 
     if (!event.isFinal) {
-      final id = _livePartialIds[event.speakerIndex] ?? _uuid.v4();
-      _livePartialIds[event.speakerIndex] = id;
+      final id =
+          event.utteranceId ??
+          _livePartialIds[event.speakerIndex] ??
+          _uuid.v4();
+      if (event.utteranceId == null) _livePartialIds[event.speakerIndex] = id;
       final line = TranscriptLine(
         id: id,
         meetingId: state.meetingId,
@@ -423,18 +473,20 @@ class SessionController extends Notifier<SessionState> {
         speakerIndex: event.speakerIndex,
         text: event.text,
         isFinal: false,
-        startMs: elapsedMs,
-        endMs: elapsedMs,
+        startMs: event.startMs ?? elapsedMs,
+        endMs: event.endMs ?? elapsedMs,
       );
       state = state.copyWith(
         lines: _upsertLine(state.lines, line),
         partialText: event.text,
       );
-      _armPauseTimer();
       return;
     }
 
-    final id = _livePartialIds.remove(event.speakerIndex) ?? _uuid.v4();
+    final id =
+        event.utteranceId ??
+        _livePartialIds.remove(event.speakerIndex) ??
+        _uuid.v4();
     final line = TranscriptLine(
       id: id,
       meetingId: state.meetingId,
@@ -442,67 +494,39 @@ class SessionController extends Notifier<SessionState> {
       speakerIndex: event.speakerIndex,
       text: event.text,
       isFinal: true,
-      startMs: elapsedMs,
-      endMs: elapsedMs,
+      startMs: event.startMs ?? elapsedMs,
+      endMs: event.endMs ?? elapsedMs,
     );
     state = state.copyWith(
       lines: _upsertLine(state.lines, line),
       clearPartial: true,
     );
-    unawaited(ref.read(meetingRepositoryProvider).upsertLine(line));
-
-    if (!_detector.isBackchannel(event.text) &&
-        state.trigger == AutoTrigger.questions &&
-        _detector.isQuestion(event.text)) {
-      state = state.copyWith(queuedQuestion: event.text);
-    }
-    _armPauseTimer();
-  }
-
-  void _armPauseTimer() {
-    _pauseTimer?.cancel();
-    _pauseTimer = Timer(state.pace.quietWindow, () {
-      unawaited(_onQuietWindow());
-    });
-  }
-
-  Future<void> _onQuietWindow() async {
-    if (state.phase != SessionPhase.live) return;
-    final queued = state.queuedQuestion;
-    if (state.trigger == AutoTrigger.questions && queued != null) {
-      await _requestSuggestion(trigger: queued);
-      return;
-    }
-    if (state.trigger == AutoTrigger.pause) {
-      final recent = state.lines.where((line) => line.isFinal).toList();
-      if (recent.isEmpty) return;
-      final last = recent.last.text;
-      if (_detector.isBackchannel(last)) return;
-      await _requestSuggestion(trigger: last);
-    }
+    final write = ref.read(meetingRepositoryProvider).upsertLine(line);
+    _lineWrites.add(write);
+    unawaited(
+      write.then<void>(
+        (_) {
+          _lineWrites.remove(write);
+        },
+        onError: (Object error) {
+          _lineWrites.remove(write);
+          if (!_disposed) state = state.copyWith(error: '逐字稿儲存失敗：$error');
+        },
+      ),
+    );
   }
 
   Future<void> _requestSuggestion({
     required String trigger,
-    bool force = false,
+    required List<TranscriptLine> contextLines,
   }) async {
     if (_llmBusy) return;
-    if (!force &&
-        _lastSuggestionAt != null &&
-        DateTime.now().difference(_lastSuggestionAt!) < state.pace.minGap) {
-      return;
-    }
+    if (!ref.read(settingsProvider).hasLlm && !state.isDemo) return;
     _llmBusy = true;
-    state = state.copyWith(busyHint: true, clearQueued: true);
+    state = state.copyWith(busyHint: true, clearError: true);
     try {
       final llm = LlmService(ref.read(settingsProvider));
-      final recent = state.lines.where((line) => line.isFinal).toList();
-      final contextLines =
-          recent.length > 12 ? recent.sublist(recent.length - 12) : recent;
-      final projectContext =
-          await ref
-              .read(projectsProvider.notifier)
-              .contextBlock(projectId: _projectId);
+      final projectContext = _projectContext;
       final answer = await llm.suggestAnswer(
         recent: contextLines,
         trigger: trigger,
@@ -516,7 +540,6 @@ class SessionController extends Notifier<SessionState> {
         createdAt: DateTime.now(),
       );
       await ref.read(meetingRepositoryProvider).addSuggestion(suggestion);
-      _lastSuggestionAt = DateTime.now();
       state = state.copyWith(
         suggestions: [...state.suggestions, suggestion],
         busyHint: false,
@@ -533,26 +556,28 @@ class SessionController extends Notifier<SessionState> {
     TranscriptLine line,
   ) {
     final index = lines.indexWhere((item) => item.id == line.id);
-    if (index == -1) return [...lines, line];
+    if (index == -1) {
+      return [...lines, line]..sort((a, b) => a.startMs.compareTo(b.startMs));
+    }
     final next = [...lines];
     next[index] = line;
-    return next;
+    return next..sort((a, b) => a.startMs.compareTo(b.startMs));
   }
 
   Future<void> _disposeCapture() async {
     _ticker?.cancel();
-    _pauseTimer?.cancel();
     await _systemPcmSub?.cancel();
     _systemPcmSub = null;
     await _systemWav.close();
     await _systemAudio.stop();
-    await _micSttSub?.cancel();
-    await _systemSttSub?.cancel();
+    await _audio.stop();
     await _micStt?.stop();
     await _systemStt?.stop();
+    await _micSttSub?.cancel();
+    await _systemSttSub?.cancel();
+    await Future.wait(_lineWrites.toList());
     _micStt = null;
     _systemStt = null;
-    await _audio.stop();
     await RecordingKeepAlive.stop();
     final micTemp = _micTempPath;
     final systemTemp = _systemAudioPath;

@@ -4,10 +4,7 @@ import 'package:cloakly/data/models/project_pack.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProjectLoadResult {
-  const ProjectLoadResult({
-    required this.library,
-    this.migratedProjectId,
-  });
+  const ProjectLoadResult({required this.library, this.migratedProjectId});
 
   final ProjectLibrary library;
   final String? migratedProjectId;
@@ -40,14 +37,11 @@ class ProjectRepository {
     final rawActive = prefs.getString(_activeKey);
     final activeId =
         rawActive == null || rawActive == ProjectLibrary.unassignedId
-            ? null
-            : rawActive;
+        ? null
+        : rawActive;
 
     return ProjectLoadResult(
-      library: ProjectLibrary(
-        projects: projects,
-        activeId: activeId,
-      ),
+      library: ProjectLibrary(projects: projects, activeId: activeId),
       migratedProjectId: migratedProjectId,
     );
   }

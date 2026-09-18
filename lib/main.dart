@@ -13,14 +13,13 @@ Future<void> main() async {
   bootSettings = await SettingsRepository().load();
   final migrated = await ProjectRepository().loadLibrary();
   if (migrated.migratedProjectId != null) {
-    await MeetingRepository(database)
-        .assignUnassignedTo(migrated.migratedProjectId!);
+    await MeetingRepository(
+      database,
+    ).assignUnassignedTo(migrated.migratedProjectId!);
   }
   runApp(
     ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(database),
-      ],
+      overrides: [databaseProvider.overrideWithValue(database)],
       child: const CloaklyApp(),
     ),
   );

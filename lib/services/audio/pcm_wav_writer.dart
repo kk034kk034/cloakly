@@ -61,9 +61,8 @@ Future<void> mixMonoWavFiles({
   if (!await mic.exists()) return;
 
   final remote = systemPath == null ? null : File(systemPath);
-  final hasRemote = remote != null &&
-      await remote.exists() &&
-      await remote.length() > 44;
+  final hasRemote =
+      remote != null && await remote.exists() && await remote.length() > 44;
 
   if (!hasRemote) {
     if (micPath != outPath) {

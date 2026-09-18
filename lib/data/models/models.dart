@@ -48,24 +48,23 @@ class Meeting {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'title': title,
-        'started_at': startedAt.millisecondsSinceEpoch,
-        'ended_at': endedAt?.millisecondsSinceEpoch,
-        'status': status.name,
-        'minutes_markdown': minutesMarkdown,
-        'audio_path': audioPath,
-        'listen_mode': 'meeting',
-        'project_id': projectId,
-      };
+    'id': id,
+    'title': title,
+    'started_at': startedAt.millisecondsSinceEpoch,
+    'ended_at': endedAt?.millisecondsSinceEpoch,
+    'status': status.name,
+    'minutes_markdown': minutesMarkdown,
+    'audio_path': audioPath,
+    'listen_mode': 'meeting',
+    'project_id': projectId,
+  };
 
   factory Meeting.fromMap(Map<String, Object?> map) {
     final rawProjectId = map['project_id'] as String?;
     return Meeting(
       id: map['id']! as String,
       title: map['title']! as String,
-      startedAt:
-          DateTime.fromMillisecondsSinceEpoch(map['started_at']! as int),
+      startedAt: DateTime.fromMillisecondsSinceEpoch(map['started_at']! as int),
       endedAt: map['ended_at'] == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(map['ended_at']! as int),
@@ -120,15 +119,15 @@ class TranscriptLine {
   }
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'meeting_id': meetingId,
-        'speaker': speaker,
-        'speaker_index': speakerIndex,
-        'text': text,
-        'is_final': isFinal ? 1 : 0,
-        'start_ms': startMs,
-        'end_ms': endMs,
-      };
+    'id': id,
+    'meeting_id': meetingId,
+    'speaker': speaker,
+    'speaker_index': speakerIndex,
+    'text': text,
+    'is_final': isFinal ? 1 : 0,
+    'start_ms': startMs,
+    'end_ms': endMs,
+  };
 
   factory TranscriptLine.fromMap(Map<String, Object?> map) {
     return TranscriptLine(
@@ -158,19 +157,18 @@ class Note {
   final DateTime createdAt;
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'meeting_id': meetingId,
-        'text': text,
-        'created_at': createdAt.millisecondsSinceEpoch,
-      };
+    'id': id,
+    'meeting_id': meetingId,
+    'text': text,
+    'created_at': createdAt.millisecondsSinceEpoch,
+  };
 
   factory Note.fromMap(Map<String, Object?> map) {
     return Note(
       id: map['id']! as String,
       meetingId: map['meeting_id']! as String,
       text: map['text']! as String,
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(map['created_at']! as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']! as int),
     );
   }
 }
@@ -191,12 +189,12 @@ class Suggestion {
   final DateTime createdAt;
 
   Map<String, Object?> toMap() => {
-        'id': id,
-        'meeting_id': meetingId,
-        'trigger_text': triggerText,
-        'answer': answer,
-        'created_at': createdAt.millisecondsSinceEpoch,
-      };
+    'id': id,
+    'meeting_id': meetingId,
+    'trigger_text': triggerText,
+    'answer': answer,
+    'created_at': createdAt.millisecondsSinceEpoch,
+  };
 
   factory Suggestion.fromMap(Map<String, Object?> map) {
     return Suggestion(
@@ -204,8 +202,7 @@ class Suggestion {
       meetingId: map['meeting_id']! as String,
       triggerText: map['trigger_text']! as String,
       answer: map['answer']! as String,
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(map['created_at']! as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']! as int),
     );
   }
 }
@@ -219,6 +216,8 @@ class AppSettings {
     required this.autoTrigger,
     required this.pace,
     this.captureSystemAudio = true,
+    this.sonioxApiKey = '',
+    this.transcriptionTerms = '',
   });
 
   final String openaiApiKey;
@@ -228,20 +227,22 @@ class AppSettings {
   final AutoTrigger autoTrigger;
   final Pace pace;
   final bool captureSystemAudio;
+  final String sonioxApiKey;
+  final String transcriptionTerms;
 
   bool get hasLlm => openaiApiKey.trim().isNotEmpty;
-  bool get isDemo => !hasLlm;
-  bool get hasLiveDiarize => hasLlm;
+  bool get hasLiveDiarize => sonioxApiKey.trim().isNotEmpty;
+  bool get isDemo => !hasLlm && !hasLiveDiarize;
 
   factory AppSettings.defaults() => const AppSettings(
-        openaiApiKey: '',
-        chatModel: 'gpt-4o-mini',
-        language: 'zh',
-        personalContext: '',
-        autoTrigger: AutoTrigger.questions,
-        pace: Pace.balanced,
-        captureSystemAudio: true,
-      );
+    openaiApiKey: '',
+    chatModel: 'gpt-4o-mini',
+    language: 'zh',
+    personalContext: '',
+    autoTrigger: AutoTrigger.questions,
+    pace: Pace.balanced,
+    captureSystemAudio: true,
+  );
 
   AppSettings copyWith({
     String? openaiApiKey,
@@ -251,6 +252,8 @@ class AppSettings {
     AutoTrigger? autoTrigger,
     Pace? pace,
     bool? captureSystemAudio,
+    String? sonioxApiKey,
+    String? transcriptionTerms,
   }) {
     return AppSettings(
       openaiApiKey: openaiApiKey ?? this.openaiApiKey,
@@ -260,6 +263,8 @@ class AppSettings {
       autoTrigger: autoTrigger ?? this.autoTrigger,
       pace: pace ?? this.pace,
       captureSystemAudio: captureSystemAudio ?? this.captureSystemAudio,
+      sonioxApiKey: sonioxApiKey ?? this.sonioxApiKey,
+      transcriptionTerms: transcriptionTerms ?? this.transcriptionTerms,
     );
   }
 }

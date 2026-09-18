@@ -41,12 +41,24 @@ class TranscriptEvent {
     required this.isFinal,
     this.speakerIndex = 0,
     this.speakerLabel,
+    this.startMs,
+    this.endMs,
+    this.speakerVerified = true,
+    this.utteranceId,
+    this.isRemoved = false,
   });
 
   final String text;
   final bool isFinal;
   final int speakerIndex;
   final String? speakerLabel;
+  final int? startMs;
+  final int? endMs;
+  final bool speakerVerified;
+
+  /// Stable within a source session; independent of changing speaker guesses.
+  final String? utteranceId;
+  final bool isRemoved;
 }
 
 abstract class SttEngine {

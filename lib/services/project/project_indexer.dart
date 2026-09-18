@@ -68,7 +68,8 @@ class ProjectIndexer {
     final docs = [
       for (final doc in capped)
         doc.copyWith(
-          included: doc.kind != KnowledgeKind.other &&
+          included:
+              doc.kind != KnowledgeKind.other &&
               includedBudget < maxIncluded &&
               (includedBudget += 1) <= maxIncluded,
         ),
