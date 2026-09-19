@@ -2,7 +2,7 @@
 
 會議進行中記筆記與查看串流逐字稿，結束後產出會議紀錄。即時轉寫使用 Soniox；中文與多人準確率仍待真實錄音雲端驗收。
 
-同一套 Flutter 程式可跑在 **Android、iOS、Windows、macOS、Linux**。產品定位是你自己看得到的會議助手，不是隱藏視窗或面試作弊工具。
+Cloakly 使用一個公開 monorepo 維護 **桌面版、手機版、共用核心與 Hosted 後端**。桌面版採自備 API 金鑰；手機版使用 Supabase 登入與用量服務、RevenueCat 訂閱，以及後端簽發的短效轉寫金鑰。產品定位是你自己看得到的會議助手，不是隱藏視窗或面試作弊工具。
 
 ## 功能
 
@@ -20,13 +20,21 @@
 2. 手機：Android Studio / Xcode；電腦：Windows 需 Visual Studio（含「使用 C++ 的桌面開發」）
 3. Windows 若 `flutter pub get` 提示 symlink，請先開 [開發人員模式](ms-settings:developers)
 
-```bash
+```powershell
+# 在 repo 根目錄安裝整個 workspace 的套件
 flutter pub get
-flutter run          # 目前已連的裝置
+
+# Windows 桌面版
+cd C:\Kate\sideProject\cloakly\apps\desktop
 flutter run -d windows
-flutter run -d macos
-flutter run -d linux
+
+# Android／iOS 手機版（另一個 PowerShell）
+cd C:\Kate\sideProject\cloakly\apps\mobile
+flutter devices
+flutter run -d <device-id> --dart-define-from-file=config/local.json
 ```
+
+repo 根目錄現在是 Dart workspace，沒有 `lib/main.dart`，所以在 `C:\Kate\sideProject\cloakly` 直接執行 `flutter run -d windows` 會出現 `Target file "lib\main.dart" not found.`。請先進入對應的 `apps/desktop` 或 `apps/mobile`。
 
 第一次請允許麥克風。Windows 會用 WASAPI loopback 聽系統聲音；macOS 第一次要允許「螢幕錄製」（只為了聽會議音訊，不是要錄畫面）。手機無法擷取其他 App 的會議聲音，請用電腦版。
 
@@ -34,7 +42,9 @@ flutter run -d linux
 
 ## 金鑰（選填，但真實轉寫與提示需要）
 
-到 App 內「設定」填入 **Soniox API 金鑰**，啟用多人即時轉寫；選擇中文、中英混合、英文或自動，並填入專有名詞。**OpenAI API 金鑰**另用於回答建議與會議摘要（預設 `gpt-4o-mini`）。只有 Soniox 金鑰仍可錄音、轉寫、存筆記；沒有 OpenAI 時保留本機逐字稿，不產生 AI 摘要。兩種金鑰都沒有才是示範模式。舊版僅有 OpenAI 金鑰的使用者需要新增 Soniox 金鑰；不會悄悄切回分段辨識。
+桌面版到 App 內「設定」填入 **Soniox API 金鑰**，啟用多人即時轉寫；選擇中文、中英混合、英文或自動，並填入專有名詞。**OpenAI API 金鑰**另用於回答建議與會議摘要（預設 `gpt-4o-mini`）。只有 Soniox 金鑰仍可錄音、轉寫、存筆記；沒有 OpenAI 時保留本機逐字稿，不產生 AI 摘要。兩種金鑰都沒有才是示範模式。
+
+桌面版保留自備金鑰模式。手機版需要 Supabase URL／publishable key 與 RevenueCat 公開 SDK key，設定方式見 [`apps/mobile/README.md`](apps/mobile/README.md)。Soniox、OpenAI 與 RevenueCat 的伺服器金鑰只存在 Supabase Secrets。
 
 ## 使用
 
@@ -47,6 +57,12 @@ flutter run -d linux
 ## 架構摘要
 
 ```
+apps/desktop ─┐
+              ├→ packages/cloakly_core
+apps/mobile ──┘
+
+backend/supabase → 手機版登入、訂閱、額度與短效 Soniox 金鑰
+
 選定專案資料夾 → 勾選文件
 錄音：麥克風（我）+ 系統聲音 loopback
       → Soniox 持續 WebSocket（各音源各一條連線）
@@ -56,14 +72,14 @@ flutter run -d linux
          → 本機 SQLite
 ```
 
-資料存在應用程式文件目錄的 `cloakly/`，金鑰存在本機設定，不會上傳到我們的伺服器。
+目前會議資料存在應用程式文件目錄的 `cloakly/`。桌面版金鑰保存在本機設定；手機 Hosted 版不內建 Soniox 或 OpenAI 長效金鑰。免費額度可每日分多場使用，合計最多 30 分鐘。
 
 ## 逐字稿品質驗證
 
 - 收音後立即送出 PCM，包含自然停頓；不以固定秒數重建辨識請求，也不在 VAD 停頓時強制定稿。暫停時用 keepalive 保留連線。
 - 暫定結果以句段 ID 更新，可修正文字及人物；定稿依標點、人物切換與音訊間隔組句。結束時等待服務端 finished 與資料庫寫入。
 - 使用音訊時間戳排序；斷線與逾時明確顯示錯誤，原音訊保留供重跑。目前不自動重連，避免重置人物標籤卻繼續冒用原身分。
-- `flutter test` 包含多人映射、暫定結果撤回、尾句、語言設定、本機 WebSocket 傳輸等測試；它們不代表真實辨識率。
+- 在 `packages/cloakly_core` 執行 `flutter test`，會驗證多人映射、暫定結果撤回、尾句、語言設定、本機 WebSocket 傳輸等行為；它們不代表真實辨識率。
 - 上線驗收仍需固定的多人會議錄音與人工標註，量測文字錯誤率、人物歸屬錯誤率、停頓到顯示的 P50/P95 延遲，並涵蓋中英混合、專有名詞、插話與同時發言。在跨片段人物一致性完成之前，不應把人物提問追蹤視為已完成。
 
 回放指令、架構取捨與本次錄音檢查見 [串流驗證說明](docs/streaming-validation.md)。舊的 `WhisperStt` 僅保留為歷史比較實作，不再由即時會議工廠選用。

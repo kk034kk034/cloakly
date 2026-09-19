@@ -1,0 +1,21 @@
+project_id = "cloakly"
+
+# Each handler verifies either the Supabase access token or the RevenueCat
+# webhook secret itself. This also works with Supabase's newer signing keys.
+[functions.create-meeting-session]
+verify_jwt = false
+
+[functions.finish-meeting-session]
+verify_jwt = false
+
+[functions.suggest-answer]
+verify_jwt = false
+
+[functions.generate-minutes]
+verify_jwt = false
+
+[functions.sync-entitlement]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false
