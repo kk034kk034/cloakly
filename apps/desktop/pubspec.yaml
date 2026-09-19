@@ -1,0 +1,23 @@
+name: cloakly_desktop
+description: Cloakly 開源桌面版。
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cloakly_core:
+    path: ../../packages/cloakly_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

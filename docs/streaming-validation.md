@@ -36,13 +36,13 @@ API 金鑰只由本機設定或環境變數讀取，回放工具不輸出金鑰�
 本機解碼（需要 Python 的 PyAV 與 NumPy）：
 
 ```powershell
-python tool/prepare_audio.py '你的錄音.m4a' --output build/stt_validation/meeting
+python packages/cloakly_core/tool/prepare_audio.py '你的錄音.m4a' --output build/stt_validation/meeting
 ```
 
 填入 App 設定的 Soniox 金鑰，或在本機設好 `SONIOX_API_KEY`，再執行：
 
 ```powershell
-dart run tool/replay_stt.dart build/stt_validation/meeting/input.pcm build/stt_validation/meeting/cloud 1
+dart run packages/cloakly_core/tool/replay_stt.dart build/stt_validation/meeting/input.pcm build/stt_validation/meeting/cloud 1
 ```
 
 預設中英混合；可用 `STT_LANGUAGE=zh` 比較中文限制。速度 `1` 為真實時間回放；
@@ -54,7 +54,7 @@ dart run tool/replay_stt.dart build/stt_validation/meeting/input.pcm build/stt_v
 
 ```powershell
 $env:CLOAKLY_TEST_PCM = '已解碼 input.pcm 的完整路徑'
-flutter test test/recording_transport_test.dart
+flutter test packages/cloakly_core/test/recording_transport_test.dart
 ```
 
 此測試使用本機 WebSocket，逐包逐 byte 對比完整錄音，確認只用一條連線且沒有遺失音訊。
