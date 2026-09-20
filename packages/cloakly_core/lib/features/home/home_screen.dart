@@ -75,12 +75,16 @@ class HomeScreen extends ConsumerWidget {
     if (!context.mounted) return;
     final session = ref.read(sessionControllerProvider);
     if (session.phase != SessionPhase.live) {
+      final hosted = ref.read(hostedModeProvider);
+      final needsSubscription =
+          hosted && (session.error?.contains('免費會議額度') ?? false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(session.error ?? '無法開始會議，請檢查設定。'),
           action: SnackBarAction(
-            label: '回專案列表',
-            onPressed: () => context.go('/'),
+            label: needsSubscription ? '查看訂閱' : '回專案列表',
+            onPressed: () =>
+                context.go(needsSubscription ? '/settings' : '/'),
           ),
         ),
       );

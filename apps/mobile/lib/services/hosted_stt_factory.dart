@@ -42,7 +42,7 @@ class HostedSessionCoordinator {
       throw StateError(switch (error.status) {
         404 => '手機版後端尚未部署 create-meeting-session。',
         401 => '登入已失效，請登出後重新登入。',
-        429 => '今天的免費會議額度已使用完畢。',
+        429 => '今天的免費會議額度已使用完畢。可到帳號與訂閱頁升級 Pro。',
         502 => 'Soniox 金鑰無效、權限不足，或轉寫服務暫時無法使用。',
         503 => '後端尚未設定 Soniox API 金鑰。',
         _ => '無法取得會議授權（${error.status}）。',

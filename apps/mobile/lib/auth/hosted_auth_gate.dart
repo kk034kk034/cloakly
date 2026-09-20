@@ -1,18 +1,18 @@
 import 'dart:async';
 
+import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:flutter/material.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HostedAuthGate extends StatefulWidget {
   const HostedAuthGate({
     required this.child,
-    required this.revenueCatReady,
+    this.billing,
     super.key,
   });
 
   final Widget child;
-  final bool revenueCatReady;
+  final HostedBilling? billing;
 
   @override
   State<HostedAuthGate> createState() => _HostedAuthGateState();
@@ -36,24 +36,22 @@ class _HostedAuthGateState extends State<HostedAuthGate> {
   }
 
   Future<void> _syncRevenueCat(Session? previous, Session? current) async {
-    if (!widget.revenueCatReady) return;
+    final billing = widget.billing;
+    if (billing == null) return;
     try {
       if (current != null) {
-        await Purchases.logIn(current.user.id);
-        await _refreshServerEntitlement();
+        if (previous != null && previous.user.id != current.user.id) {
+          await billing.signOut();
+        }
+        await billing.identify(
+          userId: current.user.id,
+          email: current.user.email,
+        );
       } else if (previous != null) {
-        await Purchases.logOut();
+        await billing.signOut();
       }
     } catch (_) {
       // Authentication must remain usable if the store SDK is unavailable.
-    }
-  }
-
-  Future<void> _refreshServerEntitlement() async {
-    try {
-      await Supabase.instance.client.functions.invoke('sync-entitlement');
-    } catch (_) {
-      // RevenueCat's webhook is the fallback when an immediate sync is offline.
     }
   }
 
