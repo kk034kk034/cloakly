@@ -2,7 +2,9 @@ import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/features/home/home_screen.dart';
 import 'package:cloakly_core/features/meeting_detail/meeting_detail_screen.dart';
 import 'package:cloakly_core/features/project/project_picker_screen.dart';
+import 'package:cloakly_core/features/project/project_plan_screen.dart';
 import 'package:cloakly_core/features/project/project_screen.dart';
+import 'package:cloakly_core/features/project/project_question_screen.dart';
 import 'package:cloakly_core/features/session/session_screen.dart';
 import 'package:cloakly_core/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +21,16 @@ GoRouter createAppRouter({WidgetBuilder? settingsBuilder}) => GoRouter(
       path: '/home',
       builder: (context, state) => const HomeScreen(),
       routes: [
+        GoRoute(
+          path: 'project/:id/questions',
+          builder: (context, state) =>
+              ProjectQuestionScreen(projectId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: 'project/:id/plan',
+          builder: (context, state) =>
+              ProjectPlanScreen(projectId: state.pathParameters['id']!),
+        ),
         GoRoute(
           path: 'session',
           builder: (context, state) => const SessionScreen(),

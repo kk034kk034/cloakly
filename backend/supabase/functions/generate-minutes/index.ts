@@ -21,13 +21,14 @@ Deno.serve(async (req) => {
     const notes = Array.isArray(body.notes)
       ? body.notes.slice(0, 200).map((note: unknown) => `- ${clipped((note as { text?: unknown })?.text, 2000)}`).join("\n")
       : "";
-    const raw = await complete({
+    const result = await complete({
       system: `你是會議紀錄秘書。只輸出 JSON 物件，不要 Markdown 圍欄。格式為 {"title":"精煉標題","minutesMarkdown":"繁體中文 Markdown，含 ## 摘要、## 討論重點、## 決議、## 待辦","speakerNames":{"我":"可選真名","對方A":"可選真名"}}。只根據輸入內容，不得發明事實。`,
       user: `原標題：${title}\n開始時間：${startedAt}\n\n現場筆記：\n${notes || "（無）"}\n\n專案資料：\n${project || "（無）"}\n\n逐字稿：\n${transcript || "（無）"}`,
       temperature: 0.2,
       jsonObject: true,
+      maxTokens: 2000,
     });
-    return jsonResponse(JSON.parse(raw));
+    return jsonResponse({ ...JSON.parse(result.content), usage: result.usage });
   } catch (error) {
     return failure(error);
   }

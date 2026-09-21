@@ -4,6 +4,7 @@ import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/data/repositories/project_repository.dart';
 import 'package:cloakly_core/services/project/project_context_builder.dart';
 import 'package:cloakly_core/services/project/project_indexer.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -64,22 +65,7 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
         pack = pack.copyWith(
           personalContext: previous.personalContext,
           transcriptionTerms: previous.transcriptionTerms,
-        );
-      }
-      if (previous != null && previous.docs.isNotEmpty) {
-        final previousIncluded = {
-          for (final doc in previous.docs)
-            if (doc.included) doc.relativePath,
-        };
-        pack = pack.copyWith(
-          docs: [
-            for (final doc in pack.docs)
-              doc.copyWith(
-                included:
-                    previousIncluded.contains(doc.relativePath) ||
-                    (previousIncluded.isEmpty && doc.included),
-              ),
-          ],
+          tasks: previous.tasks,
         );
       }
       final projects = [
@@ -101,45 +87,18 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
     await indexFolder(pack.folderPath);
   }
 
-  Future<void> toggle(
-    String relativePath,
-    bool included, {
-    String? projectId,
-  }) async {
-    final current = state.valueOrNull;
-    final pack = _byId(projectId) ?? current?.active;
-    if (current == null || pack == null) return;
-    final updated = pack.copyWith(
-      docs: [
-        for (final doc in pack.docs)
-          if (doc.relativePath == relativePath)
-            doc.copyWith(included: included)
-          else
-            doc,
-      ],
-    );
-    await _replace(updated);
-  }
-
-  Future<void> setAllIncluded(bool included, {String? projectId}) async {
-    final current = state.valueOrNull;
-    final pack = _byId(projectId) ?? current?.active;
-    if (current == null || pack == null) return;
-    await _replace(
-      pack.copyWith(
-        docs: [
-          for (final doc in pack.docs) doc.copyWith(included: included),
-        ],
-      ),
-    );
-  }
-
   Future<void> updateDetails(String id, String background, String terms) async {
     final pack = _byId(id);
     if (pack == null) throw StateError('專案已不存在');
     await _replace(
       pack.copyWith(personalContext: background, transcriptionTerms: terms),
     );
+  }
+
+  Future<void> updateTasks(String id, List<ProjectTask> tasks) async {
+    final pack = _byId(id);
+    if (pack == null) throw StateError('專案已不存在');
+    await _replace(pack.copyWith(tasks: tasks));
   }
 
   Future<void> remove(String id) async {

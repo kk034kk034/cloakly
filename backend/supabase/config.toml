@@ -11,6 +11,12 @@ verify_jwt = false
 [functions.suggest-answer]
 verify_jwt = false
 
+[functions.project-question]
+verify_jwt = false
+
+[functions.project-plan]
+verify_jwt = false
+
 [functions.generate-minutes]
 verify_jwt = false
 

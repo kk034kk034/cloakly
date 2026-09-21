@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/services/project/project_document_reader.dart';
 import 'package:path/path.dart' as p;
 
 class ProjectIndexer {
@@ -31,11 +32,6 @@ class ProjectIndexer {
     'vendor',
     '__pycache__',
     '.next',
-    'ios',
-    'android',
-    'windows',
-    'macos',
-    'linux',
     'Pods',
     '.gradle',
   };
@@ -50,8 +46,7 @@ class ProjectIndexer {
   };
 
   static const maxFileBytes = 256 * 1024;
-  static const maxDocs = 80;
-  static const maxIncluded = 20;
+  static const maxDocs = 2000;
 
   Future<ProjectPack> index(String folderPath, {String? id}) async {
     final root = Directory(folderPath);
@@ -64,16 +59,8 @@ class ProjectIndexer {
 
     found.sort((a, b) => b.score.compareTo(a.score));
     final capped = found.take(maxDocs).toList();
-    var includedBudget = 0;
-    final docs = [
-      for (final doc in capped)
-        doc.copyWith(
-          included:
-              doc.kind != KnowledgeKind.other &&
-              includedBudget < maxIncluded &&
-              (includedBudget += 1) <= maxIncluded,
-        ),
-    ];
+    // The project folder is the source scope; all supported files participate.
+    final docs = capped.map((doc) => doc.copyWith(included: true)).toList();
 
     return ProjectPack(
       id: id ?? '',
@@ -90,7 +77,7 @@ class ProjectIndexer {
     List<KnowledgeDoc> out,
     int depth,
   ) async {
-    if (depth > 6 || out.length >= maxDocs * 3) return;
+    if (depth > 20 || out.length >= maxDocs) return;
     Stream<FileSystemEntity> listing;
     try {
       listing = dir.list(followLinks: false);
@@ -98,17 +85,20 @@ class ProjectIndexer {
       return;
     }
     await for (final entity in listing) {
+      if (out.length >= maxDocs) break;
       final name = p.basename(entity.path);
-      if (name.startsWith('.') && entity is Directory) continue;
+      if (name.startsWith('.')) continue;
       if (entity is Directory) {
         if (skipDirs.contains(name)) continue;
         await _walk(entity, rootPath, out, depth + 1);
       } else if (entity is File) {
-        final ext = p.extension(name).toLowerCase();
-        if (!textExtensions.contains(ext)) continue;
+        if (!ProjectDocumentReader.supports(name)) continue;
         if (skipFiles.contains(name.toLowerCase())) continue;
         final stat = await entity.stat();
-        if (stat.size <= 0 || stat.size > maxFileBytes) continue;
+        if (stat.size <= 0 ||
+            stat.size > ProjectDocumentReader.maxBytes(name)) {
+          continue;
+        }
         final relative = p.relative(entity.path, from: rootPath);
         final kind = kindFor(relative);
         out.add(

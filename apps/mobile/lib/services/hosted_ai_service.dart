@@ -13,7 +13,26 @@ class HostedAiService implements AiService {
   bool get isConfigured => _supabase.auth.currentSession != null;
 
   @override
-  Future<String> suggestAnswer({
+  Future<AiTextResult> answerProjectQuestion({
+    required String question,
+    required String evidence,
+  }) async {
+    final response = await _supabase.functions
+        .invoke(
+          'project-question',
+          body: {'question': question, 'evidence': evidence},
+        )
+        .timeout(const Duration(seconds: 60));
+    final data = _jsonMap(response.data);
+    final answer = data['answer'] as String?;
+    if (answer == null || answer.trim().isEmpty) {
+      throw StateError('Hosted AI 沒有回傳專案回答');
+    }
+    return AiTextResult(answer.trim(), usage: _usage(data));
+  }
+
+  @override
+  Future<AiTextResult> suggestAnswer({
     required List<TranscriptLine> recent,
     required String trigger,
     String projectContext = '',
@@ -39,7 +58,7 @@ class HostedAiService implements AiService {
     if (answer == null || answer.trim().isEmpty) {
       throw StateError('Hosted AI 沒有回傳回答建議');
     }
-    return answer.trim();
+    return AiTextResult(answer.trim(), usage: _usage(data));
   }
 
   @override
@@ -75,7 +94,47 @@ class HostedAiService implements AiService {
       jsonEncode(data),
       fallbackTitle: meeting.title,
       lines: lines,
+      usage: _usage(data),
     );
+  }
+
+  @override
+  Future<ProjectPlanResult> generateProjectPlan({
+    required String evidence,
+  }) async {
+    final response = await _supabase.functions
+        .invoke('project-plan', body: {'evidence': evidence})
+        .timeout(const Duration(seconds: 60));
+    final data = _jsonMap(response.data);
+    final tasks = data['tasks'];
+    if (tasks is! List) throw StateError('Hosted AI 沒有回傳 WBS');
+    return ProjectPlanResult(
+      tasks: [
+        for (final raw in tasks.take(40))
+          if (raw is Map &&
+              (raw['title'] as String?)?.trim().isNotEmpty == true)
+            ProjectPlanDraft(
+              title: (raw['title'] as String).trim(),
+              startDate: DateTime.tryParse(raw['startDate'] as String? ?? ''),
+              endDate: DateTime.tryParse(raw['endDate'] as String? ?? ''),
+              owner: (raw['owner'] as String? ?? '').trim(),
+              status: (raw['status'] as String? ?? 'uncertain'),
+              sourceIds: [
+                for (final id
+                    in raw['sourceIds'] is List
+                        ? raw['sourceIds'] as List
+                        : const [])
+                  if (id is String) id,
+              ],
+            ),
+      ],
+      usage: _usage(data),
+    );
+  }
+
+  AiUsage? _usage(Map<String, dynamic> data) {
+    final raw = data['usage'];
+    return raw is Map ? AiUsage.fromJson(Map<String, dynamic>.from(raw)) : null;
   }
 
   Map<String, dynamic> _jsonMap(Object? raw) {

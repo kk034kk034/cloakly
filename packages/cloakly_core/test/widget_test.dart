@@ -13,7 +13,10 @@ void main() {
     final detector = QuestionDetector();
     expect(detector.isQuestion('登入頁的錯誤率有下降嗎？'), isTrue);
     expect(detector.isQuestion('所以這個 API 預計什麼時候可以提供測試？'), isTrue);
-    expect(detector.isQuestion('Can you walk me through the launch plan?'), isTrue);
+    expect(
+      detector.isQuestion('Can you walk me through the launch plan?'),
+      isTrue,
+    );
     expect(detector.isQuestion('好'), isFalse);
     expect(detector.isBackchannel('嗯嗯'), isTrue);
   });
@@ -35,16 +38,13 @@ void main() {
   });
 
   test('OpenAI diarized_json 會拆成對方A/B', () {
-    final events = eventsFromOpenAiDiarizedJson(
-      {
-        'text': '進度如何 下週能上線嗎',
-        'segments': [
-          {'speaker': 'A', 'text': '進度如何'},
-          {'speaker': 'B', 'text': '下週能上線嗎'},
-        ],
-      },
-      lane: SttLane.remote,
-    );
+    final events = eventsFromOpenAiDiarizedJson({
+      'text': '進度如何 下週能上線嗎',
+      'segments': [
+        {'speaker': 'A', 'text': '進度如何'},
+        {'speaker': 'B', 'text': '下週能上線嗎'},
+      ],
+    }, lane: SttLane.remote);
     expect(events.map((e) => '${e.speakerLabel}:${e.text}').toList(), [
       '對方A:進度如何',
       '對方B:下週能上線嗎',
@@ -137,6 +137,45 @@ void main() {
     });
     expect(pack.id, r'C:\work\alpha');
     expect(pack.name, 'alpha');
+  });
+
+  test('AI 用量依模型計算美元與台幣估計', () {
+    const usage = AiUsage(
+      model: 'gpt-4o-mini',
+      inputTokens: 8000,
+      outputTokens: 900,
+    );
+    expect(usage.estimatedUsd, closeTo(0.00174, 0.0000001));
+    expect(usage.display, contains('輸入 8000 tokens'));
+    expect(usage.display, contains('NT\$0.055'));
+  });
+
+  test('WBS 工作可隨專案儲存，舊專案預設沒有工作', () {
+    final task = ProjectTask(
+      id: 't1',
+      title: '完成實驗',
+      status: ProjectTaskStatus.inProgress,
+      updatedAt: DateTime(2026, 9, 21),
+      startDate: DateTime(2026, 9, 1),
+      endDate: DateTime(2026, 10, 1),
+      owner: 'Kate',
+      sources: const ['週會 · 逐字稿 1:05'],
+      confirmed: true,
+    );
+    final pack = ProjectPack(
+      id: 'p1',
+      folderPath: r'C:\work\alpha',
+      name: 'alpha',
+      indexedAt: DateTime(2026),
+      docs: const [],
+      tasks: [task],
+    );
+    final restored = ProjectPack.fromJson(pack.toJson());
+    expect(restored.tasks.single.title, '完成實驗');
+    expect(restored.tasks.single.confirmed, isTrue);
+
+    final legacy = Map<String, Object?>.from(pack.toJson())..remove('tasks');
+    expect(ProjectPack.fromJson(legacy).tasks, isEmpty);
   });
 
   test('會議可綁定專案，缺 project_id 視為未分類', () {

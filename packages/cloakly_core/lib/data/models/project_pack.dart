@@ -56,6 +56,97 @@ class KnowledgeDoc {
   }
 }
 
+enum ProjectTaskStatus { planned, inProgress, blocked, done, uncertain }
+
+extension ProjectTaskStatusX on ProjectTaskStatus {
+  String get label => switch (this) {
+    ProjectTaskStatus.planned => '預計',
+    ProjectTaskStatus.inProgress => '進行中',
+    ProjectTaskStatus.blocked => '阻塞',
+    ProjectTaskStatus.done => '完成',
+    ProjectTaskStatus.uncertain => '待確認',
+  };
+}
+
+class ProjectTask {
+  const ProjectTask({
+    required this.id,
+    required this.title,
+    required this.status,
+    required this.updatedAt,
+    this.startDate,
+    this.endDate,
+    this.owner = '',
+    this.sources = const [],
+    this.confirmed = false,
+  });
+
+  final String id;
+  final String title;
+  final ProjectTaskStatus status;
+  final DateTime updatedAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String owner;
+  final List<String> sources;
+  final bool confirmed;
+
+  ProjectTask copyWith({
+    String? title,
+    ProjectTaskStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool clearStart = false,
+    bool clearEnd = false,
+    String? owner,
+    List<String>? sources,
+    bool? confirmed,
+  }) => ProjectTask(
+    id: id,
+    title: title ?? this.title,
+    status: status ?? this.status,
+    updatedAt: DateTime.now(),
+    startDate: clearStart ? null : (startDate ?? this.startDate),
+    endDate: clearEnd ? null : (endDate ?? this.endDate),
+    owner: owner ?? this.owner,
+    sources: sources ?? this.sources,
+    confirmed: confirmed ?? this.confirmed,
+  );
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'status': status.name,
+    'updatedAt': updatedAt.millisecondsSinceEpoch,
+    'startDate': startDate?.millisecondsSinceEpoch,
+    'endDate': endDate?.millisecondsSinceEpoch,
+    'owner': owner,
+    'sources': sources,
+    'confirmed': confirmed,
+  };
+
+  factory ProjectTask.fromJson(Map<String, dynamic> json) => ProjectTask(
+    id: json['id'] as String,
+    title: json['title'] as String,
+    status: ProjectTaskStatus.values.firstWhere(
+      (value) => value.name == json['status'],
+      orElse: () => ProjectTaskStatus.uncertain,
+    ),
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(
+      json['updatedAt'] as int? ?? 0,
+    ),
+    startDate: json['startDate'] == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(json['startDate'] as int),
+    endDate: json['endDate'] == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(json['endDate'] as int),
+    owner: json['owner'] as String? ?? '',
+    sources: List<String>.from(json['sources'] as List? ?? const []),
+    confirmed: json['confirmed'] as bool? ?? false,
+  );
+}
+
 class ProjectPack {
   const ProjectPack({
     required this.id,
@@ -66,6 +157,7 @@ class ProjectPack {
     this.briefing,
     this.personalContext = '',
     this.transcriptionTerms = '',
+    this.tasks = const [],
   });
 
   final String id;
@@ -76,6 +168,7 @@ class ProjectPack {
   final String? briefing;
   final String personalContext;
   final String transcriptionTerms;
+  final List<ProjectTask> tasks;
 
   List<KnowledgeDoc> get includedDocs =>
       docs.where((doc) => doc.included).toList();
@@ -92,10 +185,12 @@ class ProjectPack {
     bool clearBriefing = false,
     String? personalContext,
     String? transcriptionTerms,
+    List<ProjectTask>? tasks,
   }) {
     return ProjectPack(
       personalContext: personalContext ?? this.personalContext,
       transcriptionTerms: transcriptionTerms ?? this.transcriptionTerms,
+      tasks: tasks ?? this.tasks,
       id: id ?? this.id,
       folderPath: folderPath ?? this.folderPath,
       name: name ?? this.name,
@@ -114,6 +209,7 @@ class ProjectPack {
     'briefing': briefing,
     'personalContext': personalContext,
     'transcriptionTerms': transcriptionTerms,
+    'tasks': tasks.map((task) => task.toJson()).toList(),
   };
 
   factory ProjectPack.fromJson(Map<String, dynamic> json) {
@@ -135,6 +231,10 @@ class ProjectPack {
       briefing: json['briefing'] as String?,
       personalContext: json['personalContext'] as String? ?? '',
       transcriptionTerms: json['transcriptionTerms'] as String? ?? '',
+      tasks: [
+        for (final item in json['tasks'] as List? ?? const [])
+          ProjectTask.fromJson(Map<String, dynamic>.from(item as Map)),
+      ],
     );
   }
 }

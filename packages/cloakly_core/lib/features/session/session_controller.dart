@@ -442,7 +442,10 @@ class SessionController extends Notifier<SessionState> {
         title: result.title,
         endedAt: DateTime.now(),
         status: MeetingStatus.completed,
-        minutesMarkdown: result.minutesMarkdown,
+        minutesMarkdown: [
+          result.minutesMarkdown,
+          if (result.usage != null) '\n---\n_AI 用量：${result.usage!.display}_',
+        ].join(),
         audioPath: _audioPath,
       );
       await repo.upsertMeeting(updated);
@@ -547,7 +550,7 @@ class SessionController extends Notifier<SessionState> {
     try {
       final llm = ref.read(aiServiceProvider);
       final projectContext = _projectContext;
-      final answer = await llm.suggestAnswer(
+      final result = await llm.suggestAnswer(
         recent: contextLines,
         trigger: trigger,
         projectContext: projectContext,
@@ -556,7 +559,10 @@ class SessionController extends Notifier<SessionState> {
         id: _uuid.v4(),
         meetingId: state.meetingId,
         triggerText: trigger,
-        answer: answer,
+        answer: [
+          result.content,
+          if (result.usage != null) '\n\nAI 用量：${result.usage!.display}',
+        ].join(),
         createdAt: DateTime.now(),
       );
       await ref.read(meetingRepositoryProvider).addSuggestion(suggestion);

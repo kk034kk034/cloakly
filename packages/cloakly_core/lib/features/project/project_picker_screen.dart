@@ -122,7 +122,7 @@ class _ProjectList extends StatelessWidget {
                   Text('還沒有專案', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
                   Text(
-                    '選定一個本機資料夾當專案，裡面放 Spec、WBS、Issue 等文件。',
+                    '選定一個本機資料夾當專案，裡面放規格、時程、Issue 等文件。',
                     style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
                   ),
                   const SizedBox(height: 16),

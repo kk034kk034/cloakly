@@ -3,6 +3,7 @@ import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/repositories/meeting_repository.dart';
 import 'package:cloakly_core/data/repositories/settings_repository.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
+import 'package:cloakly_core/services/project/project_retrieval.dart';
 import 'package:cloakly_core/services/stt/stt_engine.dart';
 import 'package:cloakly_core/services/stt/stt_factory.dart';
 import 'package:cloakly_core/state/project_provider.dart';
@@ -40,6 +41,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {
   return MeetingRepository(ref.watch(databaseProvider));
+});
+
+final projectRetrievalProvider = Provider<ProjectRetrieval>((ref) {
+  return ProjectRetrieval(ref.watch(meetingRepositoryProvider));
 });
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {

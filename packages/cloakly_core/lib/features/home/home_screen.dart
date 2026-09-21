@@ -41,6 +41,38 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          if (active != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                children: [
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: const Icon(Icons.question_answer_outlined),
+                      title: const Text('專案問答'),
+                      subtitle: const Text('查文件、專案進度，或哪次會議做了決定'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push(
+                        '/home/project/${Uri.encodeComponent(active.id)}/questions',
+                      ),
+                    ),
+                  ),
+                  Card(
+                    margin: const EdgeInsets.only(top: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.view_timeline_outlined),
+                      title: const Text('甘特圖'),
+                      subtitle: const Text('手動管理工作、期限、負責人與狀態'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push(
+                        '/home/project/${Uri.encodeComponent(active.id)}/plan',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (isDemo)
             MaterialBanner(
               content: const Text('目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。'),
@@ -83,8 +115,7 @@ class HomeScreen extends ConsumerWidget {
           content: Text(session.error ?? '無法開始會議，請檢查設定。'),
           action: SnackBarAction(
             label: needsSubscription ? '查看訂閱' : '回專案列表',
-            onPressed: () =>
-                context.go(needsSubscription ? '/settings' : '/'),
+            onPressed: () => context.go(needsSubscription ? '/settings' : '/'),
           ),
         ),
       );
@@ -164,7 +195,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               hasProject
-                  ? '開始會議後，錄音與逐字稿會存在這個專案底下。右上角可勾選要納入提示的文件。'
+                  ? '開始會議後，錄音與逐字稿會存在這個專案底下。資料夾內支援的文件會自動納入問答與會議參考。'
                   : '這裡只顯示沒有綁定專案的會議。要依專案文件給提示，請回到專案列表選一個專案。',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(

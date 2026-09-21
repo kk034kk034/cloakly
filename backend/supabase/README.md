@@ -18,9 +18,10 @@
 
 ## 建立與部署
 
-先安裝 Supabase CLI，建立專案並在此目錄執行：
+先安裝 Supabase CLI，建立專案並在 `backend` 目錄（包含 `supabase/config.toml`）執行：
 
 ```powershell
+Set-Location C:\Kate\sideProject\cloakly\backend
 supabase login
 supabase link --project-ref <project-ref>
 supabase db push
@@ -34,6 +35,8 @@ supabase secrets set REVENUECAT_ENTITLEMENT_ID=pro
 supabase functions deploy create-meeting-session
 supabase functions deploy finish-meeting-session
 supabase functions deploy suggest-answer
+supabase functions deploy project-question
+supabase functions deploy project-plan
 supabase functions deploy generate-minutes
 supabase functions deploy sync-entitlement
 supabase functions deploy revenuecat-webhook

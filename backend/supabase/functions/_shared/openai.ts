@@ -5,9 +5,16 @@ type CompletionOptions = {
   user: string;
   temperature?: number;
   jsonObject?: boolean;
+  maxTokens?: number;
 };
 
-export async function complete(options: CompletionOptions): Promise<string> {
+export type CompletionResult = {
+  content: string;
+  usage: { model: string; inputTokens: number; outputTokens: number };
+};
+
+export async function complete(options: CompletionOptions): Promise<CompletionResult> {
+  const model = Deno.env.get("OPENAI_CHAT_MODEL")?.trim() || "gpt-4o-mini";
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -15,7 +22,7 @@ export async function complete(options: CompletionOptions): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: Deno.env.get("OPENAI_CHAT_MODEL")?.trim() || "gpt-4o-mini",
+      model,
       temperature: options.temperature ?? 0.3,
       messages: [
         { role: "system", content: options.system },
@@ -24,6 +31,7 @@ export async function complete(options: CompletionOptions): Promise<string> {
       ...(options.jsonObject
         ? { response_format: { type: "json_object" } }
         : {}),
+      ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
     }),
   });
   if (!response.ok) {
@@ -35,7 +43,14 @@ export async function complete(options: CompletionOptions): Promise<string> {
   if (typeof content !== "string" || content.trim() === "") {
     throw new HttpError(502, "AI_PROVIDER_EMPTY_RESPONSE");
   }
-  return content.trim();
+  return {
+    content: content.trim(),
+    usage: {
+      model: typeof data?.model === "string" ? data.model : model,
+      inputTokens: Number(data?.usage?.prompt_tokens) || 0,
+      outputTokens: Number(data?.usage?.completion_tokens) || 0,
+    },
+  };
 }
 
 export function clipped(value: unknown, max: number): string {
