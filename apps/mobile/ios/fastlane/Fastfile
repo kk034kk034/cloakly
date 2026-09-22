@@ -6,6 +6,10 @@ platform :ios do
     opt_out_usage
     setup_ci
 
+    # Fastfile lives in apps/mobile/ios/fastlane
+    ios_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
+    mobile_dir = File.expand_path("..", ios_dir)
+
     key_content = ENV.fetch("ASC_KEY_P8").dup
     key_content.force_encoding("UTF-8")
     key_content = key_content.sub(/\A\uFEFF/, "").strip
@@ -40,7 +44,7 @@ platform :ios do
 
     update_code_signing_settings(
       use_automatic_signing: false,
-      path: "Runner.xcodeproj",
+      path: File.join(ios_dir, "Runner.xcodeproj"),
       team_id: "2AMKWN2NTG",
       code_sign_identity: "Apple Distribution",
       profile_name: profile_name,
@@ -49,7 +53,7 @@ platform :ios do
       targets: ["Runner"]
     )
 
-    export_plist = File.expand_path("ExportOptions.ci.plist")
+    export_plist = File.join(ios_dir, "ExportOptions.ci.plist")
     File.write(
       export_plist,
       <<~PLIST
@@ -76,18 +80,20 @@ platform :ios do
         </plist>
       PLIST
     )
+    UI.user_error!("ExportOptions missing at #{export_plist}") unless File.exist?(export_plist)
+    UI.message("Wrote #{export_plist}")
 
-    Dir.chdir("..") do
+    Dir.chdir(mobile_dir) do
       sh(
         "flutter", "build", "ipa",
         "--release",
         "--dart-define-from-file=config/ci.json",
-        "--export-options-plist=ios/ExportOptions.ci.plist"
+        "--export-options-plist=#{export_plist}"
       )
     end
 
-    ipa = Dir[File.expand_path("../build/ios/ipa/*.ipa")].first
-    UI.user_error!("IPA not found") if ipa.nil?
+    ipa = Dir[File.join(mobile_dir, "build", "ios", "ipa", "*.ipa")].first
+    UI.user_error!("IPA not found under #{mobile_dir}/build/ios/ipa") if ipa.nil?
 
     upload_to_testflight(
       api_key: api_key,
