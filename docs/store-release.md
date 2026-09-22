@@ -74,7 +74,8 @@ Get-Content C:\Kate\sideProject\cloakly\apps\mobile\android\key.properties
 ## 常見卡關
 
 - Play 第一次上傳可能要求在 Console 完成「應用程式完整性／Play App Signing」同意流程。
-- iOS CI 若簽章失敗：確認 Team `2AMKWN2NTG`、Bundle `com.cloud52.cloakly`，且 Account Holder 已同意最新協議。
+- iOS CI 使用 Fastlane `cert` + `sigh` + App Store Connect API Key 簽章（不需在 runner 登入 Apple ID）。
+- Android `ANDROID_KEYSTORE_BASE64` 必須是純 ASCII base64；若用 PowerShell pipe 寫入 secret 可能變成 UTF-16 導致 `base64: invalid input`。
 - 服務帳號須已在 Play「使用者和權限」被邀請，並具備「發布至測試群組」權限。
 - RevenueCat Dashboard 的 App 須改為新的 bundle／package。
 

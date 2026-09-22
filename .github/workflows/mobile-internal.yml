@@ -49,10 +49,19 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload-keystore.p12
           python3 - <<'PY'
-          import os
+          import base64, binascii, os
           from pathlib import Path
+
+          raw = os.environ["ANDROID_KEYSTORE_BASE64"]
+          cleaned = "".join(raw.split())
+          try:
+              data = base64.b64decode(cleaned, validate=False)
+          except binascii.Error as exc:
+              raise SystemExit(f"ANDROID_KEYSTORE_BASE64 decode failed: {exc}") from exc
+          if len(data) < 64:
+              raise SystemExit(f"Decoded keystore too small ({len(data)} bytes); secret likely corrupted")
+          Path("upload-keystore.p12").write_bytes(data)
           Path("key.properties").write_text(
               "\n".join(
                   [
@@ -65,6 +74,7 @@ jobs:
               ),
               encoding="utf-8",
           )
+          print(f"Wrote upload-keystore.p12 ({len(data)} bytes)")
           PY
 
       - name: Write dart-define config
@@ -126,6 +136,13 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: apps/mobile/ios
+
       - name: Write dart-define config
         working-directory: apps/mobile
         env:
@@ -163,25 +180,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/private_keys"
-          printf '%s\n' "$ASC_KEY_P8" > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          KEY_PATH="$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
-      - name: Build IPA
-        working-directory: apps/mobile
-        run: |
-          set -euo pipefail
-          flutter build ipa --release \
-            --dart-define-from-file=config/ci.json \
-            --export-options-plist=ios/ExportOptions.plist
-
-      - name: Upload to TestFlight
-        working-directory: apps/mobile
+      - name: Build IPA and upload TestFlight
+        working-directory: apps/mobile/ios
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          set -euo pipefail
-          IPA=$(ls build/ios/ipa/*.ipa | head -n 1)
-          xcrun altool --upload-app --type ios \
-            --file "$IPA" \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID"
+        run: bundle exec fastlane internal
