@@ -20,7 +20,10 @@ platform :ios do
       in_house: false
     )
 
-    keychain_path = File.expand_path(lane_context[SharedValues::KEYCHAIN_PATH])
+    # setup_ci creates ".../fastlane_tmp_keychain-db" but KEYCHAIN_PATH omits "-db".
+    keychain_path = File.expand_path(lane_context[SharedValues::KEYCHAIN_PATH].to_s)
+    keychain_path = "#{keychain_path}-db" unless keychain_path.end_with?("-db")
+    UI.user_error!("CI keychain missing at #{keychain_path}") unless File.exist?(keychain_path)
 
     cert(
       api_key: api_key,
