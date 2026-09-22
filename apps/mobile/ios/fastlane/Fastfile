@@ -3,18 +3,29 @@ default_platform(:ios)
 platform :ios do
   desc "Sign, build IPA, and upload to TestFlight"
   lane :internal do
+    opt_out_usage
     setup_ci
 
+    key_content = ENV.fetch("ASC_KEY_P8").dup
+    key_content.force_encoding("UTF-8")
+    key_content = key_content.sub(/\A\uFEFF/, "").strip
+    UI.user_error!("ASC_KEY_P8 does not look like a PEM key") unless key_content.include?("BEGIN PRIVATE KEY")
+
     api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("ASC_KEY_ID"),
-      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-      key_content: ENV.fetch("ASC_KEY_P8").sub(/\A\uFEFF/, ""),
+      key_id: ENV.fetch("ASC_KEY_ID").sub(/\A\uFEFF/, "").strip,
+      issuer_id: ENV.fetch("ASC_ISSUER_ID").sub(/\A\uFEFF/, "").strip,
+      key_content: key_content,
       is_key_content_base64: false,
       duration: 1200,
       in_house: false
     )
 
-    cert(api_key: api_key)
+    keychain_path = File.expand_path(lane_context[SharedValues::KEYCHAIN_PATH])
+
+    cert(
+      api_key: api_key,
+      keychain_path: keychain_path
+    )
     sigh(
       api_key: api_key,
       app_identifier: "com.cloud52.cloakly",
