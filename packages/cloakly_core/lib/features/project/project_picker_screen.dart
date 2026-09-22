@@ -1,5 +1,6 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/state/project_provider.dart';
+import 'package:cloakly_core/widgets/project_task_board.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,6 +53,36 @@ class ProjectPickerScreen extends ConsumerWidget {
           onOpenProject: (id) => _enterProject(context, ref, id),
           onOpenUnassigned: () => _enterProject(context, ref, null),
           onAdd: () => _addProject(context, ref),
+          onOpenPlan: (projectId) async {
+            await ref.read(projectsProvider.notifier).select(projectId);
+            if (!context.mounted) return;
+            context.go('/home');
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                context.push(
+                  '/home/project/${Uri.encodeComponent(projectId)}/plan',
+                );
+              }
+            });
+          },
+          onStatusChanged: (projectId, task, status) async {
+            final libraryNow = ref.read(projectsProvider).valueOrNull;
+            if (libraryNow == null) return;
+            ProjectPack? pack;
+            for (final project in libraryNow.projects) {
+              if (project.id == projectId) pack = project;
+            }
+            if (pack == null) return;
+            final next = [
+              for (final item in pack.tasks)
+                item.id == task.id
+                    ? item.copyWith(status: status, confirmed: true)
+                    : item,
+            ];
+            await ref
+                .read(projectsProvider.notifier)
+                .updateTasks(projectId, next);
+          },
         ),
       ),
     );
@@ -81,21 +112,67 @@ class _ProjectList extends StatelessWidget {
     required this.onOpenProject,
     required this.onOpenUnassigned,
     required this.onAdd,
+    required this.onOpenPlan,
+    required this.onStatusChanged,
   });
 
   final ProjectLibrary library;
   final ValueChanged<String> onOpenProject;
   final VoidCallback onOpenUnassigned;
   final VoidCallback onAdd;
+  final ValueChanged<String> onOpenPlan;
+  final Future<void> Function(
+    String projectId,
+    ProjectTask task,
+    ProjectTaskStatus status,
+  )
+  onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final projects = library.projects;
+    final boardItems = <BoardTaskItem>[
+      for (final project in projects)
+        for (final task in project.withNormalizedPhases().activePhaseTasks)
+          BoardTaskItem(
+            task: task,
+            projectId: project.id,
+            projectName:
+                '${project.name} · ${project.withNormalizedPhases().activePhase?.name ?? '階段'}',
+          ),
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
+        if (projects.isNotEmpty) ...[
+          Text('全部專案看板', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
+          Text(
+            '只顯示各專案「現行未封存階段」的工作，已封存階段不佔版面。',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (boardItems.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('各專案現行階段尚無工作。進入專案甘特圖可新增或請 AI 建議。'),
+              ),
+            )
+          else
+            ProjectTaskBoard(
+              items: boardItems,
+              onEdit: (item) => onOpenPlan(item.projectId),
+              onStatusChanged: (item, status) =>
+                  onStatusChanged(item.projectId, item.task, status),
+            ),
+          const SizedBox(height: 28),
+        ],
         Text('選擇專案', style: theme.textTheme.headlineSmall),
         const SizedBox(height: 6),
         Text(
@@ -105,7 +182,7 @@ class _ProjectList extends StatelessWidget {
             height: 1.45,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         if (projects.isEmpty) ...[
           Card(
             child: Padding(
@@ -166,6 +243,10 @@ class _ProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final indexed = DateFormat('yyyy/MM/dd HH:mm').format(project.indexedAt);
+    final normalized = project.withNormalizedPhases();
+    final activePhase = normalized.activePhase;
+    final activeCount = normalized.activePhaseTasks.length;
+    final archivedCount = normalized.archivedPhases.length;
 
     return Card(
       child: InkWell(
@@ -213,7 +294,13 @@ class _ProjectCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '納入 ${project.includedCount} 份文件 · 索引 $indexed',
+                      [
+                        '納入 ${project.includedCount} 份文件',
+                        if (activePhase != null)
+                          '現行 ${activePhase.name} · $activeCount 項',
+                        if (archivedCount > 0) '已封存 $archivedCount 階段',
+                        '索引 $indexed',
+                      ].join(' · '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
