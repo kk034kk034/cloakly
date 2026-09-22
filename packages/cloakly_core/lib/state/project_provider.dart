@@ -66,6 +66,8 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
           personalContext: previous.personalContext,
           transcriptionTerms: previous.transcriptionTerms,
           tasks: previous.tasks,
+          phases: previous.phases,
+          activePhaseId: previous.activePhaseId,
         );
       }
       final projects = [
@@ -98,7 +100,28 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
   Future<void> updateTasks(String id, List<ProjectTask> tasks) async {
     final pack = _byId(id);
     if (pack == null) throw StateError('專案已不存在');
-    await _replace(pack.copyWith(tasks: tasks));
+    await _replace(pack.copyWith(tasks: tasks).withNormalizedPhases());
+  }
+
+  Future<void> updatePlan(
+    String id, {
+    List<ProjectTask>? tasks,
+    List<ProjectPhase>? phases,
+    String? activePhaseId,
+    bool clearActivePhaseId = false,
+  }) async {
+    final pack = _byId(id);
+    if (pack == null) throw StateError('專案已不存在');
+    await _replace(
+      pack
+          .copyWith(
+            tasks: tasks,
+            phases: phases,
+            activePhaseId: activePhaseId,
+            clearActivePhaseId: clearActivePhaseId,
+          )
+          .withNormalizedPhases(),
+    );
   }
 
   Future<void> remove(String id) async {

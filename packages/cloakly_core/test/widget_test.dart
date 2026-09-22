@@ -173,9 +173,55 @@ void main() {
     final restored = ProjectPack.fromJson(pack.toJson());
     expect(restored.tasks.single.title, '完成實驗');
     expect(restored.tasks.single.confirmed, isTrue);
+    expect(restored.phases, isNotEmpty);
+    expect(restored.tasks.single.phaseId, restored.phases.single.id);
+    expect(restored.activePhaseTasks.single.title, '完成實驗');
 
     final legacy = Map<String, Object?>.from(pack.toJson())..remove('tasks');
     expect(ProjectPack.fromJson(legacy).tasks, isEmpty);
+  });
+
+  test('完成階段可封存，看板只顯示現行階段', () {
+    const phase1 = ProjectPhase(id: 'ph1', name: '階段 1', sortOrder: 0);
+    const phase2 = ProjectPhase(id: 'ph2', name: '階段 2', sortOrder: 1);
+    final pack = ProjectPack(
+      id: 'p1',
+      folderPath: r'C:\work\alpha',
+      name: 'alpha',
+      indexedAt: DateTime(2026),
+      docs: const [],
+      phases: const [phase1, phase2],
+      activePhaseId: 'ph1',
+      tasks: [
+        ProjectTask(
+          id: 't1',
+          title: '舊工作',
+          status: ProjectTaskStatus.done,
+          updatedAt: DateTime(2026, 9, 1),
+          phaseId: 'ph1',
+        ),
+        ProjectTask(
+          id: 't2',
+          title: '新工作',
+          status: ProjectTaskStatus.planned,
+          updatedAt: DateTime(2026, 9, 2),
+          phaseId: 'ph2',
+        ),
+      ],
+    );
+    expect(pack.isPhaseComplete('ph1'), isTrue);
+    expect(pack.isPhaseComplete('ph2'), isFalse);
+
+    final archived = pack.copyWith(
+      phases: [
+        phase1.copyWith(archived: true, archivedAt: DateTime(2026, 9, 10)),
+        phase2,
+      ],
+      activePhaseId: 'ph2',
+    );
+    expect(archived.activePhaseTasks.map((task) => task.title), ['新工作']);
+    expect(archived.archivedPhases.single.name, '階段 1');
+    expect(archived.activePhaseTasks.any((task) => task.id == 't1'), isFalse);
   });
 
   test('會議可綁定專案，缺 project_id 視為未分類', () {

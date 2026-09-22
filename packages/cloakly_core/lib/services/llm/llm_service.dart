@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloakly_core/core/constants.dart';
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:http/http.dart' as http;
 
 abstract interface class AiService {
@@ -84,6 +85,7 @@ class ProjectPlanDraft {
     this.owner = '',
     this.status = 'uncertain',
     this.sourceIds = const [],
+    this.phaseName = '',
   });
   final String title;
   final DateTime? startDate;
@@ -91,6 +93,8 @@ class ProjectPlanDraft {
   final String owner;
   final String status;
   final List<String> sourceIds;
+  /// Suggested delivery phase name; empty means use the project's active phase.
+  final String phaseName;
 }
 
 class ProjectPlanResult {
@@ -98,6 +102,12 @@ class ProjectPlanResult {
   final List<ProjectPlanDraft> tasks;
   final AiUsage? usage;
 }
+
+ProjectTaskStatus projectTaskStatusFromName(String status) =>
+    ProjectTaskStatus.values.firstWhere(
+      (value) => value.name == status,
+      orElse: () => ProjectTaskStatus.uncertain,
+    );
 
 class DirectAiService implements AiService {
   DirectAiService(this.settings);
@@ -356,8 +366,9 @@ AI 會議紀錄是二手摘要，優先使用原始逐字稿；不得把建議�
 
 const projectPlanSystemPrompt =
     '''你是繁體中文專案規劃助理。只根據提供的 evidence 擷取可追蹤工作，不得猜測日期、負責人或完成狀態。
-只輸出 JSON：{"tasks":[{"title":"工作名稱","startDate":"YYYY-MM-DD 或 null","endDate":"YYYY-MM-DD 或 null","owner":"未記載則空字串","status":"planned|inProgress|blocked|done|uncertain","sourceIds":["S1"]}]}。
-提案、承諾與已完成必須區分；缺乏明確證據時 status 使用 uncertain。日期已過不代表完成。相同工作只輸出一次，衝突時採較新的明確資料並保留所有相關來源 ID。最多 40 項。''';
+把工作拆成可陸續推進的階段（phase），每個階段建議 4～10 項，完成一個階段後可封存再開下一階段，避免單一看板過長。
+只輸出 JSON：{"tasks":[{"title":"工作名稱","phase":"階段名稱","startDate":"YYYY-MM-DD 或 null","endDate":"YYYY-MM-DD 或 null","owner":"未記載則空字串","status":"planned|inProgress|blocked|done|uncertain","sourceIds":["S1"]}]}。
+提案、承諾與已完成必須區分；缺乏明確證據時 status 使用 uncertain。日期已過不代表完成。相同工作只輸出一次，衝突時採較新的明確資料並保留所有相關來源 ID。最多 40 項、最多 6 個階段名稱。''';
 
 List<ProjectPlanDraft> _parseProjectPlan(String raw) {
   final decoded = jsonDecode(MinutesResult._extractJson(raw));
@@ -394,6 +405,8 @@ List<ProjectPlanDraft> _parseProjectPlan(String raw) {
                     : const [])
               if (id is String && RegExp(r'^S\d+$').hasMatch(id)) id,
           ],
+          phaseName: (item['phase'] as String? ?? item['phaseName'] as String? ?? '')
+              .trim(),
         ),
   ];
 }

@@ -16,6 +16,7 @@ class HomeScreen extends ConsumerWidget {
     final meetings = ref.watch(meetingsProvider);
     final isDemo = ref.watch(demoModeProvider);
     final active = ref.watch(projectsProvider).valueOrNull?.active;
+    final activePhase = active?.withNormalizedPhases().activePhase;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,8 +63,12 @@ class HomeScreen extends ConsumerWidget {
                     margin: const EdgeInsets.only(top: 8),
                     child: ListTile(
                       leading: const Icon(Icons.view_timeline_outlined),
-                      title: const Text('甘特圖'),
-                      subtitle: const Text('手動管理工作、期限、負責人與狀態'),
+                      title: const Text('甘特圖／階段看板'),
+                      subtitle: Text(
+                        activePhase == null
+                            ? '分階段管理工作與時程；完成的階段可封存'
+                            : '現行：${activePhase.name}',
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.push(
                         '/home/project/${Uri.encodeComponent(active.id)}/plan',

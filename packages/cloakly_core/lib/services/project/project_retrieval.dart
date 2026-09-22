@@ -231,7 +231,7 @@ class ProjectRetrieval {
       final titleHits = terms.where(source.title.toLowerCase().contains).length;
       final progress = mode == ProjectQuestionMode.overview
           ? RegExp(
-                  r'完成|進度|結果|測試|阻塞|待辦|下一步|進行中|延期|風險|progress|completed|blocked|next step',
+                  r'完成|進度|結果|測試|阻塞|待辦|下一步|進行中|延期|風險|時程|期限|里程碑|負責人|deadline|schedule|milestone|progress|completed|blocked|next step|wbs',
                   caseSensitive: false,
                 ).allMatches(source.text).length.clamp(0, 8) *
                 0.2
@@ -287,7 +287,7 @@ class ProjectRetrieval {
   ) {
     if (selected == ProjectQuestionMode.overview ||
         RegExp(
-          r'(目前|現在|最新|整體|專案|研究).{0,8}(進度|狀況|現況)|做到哪|進展|project\s+(status|progress)',
+          r'(目前|現在|最新|整體|專案|研究).{0,8}(進度|狀況|現況)|做到哪|進展|時程|期限|里程碑|待辦工作|project\s+(status|progress|plan|schedule)|gantt|wbs',
           caseSensitive: false,
         ).hasMatch(question)) {
       return ProjectQuestionMode.overview;

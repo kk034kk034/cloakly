@@ -8,8 +8,9 @@ import {
 } from "../_shared/http.ts";
 
 const system = `你是繁體中文專案規劃助理。只根據 evidence 擷取可追蹤工作，不得猜測日期、負責人或完成狀態。
-只輸出 JSON：{"tasks":[{"title":"工作名稱","startDate":"YYYY-MM-DD 或 null","endDate":"YYYY-MM-DD 或 null","owner":"未記載則空字串","status":"planned|inProgress|blocked|done|uncertain","sourceIds":["S1"]}]}。
-提案、承諾與已完成必須區分；缺乏明確證據時 status 使用 uncertain。日期已過不代表完成。相同工作只輸出一次，衝突時採較新的明確資料並保留所有相關來源 ID。最多 40 項。`;
+把工作拆成可陸續推進的階段（phase），每個階段建議 4～10 項，完成一個階段後可封存再開下一階段，避免單一看板過長。
+只輸出 JSON：{"tasks":[{"title":"工作名稱","phase":"階段名稱","startDate":"YYYY-MM-DD 或 null","endDate":"YYYY-MM-DD 或 null","owner":"未記載則空字串","status":"planned|inProgress|blocked|done|uncertain","sourceIds":["S1"]}]}。
+提案、承諾與已完成必須區分；缺乏明確證據時 status 使用 uncertain。日期已過不代表完成。相同工作只輸出一次，衝突時採較新的明確資料並保留所有相關來源 ID。最多 40 項、最多 6 個階段名稱。`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

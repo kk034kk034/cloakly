@@ -126,6 +126,9 @@ class HostedAiService implements AiService {
                         : const [])
                   if (id is String) id,
               ],
+              phaseName:
+                  (raw['phase'] as String? ?? raw['phaseName'] as String? ?? '')
+                      .trim(),
             ),
       ],
       usage: _usage(data),
