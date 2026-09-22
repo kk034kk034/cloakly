@@ -3,6 +3,7 @@ import 'package:cloakly_core/features/session/session_controller.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:cloakly_core/widgets/meeting_widgets.dart';
+import 'package:cloakly_core/widgets/project_question_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,7 @@ class HomeScreen extends ConsumerWidget {
     final isDemo = ref.watch(demoModeProvider);
     final active = ref.watch(projectsProvider).valueOrNull?.active;
     final activePhase = active?.withNormalizedPhases().activePhase;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,82 +29,90 @@ class HomeScreen extends ConsumerWidget {
         ),
         title: Text(active?.name ?? '未分類'),
         actions: [
-          if (active != null)
+          if (active != null) ...[
+            IconButton(
+              tooltip: activePhase == null
+                  ? '甘特圖／階段看板'
+                  : '甘特圖 · ${activePhase.name}',
+              onPressed: () => context.push(
+                '/home/project/${Uri.encodeComponent(active.id)}/plan',
+              ),
+              icon: const Icon(Icons.view_timeline_outlined),
+            ),
             IconButton(
               tooltip: '專案設定',
               onPressed: () => context.push('/home/project'),
               icon: const Icon(Icons.settings_outlined),
             ),
+          ],
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _startMeeting(context, ref),
-        icon: const Icon(Icons.mic_none),
-        label: const Text('開始會議'),
-      ),
-      body: Column(
-        children: [
-          if (active != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Column(
-                children: [
-                  Card(
-                    margin: EdgeInsets.zero,
-                    child: ListTile(
-                      leading: const Icon(Icons.question_answer_outlined),
-                      title: const Text('專案問答'),
-                      subtitle: const Text('查文件、專案進度，或哪次會議做了決定'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push(
-                        '/home/project/${Uri.encodeComponent(active.id)}/questions',
-                      ),
+      body: meetings.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text('讀取失敗：$error')),
+        data: (items) {
+          if (active == null) {
+            return _UnassignedBody(
+              isDemo: isDemo,
+              items: items,
+              onStartMeeting: () => _startMeeting(context, ref),
+              onOpen: (id) => context.push('/home/meeting/$id'),
+              onDelete: (id) =>
+                  ref.read(meetingsProvider.notifier).remove(id),
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (isDemo)
+                MaterialBanner(
+                  content: const Text('目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => context.go('/'),
+                      child: const Text('回專案列表'),
                     ),
-                  ),
-                  Card(
-                    margin: const EdgeInsets.only(top: 8),
-                    child: ListTile(
-                      leading: const Icon(Icons.view_timeline_outlined),
-                      title: const Text('甘特圖／階段看板'),
-                      subtitle: Text(
-                        activePhase == null
-                            ? '分階段管理工作與時程；完成的階段可封存'
-                            : '現行：${activePhase.name}',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push(
-                        '/home/project/${Uri.encodeComponent(active.id)}/plan',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (isDemo)
-            MaterialBanner(
-              content: const Text('目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。'),
-              actions: [
-                TextButton(
-                  onPressed: () => context.go('/'),
-                  child: const Text('回專案列表'),
+                  ],
                 ),
-              ],
-            ),
-          Expanded(
-            child: meetings.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text('讀取失敗：$error')),
-              data: (items) => _MeetingList(
-                items: items,
-                hasProject: active != null,
-                projectName: active?.name,
-                onOpen: (id) => context.push('/home/meeting/$id'),
-                onDelete: (id) =>
-                    ref.read(meetingsProvider.notifier).remove(id),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => _startMeeting(context, ref),
+                        icon: const Icon(Icons.mic_none),
+                        label: const Text('開始會議'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MeetingsCard(
+                        items: items,
+                        hasProject: true,
+                        projectName: active.name,
+                        compact: true,
+                        onOpen: (id) => context.push('/home/meeting/$id'),
+                        onDelete: (id) =>
+                            ref.read(meetingsProvider.notifier).remove(id),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+              const Divider(height: 1),
+              Expanded(
+                child: ProjectQuestionPanel(
+                  project: active,
+                  compactIntro: true,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -130,13 +140,78 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _MeetingList extends StatelessWidget {
-  const _MeetingList({
+class _UnassignedBody extends StatelessWidget {
+  const _UnassignedBody({
+    required this.isDemo,
+    required this.items,
+    required this.onStartMeeting,
+    required this.onOpen,
+    required this.onDelete,
+  });
+
+  final bool isDemo;
+  final List<Meeting> items;
+  final VoidCallback onStartMeeting;
+  final ValueChanged<String> onOpen;
+  final ValueChanged<String> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        if (isDemo)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: MaterialBanner(
+              content: const Text('目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。'),
+              actions: [
+                TextButton(
+                  onPressed: () => context.go('/'),
+                  child: const Text('回專案列表'),
+                ),
+              ],
+            ),
+          ),
+        Text('未分類會議', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          '沒有綁定專案時，仍可直接開始會議。要依專案文件問答，請先選一個專案。',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: onStartMeeting,
+          icon: const Icon(Icons.mic_none),
+          label: const Text('開始會議'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _MeetingsCard(
+          items: items,
+          hasProject: false,
+          onOpen: onOpen,
+          onDelete: onDelete,
+        ),
+      ],
+    );
+  }
+}
+
+class _MeetingsCard extends StatelessWidget {
+  const _MeetingsCard({
     required this.items,
     required this.hasProject,
     required this.onOpen,
     required this.onDelete,
     this.projectName,
+    this.compact = false,
   });
 
   final List<Meeting> items;
@@ -144,73 +219,147 @@ class _MeetingList extends StatelessWidget {
   final String? projectName;
   final ValueChanged<String> onOpen;
   final ValueChanged<String> onDelete;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (items.isEmpty) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
-        child: _EmptyState(hasProject: hasProject, projectName: projectName),
+      return Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: EdgeInsets.all(compact ? 12 : 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                compact ? '會議 · 0' : '會議紀錄',
+                style: theme.textTheme.titleSmall,
+              ),
+              if (!compact) ...[
+                const SizedBox(height: 8),
+                Text(
+                  hasProject
+                      ? '還沒有會議。開始後會收在這裡。'
+                      : '還沒有未分類會議。',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-      children: [
-        Text('會議', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(height: 10),
-          _MeetingTile(
-            meeting: items[i],
-            onOpen: () => onOpen(items[i].id),
-            onDelete: () => onDelete(items[i].id),
-          ),
-        ],
-      ],
-    );
-  }
-}
+    final latest = items.first;
+    final latestDate = DateFormat('MM/dd HH:mm').format(latest.startedAt);
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.hasProject, this.projectName});
-
-  final bool hasProject;
-  final String? projectName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasProject ? Icons.graphic_eq : Icons.inbox_outlined,
-              size: 56,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              hasProject ? '${projectName ?? '這個專案'}還沒有會議' : '還沒有未分類會議',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              hasProject
-                  ? '開始會議後，錄音與逐字稿會存在這個專案底下。資料夾內支援的文件會自動納入問答與會議參考。'
-                  : '這裡只顯示沒有綁定專案的會議。要依專案文件給提示，請回到專案列表選一個專案。',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                height: 1.5,
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showMeetingsSheet(context),
+        child: Padding(
+          padding: EdgeInsets.all(compact ? 12 : 16),
+          child: Row(
+            children: [
+              if (!compact) ...[
+                CircleAvatar(
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  child: const Icon(Icons.folder_shared_outlined),
+                ),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      compact
+                          ? '會議 · ${items.length}'
+                          : '會議紀錄 · ${items.length} 場',
+                      style: compact
+                          ? theme.textTheme.titleSmall
+                          : theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      compact
+                          ? latestDate
+                          : '最近：${latest.title} · $latestDate',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showMeetingsSheet(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    '會議紀錄 · ${items.length} 場',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final meeting = items[index];
+                      return _MeetingTile(
+                        meeting: meeting,
+                        onOpen: () {
+                          Navigator.pop(sheetContext);
+                          onOpen(meeting.id);
+                        },
+                        onDelete: () {
+                          Navigator.pop(sheetContext);
+                          onDelete(meeting.id);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -230,6 +379,7 @@ class _MeetingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = DateFormat('yyyy/MM/dd HH:mm').format(meeting.startedAt);
     return Card(
+      margin: EdgeInsets.zero,
       child: ListTile(
         onTap: onOpen,
         leading: CircleAvatar(
