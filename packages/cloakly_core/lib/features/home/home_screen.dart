@@ -17,7 +17,6 @@ class HomeScreen extends ConsumerWidget {
     final meetings = ref.watch(meetingsProvider);
     final isDemo = ref.watch(demoModeProvider);
     final active = ref.watch(projectsProvider).valueOrNull?.active;
-    final activePhase = active?.withNormalizedPhases().activePhase;
 
     return Scaffold(
       appBar: AppBar(
@@ -28,22 +27,12 @@ class HomeScreen extends ConsumerWidget {
         ),
         title: Text(active?.name ?? '未分類'),
         actions: [
-          if (active != null) ...[
-            IconButton(
-              tooltip: activePhase == null
-                  ? '甘特圖／階段看板'
-                  : '甘特圖 · ${activePhase.name}',
-              onPressed: () => context.push(
-                '/home/project/${Uri.encodeComponent(active.id)}/plan',
-              ),
-              icon: const Icon(Icons.view_timeline_outlined),
-            ),
+          if (active != null)
             IconButton(
               tooltip: '專案設定',
               onPressed: () => context.push('/home/project'),
               icon: const Icon(Icons.settings_outlined),
             ),
-          ],
         ],
       ),
       body: meetings.when(
