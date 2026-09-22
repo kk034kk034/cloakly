@@ -18,7 +18,6 @@ class HomeScreen extends ConsumerWidget {
     final isDemo = ref.watch(demoModeProvider);
     final active = ref.watch(projectsProvider).valueOrNull?.active;
     final activePhase = active?.withNormalizedPhases().activePhase;
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
