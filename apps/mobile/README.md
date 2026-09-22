@@ -28,3 +28,7 @@ Dashboard 最少需要：
 5. Restore behavior 維持預設：已識別使用者之間用 Transfer
 
 購買、恢復與登入後，App 會呼叫 `sync-entitlement`；商店狀態仍以 webhook 與後端 `entitlements` 表為準。免費額度用盡時，會議開始失敗會引導到「帳號與訂閱」。
+
+## 商店／內部測試發版
+
+見 [`docs/store-release.md`](../../docs/store-release.md)。GitHub Actions workflow：`Mobile Internal Release`（TestFlight + Play 內部測試）。

@@ -1,4 +1,4 @@
-package com.cloakly.cloakly
+﻿package com.cloud52.cloakly
 
 import android.app.Notification
 import android.app.NotificationChannel

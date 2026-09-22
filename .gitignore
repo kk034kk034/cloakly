@@ -22,6 +22,9 @@ migrate_working_dir/
 .env
 .env.*
 *.db
+secrets/
+**/AuthKey_*.p8
+*.p8
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -49,8 +52,12 @@ app.*.map.json
 **/android/.kotlin/
 **/*.keystore
 **/*.jks
+**/*.p12
+upload_certificate.pem
+upload_certificate.der
 key.properties
 apps/mobile/config/local.json
+apps/mobile/config/ci.json
 
 # iOS
 **/ios/**/xcuserdata
