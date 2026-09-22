@@ -54,6 +54,7 @@ jobs:
           from pathlib import Path
 
           raw = os.environ["ANDROID_KEYSTORE_BASE64"]
+          raw = raw.lstrip("\ufeff\ufffe").strip()
           cleaned = "".join(raw.split())
           try:
               data = base64.b64decode(cleaned, validate=False)
@@ -173,20 +174,10 @@ jobs:
           )
           PY
 
-      - name: Install Apple API key
-        env:
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/private_keys"
-          KEY_PATH="$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
-          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
-          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
       - name: Build IPA and upload TestFlight
         working-directory: apps/mobile/ios
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: bundle exec fastlane internal
