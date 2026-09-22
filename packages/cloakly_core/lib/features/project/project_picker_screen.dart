@@ -146,26 +146,17 @@ class _ProjectList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
-        Text('選擇專案', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 6),
-        Text(
-          '每個資料夾是一個專案。選進去後可開始會議，提示會讀該專案的文件。',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.45,
-          ),
-        ),
         if (projects.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('全部專案看板', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          Text('全部專案看板', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
           Text(
             '只顯示各專案「現行未封存階段」的工作，已封存階段不佔版面。',
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
+              height: 1.45,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (boardItems.isEmpty)
             const Card(
               child: Padding(
@@ -180,8 +171,18 @@ class _ProjectList extends StatelessWidget {
               onStatusChanged: (item, status) =>
                   onStatusChanged(item.projectId, item.task, status),
             ),
+          const SizedBox(height: 28),
         ],
-        const SizedBox(height: 20),
+        Text('選擇專案', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 6),
+        Text(
+          '每個資料夾是一個專案。選進去後可開始會議，提示會讀該專案的文件。',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 16),
         if (projects.isEmpty) ...[
           Card(
             child: Padding(

@@ -1,5 +1,6 @@
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/features/home/home_screen.dart';
+import 'package:cloakly_core/features/home/meetings_list_screen.dart';
 import 'package:cloakly_core/features/meeting_detail/meeting_detail_screen.dart';
 import 'package:cloakly_core/features/project/project_picker_screen.dart';
 import 'package:cloakly_core/features/project/project_plan_screen.dart';
@@ -11,7 +12,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
-GoRouter createAppRouter({WidgetBuilder? settingsBuilder}) => GoRouter(
+GoRouter createAppRouter({
+  WidgetBuilder? settingsBuilder,
+  String initialLocation = '/',
+}) => GoRouter(
+  initialLocation: initialLocation,
   routes: [
     GoRoute(
       path: '/',
@@ -34,6 +39,10 @@ GoRouter createAppRouter({WidgetBuilder? settingsBuilder}) => GoRouter(
         GoRoute(
           path: 'session',
           builder: (context, state) => const SessionScreen(),
+        ),
+        GoRoute(
+          path: 'meetings',
+          builder: (context, state) => const MeetingsListScreen(),
         ),
         GoRoute(
           path: 'meeting/:id',

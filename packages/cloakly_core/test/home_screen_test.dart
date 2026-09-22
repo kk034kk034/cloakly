@@ -1,6 +1,6 @@
+import 'package:cloakly_core/app.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
-import 'package:cloakly_core/features/home/home_screen.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +37,9 @@ class _Meetings extends MeetingsNotifier {
 }
 
 void main() {
-  testWidgets('專案內頁直接呈現問答與開始會議，會議收成卡片', (tester) async {
+  testWidgets('專案內頁直接呈現問答與開始會議，會議紀錄進新頁', (tester) async {
+    final router = createAppRouter(initialLocation: '/home');
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -45,24 +47,27 @@ void main() {
           meetingsProvider.overrideWith(_Meetings.new),
           demoModeProvider.overrideWithValue(false),
         ],
-        child: const MaterialApp(home: HomeScreen()),
+        child: MaterialApp.router(
+          theme: ThemeData.dark(),
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('開始會議'), findsOneWidget);
     expect(find.text('專案問答'), findsOneWidget);
-    expect(find.textContaining('會議 · 8'), findsOneWidget);
+    expect(find.text('專案狀態'), findsOneWidget);
+    expect(find.text('會議紀錄'), findsOneWidget);
+    expect(find.textContaining('8 場'), findsOneWidget);
     expect(find.text('週會 1'), findsNothing);
-    expect(
-      find.widgetWithText(TextField, '').evaluate().isNotEmpty ||
-          find.byType(TextField).evaluate().isNotEmpty,
-      isTrue,
-    );
+    expect(find.byType(TextField), findsOneWidget);
     expect(find.textContaining('例如：哪次會議決定加入登入功能？'), findsOneWidget);
+    expect(find.textContaining('Enter 送出'), findsOneWidget);
 
-    await tester.tap(find.textContaining('會議 · 8'));
+    await tester.tap(find.text('會議紀錄'));
     await tester.pumpAndSettle();
     expect(find.text('週會 1'), findsOneWidget);
+    expect(find.textContaining('會議紀錄'), findsWidgets);
   });
 }

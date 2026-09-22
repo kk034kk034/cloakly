@@ -3,6 +3,7 @@ import 'package:cloakly_core/services/llm/llm_service.dart';
 import 'package:cloakly_core/services/project/project_retrieval.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -190,28 +191,63 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
         ),
         const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _question,
-                  enabled: !_busy,
-                  minLines: 1,
-                  maxLines: 4,
-                  maxLength: 2000,
-                  decoration: const InputDecoration(
-                    hintText: '例如：哪次會議決定加入登入功能？',
-                    counterText: '',
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is! KeyDownEvent) {
+                          return KeyEventResult.ignored;
+                        }
+                        final isEnter =
+                            event.logicalKey == LogicalKeyboardKey.enter ||
+                            event.logicalKey == LogicalKeyboardKey.numpadEnter;
+                        if (!isEnter ||
+                            HardwareKeyboard.instance.isShiftPressed) {
+                          return KeyEventResult.ignored;
+                        }
+                        if (!_busy && configured) {
+                          _ask(project);
+                        }
+                        return KeyEventResult.handled;
+                      },
+                      child: TextField(
+                        controller: _question,
+                        enabled: !_busy,
+                        minLines: 1,
+                        maxLines: 4,
+                        maxLength: 2000,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: _busy || !configured
+                            ? null
+                            : (_) => _ask(project),
+                        decoration: const InputDecoration(
+                          hintText: '例如：哪次會議決定加入登入功能？',
+                          counterText: '',
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    tooltip: '送出問題',
+                    onPressed:
+                        _busy || !configured ? null : () => _ask(project),
+                    icon: const Icon(Icons.send),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                tooltip: '送出問題',
-                onPressed: _busy || !configured ? null : () => _ask(project),
-                icon: const Icon(Icons.send),
+              const SizedBox(height: 4),
+              Text(
+                'Enter 送出，Shift+Enter 換行',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
