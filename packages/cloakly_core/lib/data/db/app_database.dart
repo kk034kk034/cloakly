@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
 class AppDatabase {
   AppDatabase(this.db);
@@ -10,9 +11,12 @@ class AppDatabase {
   final Database db;
 
   static Future<AppDatabase> open() async {
+    // Desktop uses FFI; iOS/Android/macOS keep the native sqflite plugin factory.
+    // Calling sqflite_common_ffi's uninitialized factory on mobile crashes before
+    // runApp and shows a white screen in release/TestFlight.
     if (Platform.isWindows || Platform.isLinux) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
+      ffi.sqfliteFfiInit();
+      databaseFactory = ffi.databaseFactoryFfi;
     }
 
     final dir = await getApplicationDocumentsDirectory();
@@ -22,12 +26,11 @@ class AppDatabase {
     }
     final path = p.join(dbDir.path, 'cloakly.db');
 
-    final database = await databaseFactory.openDatabase(
+    final database = await openDatabase(
       path,
-      options: OpenDatabaseOptions(
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
+      version: 2,
+      onCreate: (db, version) async {
+        await db.execute('''
             CREATE TABLE meetings (
               id TEXT PRIMARY KEY,
               title TEXT NOT NULL,
@@ -40,7 +43,7 @@ class AppDatabase {
               project_id TEXT
             )
           ''');
-          await db.execute('''
+        await db.execute('''
             CREATE TABLE transcript_lines (
               id TEXT PRIMARY KEY,
               meeting_id TEXT NOT NULL,
@@ -52,7 +55,7 @@ class AppDatabase {
               end_ms INTEGER NOT NULL
             )
           ''');
-          await db.execute('''
+        await db.execute('''
             CREATE TABLE notes (
               id TEXT PRIMARY KEY,
               meeting_id TEXT NOT NULL,
@@ -60,7 +63,7 @@ class AppDatabase {
               created_at INTEGER NOT NULL
             )
           ''');
-          await db.execute('''
+        await db.execute('''
             CREATE TABLE suggestions (
               id TEXT PRIMARY KEY,
               meeting_id TEXT NOT NULL,
@@ -69,13 +72,12 @@ class AppDatabase {
               created_at INTEGER NOT NULL
             )
           ''');
-        },
-        onUpgrade: (db, oldVersion, newVersion) async {
-          if (oldVersion < 2) {
-            await db.execute('ALTER TABLE meetings ADD COLUMN project_id TEXT');
-          }
-        },
-      ),
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE meetings ADD COLUMN project_id TEXT');
+        }
+      },
     );
 
     return AppDatabase(database);

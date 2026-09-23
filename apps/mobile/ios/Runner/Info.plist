@@ -10,6 +10,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Cloakly 需要麥克風來即時轉寫會議並產生筆記與回答提示。</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>當你從相簿選擇要加入專案的檔案或圖片時，Cloakly 會讀取你選取的項目。</string>
 	<key>NSCameraUsageDescription</key>
