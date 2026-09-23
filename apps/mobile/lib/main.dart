@@ -6,12 +6,27 @@ import 'package:cloakly_mobile/features/hosted_account_screen.dart';
 import 'package:cloakly_mobile/services/hosted_ai_service.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:cloakly_mobile/services/hosted_stt_factory.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exceptionAsString()}');
+  };
+
+  try {
+    await _start();
+  } catch (error, stack) {
+    debugPrint('Startup failed: $error\n$stack');
+    runApp(StartupErrorApp(message: error.toString()));
+  }
+}
+
+Future<void> _start() async {
   if (!HostedConfig.hasSupabase) {
     runApp(const ConfigurationErrorApp());
     return;

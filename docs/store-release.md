@@ -74,7 +74,8 @@ Get-Content C:\Kate\sideProject\cloakly\apps\mobile\android\key.properties
 ## 常見卡關
 
 - Play 第一次上傳可能要求在 Console 完成「應用程式完整性／Play App Signing」同意流程。
-- iOS CI 若簽章失敗：確認 Team `2AMKWN2NTG`、Bundle `com.cloud52.cloakly`，且 Account Holder 已同意最新協議。
+- iOS CI：首次若 Distribution 憑證額滿，workflow 勾選 `revoke_ios_certs` 撤銷孤兒憑證並匯出 `dist-ci.p12`；之後把 `APPLE_CERT_P12_BASE64`／`APPLE_CERT_PASSWORD`（預設 `cloakly-ci-cert`）存進 Secrets，避免每跑一次就新建憑證。
+- Android `ANDROID_KEYSTORE_BASE64` 必須是純 ASCII base64；若用 PowerShell pipe 寫入 secret 可能變成 UTF-16 導致 `base64: invalid input`。
 - 服務帳號須已在 Play「使用者和權限」被邀請，並具備「發布至測試群組」權限。
 - RevenueCat Dashboard 的 App 須改為新的 bundle／package。
 

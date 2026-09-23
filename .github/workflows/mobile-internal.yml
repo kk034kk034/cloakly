@@ -12,6 +12,11 @@ on:
           - both
           - android
           - ios
+      revoke_ios_certs:
+        description: Revoke all Apple Distribution certs before creating a new one (use once when slots are full)
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: mobile-internal-${{ github.ref }}
@@ -49,22 +54,38 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload-keystore.p12
           python3 - <<'PY'
-          import os
+          import base64, binascii, os
           from pathlib import Path
+
+          def clean(value: str) -> str:
+              return value.lstrip("\ufeff\ufffe").strip()
+
+          raw = clean(os.environ["ANDROID_KEYSTORE_BASE64"])
+          cleaned = "".join(raw.split())
+          try:
+              data = base64.b64decode(cleaned, validate=False)
+          except binascii.Error as exc:
+              raise SystemExit(f"ANDROID_KEYSTORE_BASE64 decode failed: {exc}") from exc
+          if len(data) < 64:
+              raise SystemExit(f"Decoded keystore too small ({len(data)} bytes); secret likely corrupted")
+          Path("upload-keystore.p12").write_bytes(data)
+          alias = clean(os.environ["ANDROID_KEY_ALIAS"])
+          store_password = clean(os.environ["ANDROID_KEYSTORE_PASSWORD"])
+          key_password = clean(os.environ["ANDROID_KEY_PASSWORD"])
           Path("key.properties").write_text(
               "\n".join(
                   [
-                      f"storePassword={os.environ['ANDROID_KEYSTORE_PASSWORD']}",
-                      f"keyPassword={os.environ['ANDROID_KEY_PASSWORD']}",
-                      f"keyAlias={os.environ['ANDROID_KEY_ALIAS']}",
+                      f"storePassword={store_password}",
+                      f"keyPassword={key_password}",
+                      f"keyAlias={alias}",
                       "storeFile=upload-keystore.p12",
                       "",
                   ]
               ),
-              encoding="utf-8",
+              encoding="ascii",
           )
+          print(f"Wrote upload-keystore.p12 ({len(data)} bytes), alias={alias!r}")
           PY
 
       - name: Write dart-define config
@@ -84,11 +105,11 @@ jobs:
           Path("config/ci.json").write_text(
               json.dumps(
                   {
-                      "SUPABASE_URL": os.environ["SUPABASE_URL"],
-                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"],
-                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", ""),
-                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", ""),
-                      "REVENUECAT_ENTITLEMENT_ID": os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro",
+                      "SUPABASE_URL": os.environ["SUPABASE_URL"].lstrip("\ufeff").strip(),
+                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"].lstrip("\ufeff").strip(),
+                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_ENTITLEMENT_ID": (os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro").lstrip("\ufeff").strip() or "pro",
                   },
                   indent=2,
               )
@@ -126,6 +147,13 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: apps/mobile/ios
+
       - name: Write dart-define config
         working-directory: apps/mobile
         env:
@@ -143,11 +171,11 @@ jobs:
           Path("config/ci.json").write_text(
               json.dumps(
                   {
-                      "SUPABASE_URL": os.environ["SUPABASE_URL"],
-                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"],
-                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", ""),
-                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", ""),
-                      "REVENUECAT_ENTITLEMENT_ID": os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro",
+                      "SUPABASE_URL": os.environ["SUPABASE_URL"].lstrip("\ufeff").strip(),
+                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"].lstrip("\ufeff").strip(),
+                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_ENTITLEMENT_ID": (os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro").lstrip("\ufeff").strip() or "pro",
                   },
                   indent=2,
               )
@@ -156,32 +184,23 @@ jobs:
           )
           PY
 
-      - name: Install Apple API key
-        env:
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/private_keys"
-          printf '%s\n' "$ASC_KEY_P8" > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
-
-      - name: Build IPA
-        working-directory: apps/mobile
-        run: |
-          set -euo pipefail
-          flutter build ipa --release \
-            --dart-define-from-file=config/ci.json \
-            --export-options-plist=ios/ExportOptions.plist
-
-      - name: Upload to TestFlight
-        working-directory: apps/mobile
+      - name: Build IPA and upload TestFlight
+        working-directory: apps/mobile/ios
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          set -euo pipefail
-          IPA=$(ls build/ios/ipa/*.ipa | head -n 1)
-          xcrun altool --upload-app --type ios \
-            --file "$IPA" \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID"
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          REVOKE_IOS_DIST_CERTS: ${{ inputs.revoke_ios_certs && '1' || '0' }}
+        run: bundle exec fastlane internal
+
+      - name: Upload exported iOS distribution cert (first-time bootstrap)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-distribution-cert
+          path: |
+            apps/mobile/ios/dist-ci.p12
+            apps/mobile/ios/dist-ci.p12.base64.txt
+          if-no-files-found: ignore
