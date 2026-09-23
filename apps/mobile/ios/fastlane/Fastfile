@@ -1,3 +1,7 @@
+require "base64"
+require "spaceship"
+require "tempfile"
+
 default_platform(:ios)
 
 platform :ios do
@@ -29,10 +33,16 @@ platform :ios do
     keychain_path = "#{keychain_path}-db" unless keychain_path.end_with?("-db")
     UI.user_error!("CI keychain missing at #{keychain_path}") unless File.exist?(keychain_path)
 
-    cert(
+    if %w[1 true TRUE yes].include?(ENV["REVOKE_IOS_DIST_CERTS"].to_s)
+      revoke_ios_distribution_certificates(api_key)
+    end
+
+    install_distribution_certificate!(
       api_key: api_key,
-      keychain_path: keychain_path
+      keychain_path: keychain_path,
+      ios_dir: ios_dir
     )
+
     sigh(
       api_key: api_key,
       app_identifier: "com.cloud52.cloakly",
@@ -81,7 +91,6 @@ platform :ios do
       PLIST
     )
     UI.user_error!("ExportOptions missing at #{export_plist}") unless File.exist?(export_plist)
-    UI.message("Wrote #{export_plist}")
 
     Dir.chdir(mobile_dir) do
       sh(
@@ -101,4 +110,70 @@ platform :ios do
       skip_waiting_for_build_processing: true
     )
   end
+end
+
+def revoke_ios_distribution_certificates(api_key)
+  tmp = Tempfile.new(["AuthKey", ".p8"])
+  begin
+    tmp.write(api_key[:key])
+    tmp.flush
+    token = Spaceship::ConnectAPI::Token.create(
+      key_id: api_key[:key_id],
+      issuer_id: api_key[:issuer_id],
+      filepath: tmp.path
+    )
+    Spaceship::ConnectAPI.token = token
+
+    types = %w[DISTRIBUTION IOS_DISTRIBUTION APPLE_DISTRIBUTION]
+    certs = Spaceship::ConnectAPI::Certificate.all.select do |c|
+      types.include?(c.certificate_type.to_s)
+    end
+
+    UI.important("Revoking #{certs.length} distribution certificate(s)")
+    certs.each do |cert|
+      UI.important("Revoking #{cert.id} (#{cert.certificate_type})")
+      cert.delete!
+    end
+  ensure
+    tmp.close!
+  end
+end
+
+def install_distribution_certificate!(api_key:, keychain_path:, ios_dir:)
+  p12_b64 = ENV["APPLE_CERT_P12_BASE64"].to_s.sub(/\A\uFEFF/, "").strip
+  p12_password = ENV.fetch("APPLE_CERT_PASSWORD", "cloakly-ci-cert")
+
+  if !p12_b64.empty?
+    p12_path = File.join(ios_dir, "dist-import.p12")
+    File.binwrite(p12_path, Base64.decode64(p12_b64.gsub(/\s+/, "")))
+    import_certificate(
+      certificate_path: p12_path,
+      certificate_password: p12_password,
+      keychain_path: keychain_path,
+      keychain_password: ""
+    )
+    UI.success("Imported distribution certificate from APPLE_CERT_P12_BASE64")
+    return
+  end
+
+  cert(
+    api_key: api_key,
+    keychain_path: keychain_path
+  )
+
+  # Persist identity for later CI runs (private key lives only in this job's keychain).
+  p12_path = File.join(ios_dir, "dist-ci.p12")
+  sh(
+    "security", "export",
+    "-k", keychain_path,
+    "-t", "identities",
+    "-f", "pkcs12",
+    "-P", p12_password,
+    "-o", p12_path
+  )
+  File.write(
+    File.join(ios_dir, "dist-ci.p12.base64.txt"),
+    Base64.strict_encode64(File.binread(p12_path))
+  )
+  UI.important("Exported dist-ci.p12 — set APPLE_CERT_P12_BASE64 + APPLE_CERT_PASSWORD=cloakly-ci-cert for stable CI")
 end

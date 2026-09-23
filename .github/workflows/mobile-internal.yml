@@ -12,6 +12,11 @@ on:
           - both
           - android
           - ios
+      revoke_ios_certs:
+        description: Revoke all Apple Distribution certs before creating a new one (use once when slots are full)
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: mobile-internal-${{ github.ref }}
@@ -185,4 +190,17 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          REVOKE_IOS_DIST_CERTS: ${{ inputs.revoke_ios_certs && '1' || '0' }}
         run: bundle exec fastlane internal
+
+      - name: Upload exported iOS distribution cert (first-time bootstrap)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-distribution-cert
+          path: |
+            apps/mobile/ios/dist-ci.p12
+            apps/mobile/ios/dist-ci.p12.base64.txt
+          if-no-files-found: ignore
