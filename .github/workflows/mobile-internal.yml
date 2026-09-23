@@ -105,11 +105,11 @@ jobs:
           Path("config/ci.json").write_text(
               json.dumps(
                   {
-                      "SUPABASE_URL": os.environ["SUPABASE_URL"],
-                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"],
-                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", ""),
-                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", ""),
-                      "REVENUECAT_ENTITLEMENT_ID": os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro",
+                      "SUPABASE_URL": os.environ["SUPABASE_URL"].lstrip("\ufeff").strip(),
+                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"].lstrip("\ufeff").strip(),
+                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_ENTITLEMENT_ID": (os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro").lstrip("\ufeff").strip() or "pro",
                   },
                   indent=2,
               )
@@ -171,11 +171,11 @@ jobs:
           Path("config/ci.json").write_text(
               json.dumps(
                   {
-                      "SUPABASE_URL": os.environ["SUPABASE_URL"],
-                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"],
-                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", ""),
-                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", ""),
-                      "REVENUECAT_ENTITLEMENT_ID": os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro",
+                      "SUPABASE_URL": os.environ["SUPABASE_URL"].lstrip("\ufeff").strip(),
+                      "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"].lstrip("\ufeff").strip(),
+                      "REVENUECAT_APPLE_API_KEY": os.environ.get("REVENUECAT_APPLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_GOOGLE_API_KEY": os.environ.get("REVENUECAT_GOOGLE_API_KEY", "").lstrip("\ufeff").strip(),
+                      "REVENUECAT_ENTITLEMENT_ID": (os.environ.get("REVENUECAT_ENTITLEMENT_ID") or "pro").lstrip("\ufeff").strip() or "pro",
                   },
                   indent=2,
               )
