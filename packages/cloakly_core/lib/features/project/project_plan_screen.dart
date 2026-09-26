@@ -24,6 +24,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
   bool _suggesting = false;
   String? _suggestError;
   AiUsage? _lastSuggestUsage;
+
   /// When set, board temporarily shows an archived phase (read-only archive view).
   String? _peekArchivedPhaseId;
 
@@ -196,8 +197,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
             title: const Text('此階段工作已全部完成'),
             subtitle: const Text('封存後完成欄會收合，可安心開下一階段。'),
             trailing: FilledButton(
-              onPressed: () =>
-                  _archivePhase(project, phase.id, confirm: false),
+              onPressed: () => _archivePhase(project, phase.id, confirm: false),
               child: const Text('封存階段'),
             ),
           ),
@@ -218,10 +218,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       else ...[
         _GanttChart(tasks: boardTasks),
         const SizedBox(height: 4),
-        Text(
-          '左右滑動可查看完整日期範圍',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text('左右滑動可查看完整日期範圍', style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 20),
         Text(
           '${phase.name} · 工作看板',
@@ -318,11 +315,13 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           ? 0
           : pack.phases.map((item) => item.sortOrder).reduce(math.max) + 1,
     );
-    await ref.read(projectsProvider.notifier).updatePlan(
-      pack.id,
-      phases: [...pack.phases, phase],
-      activePhaseId: phase.id,
-    );
+    await ref
+        .read(projectsProvider.notifier)
+        .updatePlan(
+          pack.id,
+          phases: [...pack.phases, phase],
+          activePhaseId: phase.id,
+        );
     if (mounted) setState(() => _peekArchivedPhaseId = null);
   }
 
@@ -352,13 +351,15 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     if (ok != true || !mounted) return;
     final name = nameController.text.trim();
     if (name.isEmpty) return;
-    await ref.read(projectsProvider.notifier).updatePlan(
-      pack.id,
-      phases: [
-        for (final item in pack.phases)
-          item.id == phase.id ? item.copyWith(name: name) : item,
-      ],
-    );
+    await ref
+        .read(projectsProvider.notifier)
+        .updatePlan(
+          pack.id,
+          phases: [
+            for (final item in pack.phases)
+              item.id == phase.id ? item.copyWith(name: name) : item,
+          ],
+        );
   }
 
   Future<void> _archivePhase(
@@ -406,34 +407,30 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       phases = [...nextPhases, fresh];
       nextActive = fresh.id;
     }
-    await ref.read(projectsProvider.notifier).updatePlan(
-      pack.id,
-      phases: phases,
-      activePhaseId: nextActive,
-    );
+    await ref
+        .read(projectsProvider.notifier)
+        .updatePlan(pack.id, phases: phases, activePhaseId: nextActive);
     if (mounted) {
       setState(() => _peekArchivedPhaseId = null);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            remaining.isEmpty ? '已封存並開啟下一階段。' : '階段已封存。',
-          ),
-        ),
+        SnackBar(content: Text(remaining.isEmpty ? '已封存並開啟下一階段。' : '階段已封存。')),
       );
     }
   }
 
   Future<void> _unarchivePhase(ProjectPack pack, ProjectPhase phase) async {
-    await ref.read(projectsProvider.notifier).updatePlan(
-      pack.id,
-      phases: [
-        for (final item in pack.phases)
-          item.id == phase.id
-              ? item.copyWith(archived: false, clearArchivedAt: true)
-              : item,
-      ],
-      activePhaseId: phase.id,
-    );
+    await ref
+        .read(projectsProvider.notifier)
+        .updatePlan(
+          pack.id,
+          phases: [
+            for (final item in pack.phases)
+              item.id == phase.id
+                  ? item.copyWith(archived: false, clearArchivedAt: true)
+                  : item,
+          ],
+          activePhaseId: phase.id,
+        );
     if (mounted) setState(() => _peekArchivedPhaseId = null);
   }
 
@@ -455,8 +452,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       if (!mounted) return;
       if (evidence.sources.isEmpty) {
         setState(
-          () => _suggestError =
-              '目前沒有足夠的文件或會議資料可供建議。請先把時程、規格或會議紀錄放進專案資料夾。',
+          () => _suggestError = '目前沒有足夠的文件或會議資料可供建議。請先把時程、規格或會議紀錄放進專案資料夾。',
         );
         return;
       }
@@ -539,16 +535,19 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           confirmed: false,
         ),
     ];
-    final preferred = pack.activePhase?.id ??
+    final preferred =
+        pack.activePhase?.id ??
         (phases.where((phase) => !phase.archived).isEmpty
             ? null
             : phases.where((phase) => !phase.archived).first.id);
-    await ref.read(projectsProvider.notifier).updatePlan(
-      pack.id,
-      phases: phases,
-      tasks: tasks,
-      activePhaseId: preferred,
-    );
+    await ref
+        .read(projectsProvider.notifier)
+        .updatePlan(
+          pack.id,
+          phases: phases,
+          tasks: tasks,
+          activePhaseId: preferred,
+        );
   }
 
   Future<List<_AcceptedSuggestion>?> _reviewSuggestions({
@@ -585,8 +584,9 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            final selectedCount =
-                candidates.where((item) => item.selected).length;
+            final selectedCount = candidates
+                .where((item) => item.selected)
+                .length;
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -707,8 +707,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     DateTime? start = task?.startDate;
     DateTime? end = task?.endDate;
     var status = task?.status ?? ProjectTaskStatus.planned;
-    var selectedPhaseId =
-        task?.phaseId ?? phaseId ?? pack.activePhase?.id;
+    var selectedPhaseId = task?.phaseId ?? phaseId ?? pack.activePhase?.id;
     var remove = false;
     final openPhases = pack.openPhases;
     final saved = await showDialog<bool>(
@@ -730,8 +729,11 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                 ),
                 if (openPhases.isNotEmpty)
                   DropdownButtonFormField<String>(
-                    initialValue: selectedPhaseId != null &&
-                            openPhases.any((phase) => phase.id == selectedPhaseId)
+                    initialValue:
+                        selectedPhaseId != null &&
+                            openPhases.any(
+                              (phase) => phase.id == selectedPhaseId,
+                            )
                         ? selectedPhaseId
                         : openPhases.first.id,
                     decoration: const InputDecoration(labelText: '所屬階段'),
@@ -856,12 +858,14 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         next[index] = updated;
       }
     }
-    await ref.read(projectsProvider.notifier).updatePlan(
-      pack.id,
-      tasks: next,
-      phases: phases,
-      activePhaseId: activePhaseId,
-    );
+    await ref
+        .read(projectsProvider.notifier)
+        .updatePlan(
+          pack.id,
+          tasks: next,
+          phases: phases,
+          activePhaseId: activePhaseId,
+        );
     final completedPhaseId = selectedPhaseId;
     if (!remove &&
         completedPhaseId != null &&
@@ -1028,10 +1032,7 @@ class _SuggestCandidate {
 }
 
 class _AcceptedSuggestion {
-  const _AcceptedSuggestion({
-    required this.draft,
-    required this.sourceLabels,
-  });
+  const _AcceptedSuggestion({required this.draft, required this.sourceLabels});
   final ProjectPlanDraft draft;
   final List<String> sourceLabels;
 }
@@ -1117,6 +1118,9 @@ class _GanttChartState extends State<_GanttChart> {
                                   painter: _TimelineGridPainter(
                                     days: days,
                                     dayWidth: dayWidth,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
                                   ),
                                 ),
                               ),
@@ -1166,6 +1170,9 @@ class _GanttChartState extends State<_GanttChart> {
                                       painter: _TimelineGridPainter(
                                         days: days,
                                         dayWidth: dayWidth,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outlineVariant,
                                       ),
                                     ),
                                   ),
@@ -1220,14 +1227,19 @@ Color _barColor(BuildContext context, ProjectTaskStatus status) =>
     };
 
 class _TimelineGridPainter extends CustomPainter {
-  const _TimelineGridPainter({required this.days, required this.dayWidth});
+  const _TimelineGridPainter({
+    required this.days,
+    required this.dayWidth,
+    required this.color,
+  });
   final int days;
   final double dayWidth;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final line = Paint()
-      ..color = const Color(0x553F514C)
+      ..color = color
       ..strokeWidth = 1;
     for (var day = 0; day <= days; day += 7) {
       final x = day * dayWidth;
@@ -1242,5 +1254,7 @@ class _TimelineGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TimelineGridPainter oldDelegate) =>
-      oldDelegate.days != days || oldDelegate.dayWidth != dayWidth;
+      oldDelegate.days != days ||
+      oldDelegate.dayWidth != dayWidth ||
+      oldDelegate.color != color;
 }

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:flutter/material.dart';
@@ -154,10 +156,10 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
             contentPadding: EdgeInsets.zero,
             leading: const CircleAvatar(child: Icon(Icons.person_outline)),
             title: Text(email),
-            subtitle: Text(
-              isPro ? 'Pro 訂閱有效' : '免費方案：每日合計 30 分鐘，可分多場使用',
-            ),
+            subtitle: Text(isPro ? 'Pro 訂閱有效' : '免費方案：每日合計 30 分鐘，可分多場使用'),
           ),
+          const SizedBox(height: 8),
+          const ThemeModeSetting(),
           if (plan != null) ...[
             const SizedBox(height: 8),
             _PlanStatusCard(plan: plan, isPro: isPro),
@@ -181,10 +183,10 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
               for (final package in _packages)
                 Card(
                   child: ListTile(
-                    title: Text(package.storeProduct.title),
-                    subtitle: Text(
-                      '${packagePeriodLabel(package)} · ${package.storeProduct.description}',
+                    title: Text(
+                      displayStoreProductTitle(package.storeProduct.title),
                     ),
+                    subtitle: Text(_packageSubtitle(package)),
                     trailing: FilledButton(
                       onPressed: _busy ? null : () => _purchase(package),
                       child: Text(package.storeProduct.priceString),
@@ -192,10 +194,11 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
                   ),
                 ),
               if (!_busy && _packages.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(
-                    'RevenueCat 尚未回傳 Offering，請確認商店商品與 Current Offering 設定。',
+                    '還沒有可購買的方案。請到 RevenueCat 的 Current Offering，'
+                    '加入 ${Platform.isIOS ? 'App Store' : 'Google Play'} 商品。',
                   ),
                 ),
             ],
@@ -222,6 +225,13 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
       ),
     );
   }
+}
+
+String _packageSubtitle(Package package) {
+  final period = packagePeriodLabel(package);
+  final description = package.storeProduct.description.trim();
+  if (description.isEmpty) return period;
+  return '$period · $description';
 }
 
 class _PlanStatusCard extends StatelessWidget {

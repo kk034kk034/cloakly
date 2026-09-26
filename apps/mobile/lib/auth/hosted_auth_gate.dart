@@ -1,15 +1,14 @@
 import 'dart:async';
 
+import 'package:cloakly_core/core/theme/app_theme.dart';
+import 'package:cloakly_core/core/theme/theme_controller.dart';
+import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HostedAuthGate extends StatefulWidget {
-  const HostedAuthGate({
-    required this.child,
-    this.billing,
-    super.key,
-  });
+  const HostedAuthGate({required this.child, this.billing, super.key});
 
   final Widget child;
   final HostedBilling? billing;
@@ -73,10 +72,14 @@ class _AuthApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
-      home: const _EmailPasswordScreen(),
+    return ThemeModeBuilder(
+      builder: (context, mode) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: mode,
+        home: const _EmailPasswordScreen(),
+      ),
     );
   }
 }
@@ -149,6 +152,10 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: ThemeModeToggleButton(),
+                  ),
                   const Icon(Icons.graphic_eq, size: 58),
                   const SizedBox(height: 18),
                   Text(

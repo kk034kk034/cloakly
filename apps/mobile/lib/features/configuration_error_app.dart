@@ -1,3 +1,4 @@
+import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class ConfigurationErrorApp extends StatelessWidget {
@@ -7,7 +8,8 @@ class ConfigurationErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: AppTheme.dark(),
+      darkTheme: AppTheme.dark(),
       home: Scaffold(
         body: SafeArea(
           child: Padding(
@@ -53,7 +55,8 @@ class StartupErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: AppTheme.dark(),
+      darkTheme: AppTheme.dark(),
       home: Scaffold(
         body: SafeArea(
           child: Padding(
