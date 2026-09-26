@@ -1,3 +1,4 @@
+import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +44,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          const ThemeModeSetting(),
+          const SizedBox(height: 24),
           Text('多人即時逐字稿', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           TextField(

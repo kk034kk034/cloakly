@@ -1,6 +1,7 @@
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/features/session/session_controller.dart';
+import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:cloakly_core/widgets/project_question_panel.dart';
@@ -27,6 +28,7 @@ class HomeScreen extends ConsumerWidget {
         ),
         title: Text(active?.name ?? '未分類'),
         actions: [
+          const ThemeModeToggleButton(),
           if (active != null)
             IconButton(
               tooltip: '專案設定',
@@ -208,10 +210,7 @@ class _UnassignedBody extends StatelessWidget {
 }
 
 class _ProjectStatusCard extends StatelessWidget {
-  const _ProjectStatusCard({
-    required this.project,
-    required this.onOpenPlan,
-  });
+  const _ProjectStatusCard({required this.project, required this.onOpenPlan});
 
   final ProjectPack project;
   final VoidCallback onOpenPlan;

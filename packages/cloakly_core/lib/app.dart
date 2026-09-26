@@ -1,4 +1,5 @@
 import 'package:cloakly_core/core/theme/app_theme.dart';
+import 'package:cloakly_core/core/theme/theme_controller.dart';
 import 'package:cloakly_core/features/home/home_screen.dart';
 import 'package:cloakly_core/features/home/meetings_list_screen.dart';
 import 'package:cloakly_core/features/meeting_detail/meeting_detail_screen.dart';
@@ -10,6 +11,7 @@ import 'package:cloakly_core/features/session/session_screen.dart';
 import 'package:cloakly_core/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 GoRouter createAppRouter({
@@ -63,16 +65,16 @@ GoRouter createAppRouter({
   ],
 );
 
-class CloaklyApp extends StatefulWidget {
+class CloaklyApp extends ConsumerStatefulWidget {
   const CloaklyApp({super.key, this.settingsBuilder});
 
   final WidgetBuilder? settingsBuilder;
 
   @override
-  State<CloaklyApp> createState() => _CloaklyAppState();
+  ConsumerState<CloaklyApp> createState() => _CloaklyAppState();
 }
 
-class _CloaklyAppState extends State<CloaklyApp> {
+class _CloaklyAppState extends ConsumerState<CloaklyApp> {
   late final GoRouter _router = createAppRouter(
     settingsBuilder: widget.settingsBuilder,
   );
@@ -88,7 +90,9 @@ class _CloaklyAppState extends State<CloaklyApp> {
     return MaterialApp.router(
       title: 'Cloakly',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ref.watch(themeModeProvider),
       locale: const Locale('zh', 'TW'),
       supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
       localizationsDelegates: const [

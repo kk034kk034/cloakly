@@ -41,10 +41,16 @@ class HostedBilling {
   }) async {
     final apiKey = HostedConfig.revenueCatApiKey;
     if (apiKey.isEmpty) return null;
-    try {
-      await Purchases.setLogLevel(
-        kDebugMode ? LogLevel.debug : LogLevel.info,
+    // RevenueCat Test Store keys work in debug, then kill the process in
+    // release after the "Wrong API Key" dialog. Skip them so login still opens.
+    if (kReleaseMode && apiKey.startsWith('test_')) {
+      debugPrint(
+        'Release 建置略過 RevenueCat Test Store key。請改用 Play 的 goog_ 或 App Store 的 appl_ 公開 SDK key。',
       );
+      return null;
+    }
+    try {
+      await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.info);
       final configuration = PurchasesConfiguration(apiKey);
       if (appUserId != null && appUserId.isNotEmpty) {
         configuration.appUserID = appUserId;
@@ -96,13 +102,16 @@ class HostedBilling {
   }
 
   Future<(CustomerInfo, List<Package>)> loadStore() async {
-    final values = await Future.wait<Object>([
-      Purchases.getCustomerInfo(),
-      Purchases.getOfferings(),
-    ]);
-    final info = values[0] as CustomerInfo;
-    final offerings = values[1] as Offerings;
-    return (info, offerings.current?.availablePackages ?? const <Package>[]);
+    final info = await Purchases.getCustomerInfo();
+    try {
+      final offerings = await Purchases.getOfferings();
+      return (info, offerings.current?.availablePackages ?? const <Package>[]);
+    } catch (error, stack) {
+      // Offerings can fail when the Play key is set but the current offering
+      // has no Play products. Keep the account and entitlement usable.
+      debugPrint('RevenueCat offerings 讀取失敗：$error\n$stack');
+      return (info, const <Package>[]);
+    }
   }
 
   Future<void> syncEntitlement() async {

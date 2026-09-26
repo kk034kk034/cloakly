@@ -37,6 +37,18 @@ String formatRemainingFreeTime(int seconds) {
   return '今日免費額度剩餘 $minutes 分 $remainder 秒';
 }
 
+/// Play 在商品尚未審核時，會把套件名稱與 unreviewed 接在標題後面。
+String displayStoreProductTitle(String raw) {
+  final title = raw.trim();
+  final cut = title.indexOf(' (');
+  if (cut <= 0) return title;
+  final suffix = title.substring(cut).toLowerCase();
+  if (suffix.contains('unreviewed') || suffix.contains('.')) {
+    return title.substring(0, cut).trim();
+  }
+  return title;
+}
+
 bool looksLikePurchaseCancelled(Object error) {
   final text = error.toString().toLowerCase();
   return text.contains('purchasecancelled') ||

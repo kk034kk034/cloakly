@@ -114,7 +114,10 @@ class _TranscriptListState extends State<TranscriptList> {
                             child: Text(
                               '${line.speaker}${line.isFinal ? '' : '（暫定）'}',
                               style: TextStyle(
-                                color: speakerColor(line.speakerIndex),
+                                color: speakerColor(
+                                  line.speakerIndex,
+                                  brightness: Theme.of(context).brightness,
+                                ),
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
                               ),

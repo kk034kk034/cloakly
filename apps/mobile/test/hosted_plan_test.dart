@@ -20,6 +20,16 @@ void main() {
     expect(plan.usedFreeSeconds, 1200);
   });
 
+  test('Play 未審核標題不顯示套件名稱', () {
+    expect(
+      displayStoreProductTitle(
+        'Cloakly Pro 年繳 (com.cloud52.cloakly (unreviewed))',
+      ),
+      'Cloakly Pro 年繳',
+    );
+    expect(displayStoreProductTitle('Cloakly Pro 月繳'), 'Cloakly Pro 月繳');
+  });
+
   test('cancelled purchase errors are recognized without the store SDK', () {
     expect(looksLikePurchaseCancelled('PurchaseCancelledError'), isTrue);
     expect(looksLikePurchaseCancelled('network timeout'), isFalse);

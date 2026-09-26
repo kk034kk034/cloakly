@@ -1,4 +1,5 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/widgets/project_task_board.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class ProjectPickerScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Cloakly'),
         actions: [
+          const ThemeModeToggleButton(),
           IconButton(
             tooltip: '全域設定',
             onPressed: () => context.push('/settings'),

@@ -4,6 +4,20 @@ import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// 欄內排序：先看行程時間，再看名稱。
+int compareBoardTasks(BoardTaskItem a, BoardTaskItem b) {
+  final byTime = _boardTime(a.task).compareTo(_boardTime(b.task));
+  if (byTime != 0) return byTime;
+  final byTitle = a.task.title.toLowerCase().compareTo(
+    b.task.title.toLowerCase(),
+  );
+  if (byTitle != 0) return byTitle;
+  return a.task.id.compareTo(b.task.id);
+}
+
+DateTime _boardTime(ProjectTask task) =>
+    task.startDate ?? task.endDate ?? DateTime(9999);
+
 /// One card on a project (or cross-project) kanban board.
 class BoardTaskItem {
   const BoardTaskItem({
@@ -71,9 +85,11 @@ class ProjectTaskBoard extends StatelessWidget {
     BuildContext context,
     ({String title, List<ProjectTaskStatus> statuses}) column,
   ) {
-    final columnItems = items.where(
-      (item) => column.statuses.contains(item.task.status),
-    );
+    final columnItems =
+        items
+            .where((item) => column.statuses.contains(item.task.status))
+            .toList()
+          ..sort(compareBoardTasks);
     return DragTarget<BoardTaskItem>(
       onAcceptWithDetails: (details) =>
           onStatusChanged(details.data, column.statuses.first),
