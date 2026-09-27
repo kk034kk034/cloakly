@@ -55,7 +55,8 @@ class HostedBilling {
       if (appUserId != null && appUserId.isNotEmpty) {
         configuration.appUserID = appUserId;
       }
-      configuration.shouldShowInAppMessagesAutomatically = true;
+      // Play 會在連上帳單時自動跳出訂閱推廣。恢復購買也會連帳單，開著會讓人以為在買月繳。
+      configuration.shouldShowInAppMessagesAutomatically = false;
       await Purchases.configure(configuration);
       return HostedBilling._(supabase);
     } catch (error, stack) {

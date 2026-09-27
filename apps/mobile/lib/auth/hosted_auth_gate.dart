@@ -123,6 +123,7 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
   final _password = TextEditingController();
   var _signUp = false;
   var _busy = false;
+  var _showPassword = false;
   String? _message;
 
   @override
@@ -220,9 +221,21 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _password,
-                    obscureText: true,
+                    obscureText: !_showPassword,
                     autofillHints: const [AutofillHints.password],
-                    decoration: const InputDecoration(labelText: '密碼'),
+                    decoration: InputDecoration(
+                      labelText: '密碼',
+                      suffixIcon: IconButton(
+                        tooltip: _showPassword ? '隱藏密碼' : '顯示密碼',
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                      ),
+                    ),
                     onSubmitted: (_) => _busy ? null : _submit(),
                   ),
                   if (_message != null) ...[
@@ -239,6 +252,7 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
                         ? null
                         : () => setState(() {
                             _signUp = !_signUp;
+                            _showPassword = false;
                             _message = null;
                           }),
                     child: Text(_signUp ? '已有帳號？登入' : '沒有帳號？註冊'),

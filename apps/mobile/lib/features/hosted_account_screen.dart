@@ -118,6 +118,14 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
       if (!mounted) return;
       setState(() => _customerInfo = info);
       await _reloadPlan(info);
+      if (!mounted) return;
+      final active =
+          info.entitlements.all[HostedConfig.entitlementId]?.isActive == true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(active ? '已恢復 Pro 購買。' : '沒有找到可恢復的 Pro 購買。'),
+        ),
+      );
     } catch (error) {
       if (mounted) setState(() => _error = '無法恢復購買：$error');
     } finally {
@@ -208,11 +216,6 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
                   onPressed: () => Navigator.pop(dialogContext, false),
                   child: const Text('取消'),
                 ),
-                if (_ready)
-                  TextButton(
-                    onPressed: _manageSubscription,
-                    child: const Text('管理商店訂閱'),
-                  ),
                 TextButton(
                   onPressed: canDelete
                       ? () => Navigator.pop(dialogContext, true)
@@ -349,6 +352,11 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
               onPressed: _busy ? null : _restore,
               child: const Text('恢復購買'),
             ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _busy ? null : _manageSubscription,
+              child: const Text('管理商店訂閱'),
+            ),
           ],
           if (_error != null) ...[
             const SizedBox(height: 12),
@@ -357,27 +365,25 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
-          const SizedBox(height: 28),
-          if (_ready)
-            OutlinedButton(
-              onPressed: _busy ? null : _manageSubscription,
-              child: const Text('管理商店訂閱'),
-            ),
-          TextButton.icon(
-            onPressed: _busy ? null : _signOut,
-            icon: const Icon(Icons.logout),
-            label: const Text('登出'),
+          const SizedBox(height: 24),
+          const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.logout),
+            title: const Text('登出'),
+            onTap: _busy ? null : _signOut,
           ),
-          TextButton.icon(
-            onPressed: _busy ? null : _deleteAccount,
-            icon: Icon(
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
               Icons.delete_outline,
               color: Theme.of(context).colorScheme.error,
             ),
-            label: Text(
+            title: Text(
               '刪除帳號',
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
+            onTap: _busy ? null : _deleteAccount,
           ),
         ],
       ),
