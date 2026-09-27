@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
+import 'package:cloakly_mobile/services/hosted_access.dart';
+import 'package:cloakly_mobile/services/hosted_device.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HostedAiService implements AiService {
@@ -17,12 +19,15 @@ class HostedAiService implements AiService {
     required String question,
     required String evidence,
   }) async {
-    final response = await _supabase.functions
-        .invoke(
-          'project-question',
-          body: {'question': question, 'evidence': evidence},
-        )
-        .timeout(const Duration(seconds: 60));
+    final response = await _invoke(
+      'project-question',
+      timeout: const Duration(seconds: 60),
+      body: {
+        'question': question,
+        'evidence': evidence,
+        'deviceId': await HostedDeviceId.current(),
+      },
+    );
     final data = _jsonMap(response.data);
     final answer = data['answer'] as String?;
     if (answer == null || answer.trim().isEmpty) {
@@ -37,7 +42,7 @@ class HostedAiService implements AiService {
     required String trigger,
     String projectContext = '',
   }) async {
-    final response = await _supabase.functions.invoke(
+    final response = await _invoke(
       'suggest-answer',
       body: {
         'recent': recent
@@ -51,6 +56,7 @@ class HostedAiService implements AiService {
             .toList(),
         'trigger': trigger,
         'projectContext': projectContext,
+        'deviceId': await HostedDeviceId.current(),
       },
     );
     final data = _jsonMap(response.data);
@@ -68,7 +74,7 @@ class HostedAiService implements AiService {
     required List<Note> notes,
     String projectContext = '',
   }) async {
-    final response = await _supabase.functions.invoke(
+    final response = await _invoke(
       'generate-minutes',
       body: {
         'meeting': {
@@ -87,6 +93,7 @@ class HostedAiService implements AiService {
             .toList(),
         'notes': notes.map((note) => {'text': note.text}).toList(),
         'projectContext': projectContext,
+        'deviceId': await HostedDeviceId.current(),
       },
     );
     final data = _jsonMap(response.data);
@@ -102,9 +109,14 @@ class HostedAiService implements AiService {
   Future<ProjectPlanResult> generateProjectPlan({
     required String evidence,
   }) async {
-    final response = await _supabase.functions
-        .invoke('project-plan', body: {'evidence': evidence})
-        .timeout(const Duration(seconds: 60));
+    final response = await _invoke(
+      'project-plan',
+      timeout: const Duration(seconds: 60),
+      body: {
+        'evidence': evidence,
+        'deviceId': await HostedDeviceId.current(),
+      },
+    );
     final data = _jsonMap(response.data);
     final tasks = data['tasks'];
     if (tasks is! List) throw StateError('Hosted AI 沒有回傳 WBS');
@@ -133,6 +145,24 @@ class HostedAiService implements AiService {
       ],
       usage: _usage(data),
     );
+  }
+
+  Future<FunctionResponse> _invoke(
+    String name, {
+    required Map<String, dynamic> body,
+    Duration? timeout,
+  }) async {
+    try {
+      final call = _supabase.functions.invoke(name, body: body);
+      return await (timeout == null ? call : call.timeout(timeout));
+    } on FunctionException catch (error) {
+      throw StateError(
+        hostedQuotaMessage(
+          error.details,
+          fallback: '無法完成這個 AI 功能（${error.status}）。',
+        ),
+      );
+    }
   }
 
   AiUsage? _usage(Map<String, dynamic> data) {

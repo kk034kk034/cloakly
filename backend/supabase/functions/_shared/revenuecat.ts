@@ -107,3 +107,33 @@ export async function fetchSubscriber(
   }
   return await response.json();
 }
+
+export function confirmedAccountDeletion(
+  body: unknown,
+  email: string | null | undefined,
+): boolean {
+  const accountEmail = email?.trim().toLowerCase() ?? "";
+  if (!accountEmail || typeof body !== "object" || body === null) return false;
+  const confirmEmail = (body as { confirmEmail?: unknown }).confirmEmail;
+  if (typeof confirmEmail !== "string") return false;
+  return confirmEmail.trim().toLowerCase() === accountEmail;
+}
+
+export async function deleteSubscriber(
+  appUserId: string,
+  secretKey: string,
+): Promise<void> {
+  const response = await fetch(
+    `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  if (response.ok || response.status === 404) return;
+  const body = await response.text();
+  throw new Error(`RevenueCat subscriber delete failed ${response.status} ${body}`);
+}

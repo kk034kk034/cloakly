@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -15,6 +16,22 @@ import java.io.FileInputStream
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cloakly/device")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "getDeviceId") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val androidId = Settings.Secure.getString(
+                    contentResolver,
+                    Settings.Secure.ANDROID_ID,
+                )
+                if (androidId.isNullOrBlank()) {
+                    result.error("device_id_unavailable", "無法讀取這支手機的識別", null)
+                    return@setMethodCallHandler
+                }
+                result.success("android:$androidId")
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cloakly/files")
             .setMethodCallHandler { call, result ->
                 if (call.method != "saveToDownloads") {

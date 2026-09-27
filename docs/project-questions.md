@@ -49,7 +49,7 @@ PDF 新增原生 PDFium 依賴，需要重新建置／安裝 App，僅 hot reloa
 
 桌面版沿用自備 OpenAI 金鑰；手機版使用新增的 `project-question` 與 `project-plan` Edge Functions。相關文字片段會送往 AI 服務，不是離線生成。沒有設定 AI 時不會產生示範答案冒充專案資訊。
 
-手機後端沿用既有 `requireUser` 與 `requireHostedAccess`，需要登入，且具有效 Pro 權益或符合既有當日會議額度授權。這一版未改變訂閱規則。
+手機後端要求已確認信箱的登入。免費帳號每天可使用 5 次專案問答與 5 次計畫建議，不必先開會；回答提示與會議紀錄仍算在當天的會議額度裡。同一支手機當天只能使用一個帳號的免費額度。Pro 不計這些次數。
 
 ### 部署到既有 Supabase 專案
 

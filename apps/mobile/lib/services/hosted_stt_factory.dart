@@ -4,6 +4,8 @@ import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/services/stt/soniox_stt.dart';
 import 'package:cloakly_core/services/stt/stt_engine.dart';
 import 'package:cloakly_core/state/providers.dart';
+import 'package:cloakly_mobile/services/hosted_access.dart';
+import 'package:cloakly_mobile/services/hosted_device.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 SttEngineFactory createHostedSttEngineFactory(
@@ -36,17 +38,20 @@ class HostedSessionCoordinator {
     try {
       response = await _supabase.functions.invoke(
         'create-meeting-session',
-        body: {'lane': lane.name},
+        body: {
+          'lane': lane.name,
+          'deviceId': await HostedDeviceId.current(),
+        },
       );
     } on FunctionException catch (error) {
-      throw StateError(switch (error.status) {
+      throw StateError(hostedQuotaMessage(error.details, fallback: switch (error.status) {
         404 => '手機版後端尚未部署 create-meeting-session。',
         401 => '登入已失效，請登出後重新登入。',
-        429 => '今天的免費會議額度已使用完畢。可到帳號與訂閱頁升級 Pro。',
+        403 => '這次免費額度無法使用。',
         502 => 'Soniox 金鑰無效、權限不足，或轉寫服務暫時無法使用。',
         503 => '後端尚未設定 Soniox API 金鑰。',
         _ => '無法取得會議授權（${error.status}）。',
-      });
+      }));
     }
     final raw = response.data;
     final data = switch (raw) {

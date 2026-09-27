@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
+import 'package:cloakly_mobile/services/hosted_access.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,18 +21,40 @@ class HostedAuthGate extends StatefulWidget {
 class _HostedAuthGateState extends State<HostedAuthGate> {
   late Session? _session;
   StreamSubscription<AuthState>? _subscription;
+  String? _notice;
+  var _clearingUnconfirmed = false;
 
   @override
   void initState() {
     super.initState();
     final auth = Supabase.instance.client.auth;
-    _session = auth.currentSession;
+    _session = _accepted(auth.currentSession);
     _subscription = auth.onAuthStateChange.listen((event) {
       final previous = _session;
-      if (mounted) setState(() => _session = event.session);
-      unawaited(_syncRevenueCat(previous, event.session));
+      final next = _accepted(event.session);
+      if (mounted) setState(() => _session = next);
+      unawaited(_syncRevenueCat(previous, next));
     });
     unawaited(_syncRevenueCat(null, _session));
+  }
+
+  Session? _accepted(Session? session) {
+    if (session == null) return null;
+    if (hostedEmailConfirmed(session.user)) return session;
+    _notice = unconfirmedEmailMessage;
+    if (_clearingUnconfirmed) return null;
+    _clearingUnconfirmed = true;
+    unawaited(() async {
+      try {
+        await widget.billing?.signOut();
+      } catch (_) {}
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } finally {
+        _clearingUnconfirmed = false;
+      }
+    }());
+    return null;
   }
 
   Future<void> _syncRevenueCat(Session? previous, Session? current) async {
@@ -63,12 +86,14 @@ class _HostedAuthGateState extends State<HostedAuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_session != null) return widget.child;
-    return const _AuthApp();
+    return _AuthApp(notice: _notice);
   }
 }
 
 class _AuthApp extends StatelessWidget {
-  const _AuthApp();
+  const _AuthApp({this.notice});
+
+  final String? notice;
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +103,16 @@ class _AuthApp extends StatelessWidget {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: mode,
-        home: const _EmailPasswordScreen(),
+        home: _EmailPasswordScreen(notice: notice),
       ),
     );
   }
 }
 
 class _EmailPasswordScreen extends StatefulWidget {
-  const _EmailPasswordScreen();
+  const _EmailPasswordScreen({this.notice});
+
+  final String? notice;
 
   @override
   State<_EmailPasswordScreen> createState() => _EmailPasswordScreenState();
@@ -97,6 +124,12 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
   var _signUp = false;
   var _busy = false;
   String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _message = widget.notice;
+  }
 
   @override
   void dispose() {
@@ -122,17 +155,31 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
           email: email,
           password: password,
         );
-        if (result.session == null && mounted) {
-          setState(() => _message = '註冊完成，請到信箱確認後再登入。');
+        final user = result.user;
+        if (user != null &&
+            result.session != null &&
+            hostedEmailConfirmed(user)) {
+          return;
         }
+        if (result.session != null) {
+          await Supabase.instance.client.auth.signOut();
+        }
+        if (mounted) setState(() => _message = unconfirmedEmailMessage);
       } else {
-        await Supabase.instance.client.auth.signInWithPassword(
+        final result = await Supabase.instance.client.auth.signInWithPassword(
           email: email,
           password: password,
         );
+        final user = result.user;
+        if (user != null && !hostedEmailConfirmed(user)) {
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) setState(() => _message = unconfirmedEmailMessage);
+        }
       }
     } on AuthException catch (error) {
-      if (mounted) setState(() => _message = error.message);
+      if (mounted) {
+        setState(() => _message = hostedAuthErrorMessage(error.message));
+      }
     } catch (error) {
       if (mounted) setState(() => _message = '無法連線：$error');
     } finally {

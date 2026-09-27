@@ -15,5 +15,22 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "AudioEncodeBridge") {
       AudioEncodeBridge.register(with: registrar.messenger())
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "DeviceIdBridge") {
+      let channel = FlutterMethodChannel(
+        name: "cloakly/device", binaryMessenger: registrar.messenger())
+      channel.setMethodCallHandler { call, result in
+        guard call.method == "getDeviceId" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        guard let id = UIDevice.current.identifierForVendor?.uuidString, !id.isEmpty else {
+          result(
+            FlutterError(
+              code: "device_id_unavailable", message: "無法讀取這支手機的識別", details: nil))
+          return
+        }
+        result("ios:\(id)")
+      }
+    }
   }
 }

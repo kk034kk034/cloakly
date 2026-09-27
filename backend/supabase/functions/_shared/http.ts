@@ -38,6 +38,11 @@ export async function requireUser(req: Request): Promise<AuthContext> {
   });
   const { data, error } = await userClient.auth.getUser(token);
   if (error || !data.user) throw new HttpError(401, "INVALID_ACCESS_TOKEN");
+  const confirmedAt = data.user.email_confirmed_at ??
+    (data.user as { confirmed_at?: string | null }).confirmed_at;
+  if (!data.user.email || !confirmedAt) {
+    throw new HttpError(403, "EMAIL_NOT_CONFIRMED");
+  }
 
   return {
     user: data.user,

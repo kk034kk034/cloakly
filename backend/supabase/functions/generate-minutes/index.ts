@@ -1,4 +1,4 @@
-import { complete, clipped, transcriptText } from "../_shared/openai.ts";
+import { claimFreeDevice, deviceIdOf } from "../_shared/free_quota.ts";
 import {
   corsHeaders,
   failure,
@@ -6,6 +6,7 @@ import {
   requireHostedAccess,
   requireUser,
 } from "../_shared/http.ts";
+import { clipped, complete, transcriptText } from "../_shared/openai.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -14,6 +15,7 @@ Deno.serve(async (req) => {
     const { userClient } = await requireUser(req);
     await requireHostedAccess(userClient);
     const body = await req.json();
+    await claimFreeDevice(userClient, deviceIdOf(body));
     const title = clipped(body.meeting?.title, 300) || "會議紀錄";
     const startedAt = clipped(body.meeting?.startedAt, 80);
     const project = clipped(body.projectContext, 48000);

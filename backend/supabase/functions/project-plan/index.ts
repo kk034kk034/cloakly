@@ -1,11 +1,11 @@
-import { complete, clipped } from "../_shared/openai.ts";
+import { consumeFreeAi, deviceIdOf, releaseFreeAi } from "../_shared/free_quota.ts";
 import {
   corsHeaders,
   failure,
   jsonResponse,
-  requireHostedAccess,
   requireUser,
 } from "../_shared/http.ts";
+import { clipped, complete } from "../_shared/openai.ts";
 
 const system = `你是繁體中文專案規劃助理。只根據 evidence 擷取可追蹤工作，不得猜測日期、負責人或完成狀態。
 把工作拆成可陸續推進的階段（phase），每個階段建議 4～10 項，完成一個階段後可封存再開下一階段，避免單一看板過長。
@@ -15,12 +15,14 @@ const system = `你是繁體中文專案規劃助理。只根據 evidence 擷取
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "METHOD_NOT_ALLOWED" }, 405);
+  let consumed = false;
+  let userClient: Awaited<ReturnType<typeof requireUser>>["userClient"] | undefined;
   try {
-    const { userClient } = await requireUser(req);
-    await requireHostedAccess(userClient);
+    ({ userClient } = await requireUser(req));
     const body = await req.json();
     const evidence = clipped(body.evidence, 48000);
     if (!evidence) return jsonResponse({ error: "INVALID_PROJECT_PLAN" }, 400);
+    consumed = await consumeFreeAi(userClient, deviceIdOf(body), "project_plan");
     const result = await complete({
       system,
       user: evidence,
@@ -30,6 +32,7 @@ Deno.serve(async (req) => {
     });
     return jsonResponse({ ...JSON.parse(result.content), usage: result.usage });
   } catch (error) {
+    if (consumed && userClient) await releaseFreeAi(userClient, "project_plan");
     return failure(error);
   }
 });

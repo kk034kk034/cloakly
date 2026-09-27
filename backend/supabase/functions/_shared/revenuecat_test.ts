@@ -1,4 +1,5 @@
 import {
+  confirmedAccountDeletion,
   snapshotForUser,
   snapshotFromSubscriber,
   subscriberIdsFromEvent,
@@ -78,4 +79,21 @@ Deno.test("TRANSFER source is expired even if the destination still has Pro", ()
     snapshotForUser("11111111-1111-4111-8111-111111111111", event, payload, "pro").active,
     true,
   );
+});
+
+Deno.test("account deletion requires the signed-in email", () => {
+  assertEquals(
+    confirmedAccountDeletion(
+      { confirmEmail: " Person@Example.com " },
+      "person@example.com",
+    ),
+    true,
+  );
+  assertEquals(
+    confirmedAccountDeletion({ confirmEmail: "other@example.com" }, "person@example.com"),
+    false,
+  );
+  assertEquals(confirmedAccountDeletion({}, "person@example.com"), false);
+  assertEquals(confirmedAccountDeletion({ confirmEmail: "person@example.com" }, null), false);
+  assertEquals(confirmedAccountDeletion({ confirmEmail: "person@example.com" }, "  "), false);
 });

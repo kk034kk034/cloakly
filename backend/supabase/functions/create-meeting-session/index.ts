@@ -1,3 +1,4 @@
+import { deviceIdOf, throwIfQuotaError } from "../_shared/free_quota.ts";
 import {
   corsHeaders,
   failure,
@@ -21,11 +22,12 @@ Deno.serve(async (req) => {
     } catch (_) {
       throw new HttpError(503, "TRANSCRIPTION_NOT_CONFIGURED");
     }
-    const { data, error } = await userClient.rpc("reserve_meeting_session");
+    const body = await req.json().catch(() => ({}));
+    const { data, error } = await userClient.rpc("reserve_meeting_session", {
+      p_device_id: deviceIdOf(body),
+    });
     if (error) {
-      if (error.message.includes("FREE_DAILY_LIMIT_REACHED")) {
-        throw new HttpError(429, "FREE_DAILY_LIMIT_REACHED");
-      }
+      throwIfQuotaError(error);
       throw new HttpError(500, "ALLOWANCE_RESERVATION_FAILED");
     }
     const reservation = Array.isArray(data) ? data[0] : data;

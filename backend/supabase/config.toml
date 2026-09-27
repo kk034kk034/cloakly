@@ -25,3 +25,10 @@ verify_jwt = false
 
 [functions.revenuecat-webhook]
 verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+# Hosted accounts must confirm email before a session is issued.
+[auth.email]
+enable_confirmations = true

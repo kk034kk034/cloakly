@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HostedAccountScreen extends StatefulWidget {
   const HostedAccountScreen({this.billing, super.key});
@@ -129,6 +130,143 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
     await Supabase.instance.client.auth.signOut();
   }
 
+  Future<void> _manageSubscription() async {
+    final fromStore = _customerInfo?.managementURL;
+    final uri = (fromStore != null && fromStore.isNotEmpty)
+        ? Uri.tryParse(fromStore)
+        : null;
+    final target =
+        uri ??
+        (Platform.isIOS
+            ? Uri.parse('https://apps.apple.com/account/subscriptions')
+            : Uri.parse(
+                'https://play.google.com/store/account/subscriptions?package=com.cloud52.cloakly',
+              ));
+    final opened = await launchUrl(
+      target,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      setState(
+        () => _error = '無法開啟商店訂閱頁。請到 Google Play 或 App Store 的「付款與訂閱」取消。',
+      );
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final email = Supabase.instance.client.auth.currentUser?.email?.trim();
+    if (email == null || email.isEmpty) {
+      setState(() => _error = '此帳號沒有 Email，無法在這裡刪除。');
+      return;
+    }
+
+    final password = TextEditingController();
+    var acknowledged = false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final canDelete = acknowledged && password.text.isNotEmpty;
+            return AlertDialog(
+              title: const Text('刪除帳號'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '刪除後無法復原。雲端帳號與訂閱權益紀錄會刪除。'
+                      '同一個 Email 今天已使用的免費時間會保留到今天結束，重新註冊會接著計算。'
+                      '這台手機上的會議、逐字稿與專案會留在裝置裡。',
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Google Play 或 App Store 的訂閱要另外到商店取消。'
+                      '刪除 Cloakly 帳號後，商店仍可能在下一期續扣，也不會自動退款。',
+                    ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: acknowledged,
+                      onChanged: (value) {
+                        setDialogState(() => acknowledged = value ?? false);
+                      },
+                      title: const Text('我了解必須另外到商店取消訂閱'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                    TextField(
+                      controller: password,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: '輸入密碼以確認'),
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('取消'),
+                ),
+                if (_ready)
+                  TextButton(
+                    onPressed: _manageSubscription,
+                    child: const Text('管理商店訂閱'),
+                  ),
+                TextButton(
+                  onPressed: canDelete
+                      ? () => Navigator.pop(dialogContext, true)
+                      : null,
+                  child: Text(
+                    '刪除帳號',
+                    style: TextStyle(
+                      color: canDelete
+                          ? Theme.of(dialogContext).colorScheme.error
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    final passwordText = password.text;
+    password.dispose();
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: passwordText,
+      );
+      await Supabase.instance.client.functions.invoke(
+        'delete-account',
+        body: {'confirmEmail': email},
+      );
+      await widget.billing?.signOut();
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
+      try {
+        await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
+      } catch (_) {}
+    } on AuthException {
+      if (mounted) setState(() => _error = '密碼不正確，帳號尚未刪除。');
+    } on FunctionException catch (error) {
+      if (mounted) setState(() => _error = _deleteAccountError(error));
+    } catch (error) {
+      if (mounted) setState(() => _error = '無法刪除帳號：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final email =
@@ -156,7 +294,11 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
             contentPadding: EdgeInsets.zero,
             leading: const CircleAvatar(child: Icon(Icons.person_outline)),
             title: Text(email),
-            subtitle: Text(isPro ? 'Pro 訂閱有效' : '免費方案：每日合計 30 分鐘，可分多場使用'),
+            subtitle: Text(
+              isPro
+                  ? 'Pro 訂閱有效'
+                  : '免費方案：會議每天合計 30 分鐘；專案問答 5 次、計畫建議 5 次。同一支手機每天只能使用一個帳號的免費額度。',
+            ),
           ),
           const SizedBox(height: 8),
           const ThemeModeSetting(),
@@ -216,15 +358,45 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
             ),
           ],
           const SizedBox(height: 28),
+          if (_ready)
+            OutlinedButton(
+              onPressed: _busy ? null : _manageSubscription,
+              child: const Text('管理商店訂閱'),
+            ),
           TextButton.icon(
             onPressed: _busy ? null : _signOut,
             icon: const Icon(Icons.logout),
             label: const Text('登出'),
           ),
+          TextButton.icon(
+            onPressed: _busy ? null : _deleteAccount,
+            icon: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            label: Text(
+              '刪除帳號',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+String _deleteAccountError(FunctionException error) {
+  final details = error.details;
+  final code = details is Map ? details['error']?.toString() : null;
+  return switch (code) {
+    'CONFIRMATION_MISMATCH' => '確認資料不一致，帳號尚未刪除。',
+    'AUTH_REQUIRED' || 'INVALID_ACCESS_TOKEN' => '登入已失效，請重新登入後再刪除。',
+    'ACCOUNT_DELETE_FAILED' => '刪除尚未完成，請再試一次。帳號可能還在。',
+    _ =>
+      error.status == 404
+          ? '後端尚未部署刪除帳號，帳號尚未刪除。'
+          : '無法刪除帳號（${error.status}）。帳號尚未刪除。',
+  };
 }
 
 String _packageSubtitle(Package package) {
