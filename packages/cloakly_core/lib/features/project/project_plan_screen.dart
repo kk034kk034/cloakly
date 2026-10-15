@@ -5,12 +5,17 @@ import 'package:cloakly_core/services/llm/llm_service.dart';
 import 'package:cloakly_core/services/project/project_retrieval.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/state/providers.dart';
+import 'package:cloakly_core/utils/task_date_filter.dart';
 import 'package:cloakly_core/widgets/project_task_board.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+
+enum _PlanView { gantt, board }
+
+enum _BoardDateFilter { all, today, custom }
 
 class ProjectPlanScreen extends ConsumerStatefulWidget {
   const ProjectPlanScreen({super.key, required this.projectId});
@@ -27,6 +32,10 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
 
   /// When set, board temporarily shows an archived phase (read-only archive view).
   String? _peekArchivedPhaseId;
+
+  _PlanView _planView = _PlanView.gantt;
+  _BoardDateFilter _boardDateFilter = _BoardDateFilter.all;
+  DateTimeRange? _customBoardRange;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +65,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${project.name} · 甘特圖'),
+        title: Text('${project.name} · 時程'),
         actions: [
           IconButton(
             tooltip: configured ? 'AI 建議時程' : '先設定 AI 才能建議時程',
@@ -175,10 +184,12 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     required List<ProjectTask> boardTasks,
     required bool peekingArchive,
   }) {
+    final theme = Theme.of(context);
+    final filteredBoardTasks = _filteredBoardTasks(boardTasks);
     return [
       if (peekingArchive)
         Card(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: theme.colorScheme.surfaceContainerHighest,
           child: ListTile(
             leading: const Icon(Icons.inventory_2_outlined),
             title: Text('正在檢視已封存的「${phase.name}」'),
@@ -191,7 +202,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         ),
       if (!peekingArchive && project.isPhaseComplete(phase.id))
         Card(
-          color: Theme.of(context).colorScheme.secondaryContainer,
+          color: theme.colorScheme.secondaryContainer,
           child: ListTile(
             leading: const Icon(Icons.inventory_2_outlined),
             title: const Text('此階段工作已全部完成'),
@@ -203,11 +214,25 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           ),
         ),
       const SizedBox(height: 8),
-      Text(
-        '${phase.name} · 進度總覽',
-        style: Theme.of(context).textTheme.titleMedium,
+      SegmentedButton<_PlanView>(
+        segments: const [
+          ButtonSegment(
+            value: _PlanView.gantt,
+            label: Text('甘特圖'),
+            icon: Icon(Icons.view_timeline_outlined),
+          ),
+          ButtonSegment(
+            value: _PlanView.board,
+            label: Text('看板'),
+            icon: Icon(Icons.view_kanban_outlined),
+          ),
+        ],
+        selected: {_planView},
+        onSelectionChanged: (next) {
+          setState(() => _planView = next.first);
+        },
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: 12),
       if (boardTasks.isEmpty)
         Card(
           child: Padding(
@@ -219,8 +244,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                 if (!peekingArchive) ...[
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: () =>
-                        _editTask(project, phaseId: phase.id),
+                    onPressed: () => _editTask(project, phaseId: phase.id),
                     icon: const Icon(Icons.add),
                     label: const Text('新增第一個大項目'),
                   ),
@@ -229,7 +253,12 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
             ),
           ),
         )
-      else ...[
+      else if (_planView == _PlanView.gantt) ...[
+        Text(
+          '${phase.name} · 進度總覽',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
         _ProgressOverview(
           project: project,
           tasks: boardTasks,
@@ -242,28 +271,91 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           ),
           onDelete: (task) => _deleteTask(project, task),
           onMove: (task, delta) => _moveTask(project, task, delta),
-          onAddRoot: () => _editTask(project, phaseId: phase.id),
         ),
-        const SizedBox(height: 20),
+      ] else ...[
         Text(
           '${phase.name} · 工作看板',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        ProjectTaskBoard(
-          items: [
-            for (final task in boardTasks)
-              BoardTaskItem(task: task, projectId: project.id),
-          ],
-          onEdit: peekingArchive
-              ? (_) {}
-              : (item) => _editTask(project, task: item.task),
-          onStatusChanged: peekingArchive
-              ? (_, _) async {}
-              : (item, status) => _changeStatus(project, item.task, status),
+        _BoardDateFilterBar(
+          filter: _boardDateFilter,
+          customRange: _customBoardRange,
+          onFilterChanged: _setBoardDateFilter,
+          onPickCustomRange: () => _pickCustomBoardRange(context),
         ),
+        const SizedBox(height: 12),
+        if (filteredBoardTasks.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _boardDateFilter == _BoardDateFilter.all
+                    ? '這個階段還沒有工作。'
+                    : '目前篩選條件下沒有符合的工作。可改為「全部」或調整日期區間。',
+              ),
+            ),
+          )
+        else
+          ProjectTaskBoard(
+            items: [
+              for (final task in filteredBoardTasks)
+                BoardTaskItem(task: task, projectId: project.id),
+            ],
+            onEdit: peekingArchive
+                ? (_) {}
+                : (item) => _editTask(project, task: item.task),
+            onStatusChanged: peekingArchive
+                ? (_, _) async {}
+                : (item, status) => _changeStatus(project, item.task, status),
+          ),
       ],
     ];
+  }
+
+  List<ProjectTask> _filteredBoardTasks(List<ProjectTask> tasks) {
+    final range = switch (_boardDateFilter) {
+      _BoardDateFilter.all => null,
+      _BoardDateFilter.today => todayDateRange(),
+      _BoardDateFilter.custom => _customBoardRange,
+    };
+    if (_boardDateFilter == _BoardDateFilter.custom && range == null) {
+      return tasks;
+    }
+    return [
+      for (final task in tasks)
+        if (taskMatchesBoardFocus(
+          task,
+          range: range,
+          includeOverdue: _boardDateFilter == _BoardDateFilter.today,
+        ))
+          task,
+    ];
+  }
+
+  void _setBoardDateFilter(_BoardDateFilter filter) {
+    setState(() => _boardDateFilter = filter);
+  }
+
+  Future<void> _pickCustomBoardRange(BuildContext context) async {
+    final now = DateTime.now();
+    final initial =
+        _customBoardRange ??
+        DateTimeRange(
+          start: DateTime(now.year, now.month, now.day),
+          end: DateTime(now.year, now.month, now.day).add(const Duration(days: 6)),
+        );
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 3),
+      initialDateRange: initial,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _customBoardRange = picked;
+      _boardDateFilter = _BoardDateFilter.custom;
+    });
   }
 
   Future<void> _changeStatus(
@@ -1158,87 +1250,276 @@ class _PhaseBar extends StatelessWidget {
   final ValueChanged<ProjectPhase> onUnarchive;
   final VoidCallback onExitPeek;
 
+  ProjectPhase? get _viewingPhase {
+    final id = viewingPhaseId;
+    if (id == null) return null;
+    for (final phase in project.phases) {
+      if (phase.id == id) return phase;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final open = project.openPhases;
     final archived = project.archivedPhases;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final viewing = _viewingPhase;
+    final count = viewing == null
+        ? 0
+        : project.tasksInPhase(viewing.id).length;
+    final title = viewing == null
+        ? '尚未建立階段'
+        : peekingArchive
+        ? '${viewing.name}（已封存）'
+        : viewing.name;
+
+    return Row(
       children: [
-        Text('階段', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final phase in open)
-              ChoiceChip(
-                label: Text(
-                  '${phase.name} · ${project.tasksInPhase(phase.id).length}',
-                ),
-                selected: !peekingArchive && phase.id == viewingPhaseId,
-                onSelected: (_) => onSelectOpen(phase.id),
-              ),
-            ActionChip(
-              avatar: const Icon(Icons.add, size: 18),
-              label: const Text('新增階段'),
-              onPressed: onAddPhase,
-            ),
-            if (onRenamePhase != null)
-              ActionChip(
-                avatar: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('重新命名'),
-                onPressed: onRenamePhase,
-              ),
-            if (onArchivePhase != null)
-              ActionChip(
-                avatar: const Icon(Icons.inventory_2_outlined, size: 18),
-                label: const Text('封存目前階段'),
-                onPressed: onArchivePhase,
-              ),
-            if (peekingArchive)
-              ActionChip(
-                avatar: const Icon(Icons.undo, size: 18),
-                label: const Text('離開封存檢視'),
-                onPressed: onExitPeek,
-              ),
-          ],
-        ),
-        if (archived.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: Text('已封存階段 · ${archived.length}'),
-            subtitle: const Text('不佔看板版面；需要時可檢視或解除封存'),
-            children: [
-              for (final phase in archived)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(phase.name),
-                  subtitle: Text(
-                    [
-                      '${project.tasksInPhase(phase.id).length} 項工作',
-                      if (phase.archivedAt != null)
-                        '封存於 ${DateFormat('yyyy/MM/dd').format(phase.archivedAt!)}',
-                    ].join(' · '),
+        Flexible(
+          child: PopupMenuButton<String>(
+            tooltip: '切換階段',
+            offset: const Offset(0, 40),
+            onSelected: (value) {
+              if (value == '__add__') {
+                onAddPhase();
+                return;
+              }
+              if (value == '__exit_peek__') {
+                onExitPeek();
+                return;
+              }
+              onSelectOpen(value);
+            },
+            itemBuilder: (context) => [
+              if (peekingArchive)
+                const PopupMenuItem(
+                  value: '__exit_peek__',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.undo, size: 20),
+                    title: Text('回到現行階段'),
                   ),
-                  trailing: Wrap(
-                    spacing: 4,
-                    children: [
-                      TextButton(
-                        onPressed: () => onPeekArchived(phase.id),
-                        child: const Text('檢視'),
-                      ),
-                      TextButton(
-                        onPressed: () => onUnarchive(phase),
-                        child: const Text('解除封存'),
-                      ),
-                    ],
+                ),
+              if (peekingArchive && open.isNotEmpty) const PopupMenuDivider(),
+              for (final phase in open)
+                PopupMenuItem(
+                  value: phase.id,
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(phase.name),
+                    subtitle: Text('${project.tasksInPhase(phase.id).length} 項'),
+                    trailing: !peekingArchive && phase.id == viewingPhaseId
+                        ? Icon(
+                            Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          )
+                        : null,
+                  ),
+                ),
+              if (open.isNotEmpty) const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: '__add__',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.add, size: 20),
+                  title: Text('新增階段'),
+                ),
+              ),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      viewing == null ? title : '$title · $count 項',
+                      style: theme.textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (archived.isNotEmpty)
+          TextButton(
+            onPressed: () => _showArchivedDialog(context, archived),
+            child: Text('已封存 ${archived.length}'),
+          ),
+        if (!peekingArchive &&
+            (onRenamePhase != null || onArchivePhase != null))
+          PopupMenuButton<_PhaseAction>(
+            tooltip: '階段選項',
+            onSelected: (action) {
+              switch (action) {
+                case _PhaseAction.rename:
+                  onRenamePhase?.call();
+                case _PhaseAction.archive:
+                  onArchivePhase?.call();
+              }
+            },
+            itemBuilder: (context) => [
+              if (onRenamePhase != null)
+                const PopupMenuItem(
+                  value: _PhaseAction.rename,
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.edit_outlined, size: 20),
+                    title: Text('重新命名'),
+                  ),
+                ),
+              if (onArchivePhase != null)
+                const PopupMenuItem(
+                  value: _PhaseAction.archive,
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.inventory_2_outlined, size: 20),
+                    title: Text('封存此階段'),
                   ),
                 ),
             ],
+            icon: const Icon(Icons.more_vert),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _showArchivedDialog(
+    BuildContext context,
+    List<ProjectPhase> archived,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('已封存階段 · ${archived.length}'),
+        content: SizedBox(
+          width: 420,
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: archived.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final phase = archived[index];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(phase.name),
+                subtitle: Text(
+                  [
+                    '${project.tasksInPhase(phase.id).length} 項工作',
+                    if (phase.archivedAt != null)
+                      '封存於 ${DateFormat('yyyy/MM/dd').format(phase.archivedAt!)}',
+                  ].join(' · '),
+                ),
+                trailing: Wrap(
+                  spacing: 4,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        onPeekArchived(phase.id);
+                      },
+                      child: const Text('檢視'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        onUnarchive(phase);
+                      },
+                      child: const Text('解除封存'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('關閉'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+enum _PhaseAction { rename, archive }
+
+class _BoardDateFilterBar extends StatelessWidget {
+  const _BoardDateFilterBar({
+    required this.filter,
+    required this.customRange,
+    required this.onFilterChanged,
+    required this.onPickCustomRange,
+  });
+
+  final _BoardDateFilter filter;
+  final DateTimeRange? customRange;
+  final ValueChanged<_BoardDateFilter> onFilterChanged;
+  final VoidCallback onPickCustomRange;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final format = DateFormat('MM/dd');
+    final customLabel = customRange == null
+        ? '自訂區間'
+        : '${format.format(customRange!.start)}–${format.format(customRange!.end)}';
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SegmentedButton<_BoardDateFilter>(
+          segments: [
+            const ButtonSegment(
+              value: _BoardDateFilter.all,
+              label: Text('全部'),
+            ),
+            const ButtonSegment(
+              value: _BoardDateFilter.today,
+              label: Text('今天'),
+            ),
+            ButtonSegment(
+              value: _BoardDateFilter.custom,
+              label: Text(customLabel),
+            ),
+          ],
+          selected: {filter},
+          onSelectionChanged: (next) {
+            final value = next.first;
+            if (value == _BoardDateFilter.custom) {
+              onPickCustomRange();
+              return;
+            }
+            onFilterChanged(value);
+          },
+        ),
+        if (filter == _BoardDateFilter.custom)
+          TextButton.icon(
+            onPressed: onPickCustomRange,
+            icon: const Icon(Icons.date_range, size: 18),
+            label: Text(
+              '調整日期',
+              style: theme.textTheme.labelLarge,
+            ),
+          ),
       ],
     );
   }
@@ -1273,7 +1554,6 @@ class _ProgressOverview extends StatefulWidget {
     required this.onAddChild,
     required this.onDelete,
     required this.onMove,
-    required this.onAddRoot,
   });
 
   final ProjectPack project;
@@ -1283,7 +1563,6 @@ class _ProgressOverview extends StatefulWidget {
   final ValueChanged<ProjectTask> onAddChild;
   final ValueChanged<ProjectTask> onDelete;
   final void Function(ProjectTask task, int delta) onMove;
-  final VoidCallback onAddRoot;
 
   @override
   State<_ProgressOverview> createState() => _ProgressOverviewState();
@@ -1296,20 +1575,8 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
   int _viewDepth = 2;
   DateTimeRange? _focusRange;
 
-  bool _taskOverlapsRange(ProjectTask task, DateTimeRange range) {
-    final start = task.startDate ?? task.endDate;
-    final end = task.endDate ?? task.startDate;
-    if (start == null || end == null) return false;
-    final rangeEnd = DateTime(
-      range.end.year,
-      range.end.month,
-      range.end.day,
-      23,
-      59,
-      59,
-    );
-    return !end.isBefore(range.start) && !start.isAfter(rangeEnd);
-  }
+  bool _taskOverlapsRange(ProjectTask task, DateTimeRange range) =>
+      taskOverlapsDateRange(task, range);
 
   bool _subtreeTouchesRange(ProjectTask node, DateTimeRange range) {
     if (_taskOverlapsRange(node, range)) return true;
@@ -1545,15 +1812,6 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
                 siblings: visibleRoots,
               ),
             ],
-          if (!widget.readOnly)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: OutlinedButton.icon(
-                onPressed: widget.onAddRoot,
-                icon: const Icon(Icons.add),
-                label: const Text('新增大項目'),
-              ),
-            ),
         ],
       ),
     );

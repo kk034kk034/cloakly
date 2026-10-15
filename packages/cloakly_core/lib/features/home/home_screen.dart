@@ -115,6 +115,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Future<void> _startMeeting(BuildContext context, WidgetRef ref) async {
+    final before = ref.read(sessionControllerProvider);
+    if (before.busyHint || before.phase == SessionPhase.live) return;
+
     await ref.read(sessionControllerProvider.notifier).start(title: '');
     if (!context.mounted) return;
     final session = ref.read(sessionControllerProvider);

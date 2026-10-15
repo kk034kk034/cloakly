@@ -139,6 +139,7 @@ class SessionController extends Notifier<SessionState> {
   String? _systemAudioPath;
   String? _projectId;
   bool _llmBusy = false;
+  bool _starting = false;
   String _projectContext = '';
 
   @override
@@ -151,6 +152,14 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> start({required String title}) async {
+    if (_starting ||
+        state.phase == SessionPhase.live ||
+        state.phase == SessionPhase.wrappingUp) {
+      return;
+    }
+    _starting = true;
+    state = state.copyWith(busyHint: true, clearError: true);
+
     final project = ref.read(projectsProvider).valueOrNull?.active;
     final settings = ref
         .read(settingsProvider)
@@ -164,148 +173,112 @@ class SessionController extends Notifier<SessionState> {
     final isDemo = ref.read(demoModeProvider);
     final hasStt = ref.read(sttAvailableProvider);
     final sttFactory = ref.read(sttEngineFactoryProvider);
-    if (state.phase == SessionPhase.live ||
-        state.phase == SessionPhase.wrappingUp) {
-      return;
-    }
     if (!isDemo && !hasStt) {
-      state = state.copyWith(error: '請先在設定填入 Soniox API 金鑰，才能開始多人串流轉寫。');
+      state = state.copyWith(
+        busyHint: false,
+        error: '請先在設定填入 Soniox API 金鑰，才能開始多人串流轉寫。',
+      );
+      _starting = false;
       return;
     }
-    final repo = ref.read(meetingRepositoryProvider);
-    _projectId = project?.id;
-    final background = (project?.personalContext.trim().isNotEmpty ?? false)
-        ? project!.personalContext
-        : settings.personalContext;
-    _projectContext = await ref
-        .read(projectsProvider.notifier)
-        .contextBlock(projectId: _projectId, personalContext: background);
-    final id = _uuid.v4();
-    final now = DateTime.now();
-    final meeting = Meeting(
-      id: id,
-      title: title.trim().isEmpty
-          ? DateFormat('M月d日 HH:mm 會議').format(now)
-          : title.trim(),
-      startedAt: now,
-      status: MeetingStatus.recording,
-      projectId: _projectId,
-    );
-    await repo.upsertMeeting(meeting);
 
-    final audioDir = (await repo.audioDirFor(_projectId)).path;
-    _audioPath = p.join(audioDir, '$id.wav');
-    _systemAudioPath = p.join(audioDir, '$id-system.tmp.wav');
-    _micTempPath = p.join(audioDir, '$id-mic.tmp.wav');
-
-    state = SessionState(
-      phase: SessionPhase.live,
-      meetingId: id,
-      title: meeting.title,
-      lines: const [],
-      notes: const [],
-      suggestions: const [],
-      elapsed: Duration.zero,
-      isDemo: isDemo,
-      partialText: null,
-      error: null,
-      busyHint: false,
-      systemAudioOn: false,
-      systemAudioHint: null,
-      projectName: project?.name,
-      startedAt: now,
-    );
-
-    _startedAt = now;
-    _livePartialIds.clear();
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_startedAt == null || state.phase != SessionPhase.live) return;
-      state = state.copyWith(elapsed: DateTime.now().difference(_startedAt!));
-    });
-
-    await WakelockPlus.enable();
-
-    var systemOn = false;
-    String? systemHint;
-    final wantSystem = settings.captureSystemAudio && !isDemo;
-    if (wantSystem) {
-      final support = await _systemAudio.probe();
-      systemHint = support.hint;
-      if (support.supported) {
-        try {
-          _systemStt = sttFactory(
-            settings,
-            lane: SttLane.remote,
-            elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
-          );
-          _systemSttSub = _systemStt!.events.listen(
-            _onTranscript,
-            onError: (error) {
-              if (_disposed) return;
-              state = state.copyWith(error: error.toString());
-            },
-          );
-          await _systemStt!.start();
-          _systemVad.reset();
-          await _systemWav.open(_systemAudioPath!);
-          _systemPcmSub = _systemAudio.start().listen((pcm) {
-            if (state.phase != SessionPhase.live) return;
-            _systemWav.add(pcm);
-            _systemStt?.addAudio(pcm);
-            _systemVad.accept(
-              pcm,
-              onUtteranceEnd: () => unawaited(_systemStt?.flush()),
-            );
-          });
-          systemOn = true;
-        } catch (error) {
-          await _systemPcmSub?.cancel();
-          _systemPcmSub = null;
-          await _systemStt?.stop();
-          await _systemSttSub?.cancel();
-          _systemStt = null;
-          _systemSttSub = null;
-          await _systemWav.close();
-          systemHint = '系統聲音啟動失敗：$error';
-          systemOn = false;
-        }
-      }
-    } else if (!SystemAudioCapture.isDesktop) {
-      systemHint = '手機無法擷取會議裡的對方聲音，請用電腦版。';
-    }
-
-    _micStt = sttFactory(
-      settings,
-      lane: systemOn ? SttLane.self : SttLane.room,
-      elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
-    );
-    _micSttSub = _micStt!.events.listen(
-      _onTranscript,
-      onError: (error) {
-        if (_disposed) return;
-        state = state.copyWith(error: error.toString());
-      },
-    );
+    String? meetingId;
     try {
-      await _micStt!.start();
-    } catch (error) {
-      state = state.copyWith(error: error.toString());
-      await _disposeCapture();
-      final reportUsage = ref.read(sessionUsageReporterProvider);
-      if (reportUsage != null) {
-        try {
-          await reportUsage(durationSeconds: 0);
-        } catch (_) {
-          // The next reservation also cleans up abandoned sessions.
-        }
-      }
-      state = state.copyWith(phase: SessionPhase.idle);
-      return;
-    }
+      final repo = ref.read(meetingRepositoryProvider);
+      _projectId = project?.id;
+      final background = (project?.personalContext.trim().isNotEmpty ?? false)
+          ? project!.personalContext
+          : settings.personalContext;
+      _projectContext = await ref
+          .read(projectsProvider.notifier)
+          .contextBlock(projectId: _projectId, personalContext: background);
+      final id = _uuid.v4();
+      meetingId = id;
+      final now = DateTime.now();
+      final meeting = Meeting(
+        id: id,
+        title: title.trim().isEmpty
+            ? DateFormat('M月d日 HH:mm 會議').format(now)
+            : title.trim(),
+        startedAt: now,
+        status: MeetingStatus.recording,
+        projectId: _projectId,
+      );
+      await repo.upsertMeeting(meeting);
 
-    if (!isDemo) {
-      try {
+      final audioDir = (await repo.audioDirFor(_projectId)).path;
+      _audioPath = p.join(audioDir, '$id.wav');
+      _systemAudioPath = p.join(audioDir, '$id-system.tmp.wav');
+      _micTempPath = p.join(audioDir, '$id-mic.tmp.wav');
+
+      _startedAt = now;
+      _livePartialIds.clear();
+      await WakelockPlus.enable();
+
+      var systemOn = false;
+      String? systemHint;
+      final wantSystem = settings.captureSystemAudio && !isDemo;
+      if (wantSystem) {
+        final support = await _systemAudio.probe();
+        systemHint = support.hint;
+        if (support.supported) {
+          try {
+            _systemStt = sttFactory(
+              settings,
+              lane: SttLane.remote,
+              elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
+            );
+            _systemSttSub = _systemStt!.events.listen(
+              _onTranscript,
+              onError: (error) {
+                if (_disposed) return;
+                state = state.copyWith(error: error.toString());
+              },
+            );
+            await _systemStt!.start();
+            _systemVad.reset();
+            await _systemWav.open(_systemAudioPath!);
+            _systemPcmSub = _systemAudio.start().listen((pcm) {
+              if (state.phase != SessionPhase.live) return;
+              _systemWav.add(pcm);
+              _systemStt?.addAudio(pcm);
+              _systemVad.accept(
+                pcm,
+                onUtteranceEnd: () => unawaited(_systemStt?.flush()),
+              );
+            });
+            systemOn = true;
+          } catch (error) {
+            await _systemPcmSub?.cancel();
+            _systemPcmSub = null;
+            await _systemStt?.stop();
+            await _systemSttSub?.cancel();
+            _systemStt = null;
+            _systemSttSub = null;
+            await _systemWav.close();
+            systemHint = '系統聲音啟動失敗：$error';
+            systemOn = false;
+          }
+        }
+      } else if (!SystemAudioCapture.isDesktop) {
+        systemHint = '手機無法擷取會議裡的對方聲音，請用電腦版。';
+      }
+
+      _micStt = sttFactory(
+        settings,
+        lane: systemOn ? SttLane.self : SttLane.room,
+        elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
+      );
+      _micSttSub = _micStt!.events.listen(
+        _onTranscript,
+        onError: (error) {
+          if (_disposed) return;
+          state = state.copyWith(error: error.toString());
+        },
+      );
+      await _micStt!.start();
+
+      if (!isDemo) {
         final allowed = await _audio.hasPermission();
         if (!allowed) {
           throw StateError('沒有麥克風權限');
@@ -316,20 +289,57 @@ class SessionController extends Notifier<SessionState> {
           onPcm: (pcm) => _micStt?.addAudio(pcm),
           onUtteranceEnd: () => unawaited(_micStt?.flush()),
         );
-      } catch (error) {
-        await RecordingKeepAlive.stop();
-        state = state.copyWith(error: error.toString());
       }
-    }
 
-    state = state.copyWith(
-      systemAudioOn: systemOn,
-      systemAudioHint: _speakerHint(
-        hasStt: hasStt,
-        systemOn: systemOn,
-        fallback: systemHint,
-      ),
-    );
+      _ticker?.cancel();
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (_startedAt == null || state.phase != SessionPhase.live) return;
+        state = state.copyWith(elapsed: DateTime.now().difference(_startedAt!));
+      });
+
+      // Only mark live after STT + mic are actually ready so the UI cannot
+      // navigate into a broken session on a second tap.
+      state = SessionState(
+        phase: SessionPhase.live,
+        meetingId: id,
+        title: meeting.title,
+        lines: const [],
+        notes: const [],
+        suggestions: const [],
+        elapsed: Duration.zero,
+        isDemo: isDemo,
+        partialText: null,
+        error: null,
+        busyHint: false,
+        systemAudioOn: systemOn,
+        systemAudioHint: _speakerHint(
+          hasStt: hasStt,
+          systemOn: systemOn,
+          fallback: systemHint,
+        ),
+        projectName: project?.name,
+        startedAt: now,
+      );
+    } catch (error) {
+      await _disposeCapture();
+      final reportUsage = ref.read(sessionUsageReporterProvider);
+      if (reportUsage != null) {
+        try {
+          await reportUsage(durationSeconds: 0);
+        } catch (_) {
+          // The next reservation also cleans up abandoned sessions.
+        }
+      }
+      state = SessionState.idle().copyWith(
+        error: error.toString(),
+        busyHint: false,
+      );
+      if (meetingId != null) {
+        // Keep the local meeting row; a failed start may still have audio later.
+      }
+    } finally {
+      _starting = false;
+    }
   }
 
   String? _speakerHint({

@@ -1,6 +1,7 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_core/state/project_provider.dart';
+import 'package:cloakly_core/utils/task_date_filter.dart';
 import 'package:cloakly_core/widgets/project_task_board.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -141,7 +142,7 @@ class _ProjectList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final projects = library.projects;
-    final boardItems = <BoardTaskItem>[
+    final allActiveItems = <BoardTaskItem>[
       for (final project in projects)
         for (final task in project.withNormalizedPhases().activePhaseTasks)
           BoardTaskItem(
@@ -151,6 +152,16 @@ class _ProjectList extends StatelessWidget {
                 '${project.name} · ${project.withNormalizedPhases().activePhase?.name ?? '階段'}',
           ),
     ];
+    final todayRange = todayDateRange();
+    final boardItems = [
+      for (final item in allActiveItems)
+        if (taskMatchesBoardFocus(
+          item.task,
+          range: todayRange,
+          includeOverdue: true,
+        ))
+          item,
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -159,18 +170,25 @@ class _ProjectList extends StatelessWidget {
           Text('全部專案看板', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
           Text(
-            '只顯示各專案「現行未封存階段」的工作，已封存階段不佔版面。',
+            '顯示今天進行中、逾期，以及無日期的進行中／阻塞項目（僅現行未封存階段）。',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.45,
             ),
           ),
           const SizedBox(height: 12),
-          if (boardItems.isEmpty)
+          if (allActiveItems.isEmpty)
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('各專案現行階段尚無工作。進入專案甘特圖可新增或請 AI 建議。'),
+                child: Text('各專案現行階段尚無工作。進入專案時程可新增或請 AI 建議。'),
+              ),
+            )
+          else if (boardItems.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('今天沒有符合條件的工作。進入專案時程可查看全部項目。'),
               ),
             )
           else

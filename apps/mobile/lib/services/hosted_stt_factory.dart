@@ -34,25 +34,33 @@ class HostedSessionCoordinator {
   String? _sessionId;
 
   Future<String> temporaryKey(SttLane lane) async {
-    late final FunctionResponse response;
-    try {
-      response = await _supabase.functions.invoke(
-        'create-meeting-session',
-        body: {
-          'lane': lane.name,
-          'deviceId': await HostedDeviceId.current(),
-        },
-      );
-    } on FunctionException catch (error) {
-      throw StateError(hostedQuotaMessage(error.details, fallback: switch (error.status) {
-        404 => '手機版後端尚未部署 create-meeting-session。',
-        401 => '登入已失效，請登出後重新登入。',
-        403 => '這次免費額度無法使用。',
-        502 => 'Soniox 金鑰無效、權限不足，或轉寫服務暫時無法使用。',
-        503 => '後端尚未設定 Soniox API 金鑰。',
-        _ => '無法取得會議授權（${error.status}）。',
-      }));
+    FunctionException? last;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await _fetchTemporaryKey(lane);
+      } on FunctionException catch (error) {
+        last = error;
+        // Cold starts / stale reservation races often clear on a quick retry.
+        if (attempt == 0 && (error.status == 500 || error.status == 502)) {
+          await Future<void>.delayed(const Duration(milliseconds: 600));
+          continue;
+        }
+        throw StateError(_messageFor(error));
+      }
     }
+    throw StateError(
+      last == null ? '無法取得會議授權。' : _messageFor(last),
+    );
+  }
+
+  Future<String> _fetchTemporaryKey(SttLane lane) async {
+    final response = await _supabase.functions.invoke(
+      'create-meeting-session',
+      body: {
+        'lane': lane.name,
+        'deviceId': await HostedDeviceId.current(),
+      },
+    );
     final raw = response.data;
     final data = switch (raw) {
       Map<String, dynamic>() => raw,
@@ -66,6 +74,20 @@ class HostedSessionCoordinator {
       throw StateError(data['error'] as String? ?? '後端沒有回傳 Soniox 短效金鑰');
     }
     return key.trim();
+  }
+
+  String _messageFor(FunctionException error) {
+    return hostedQuotaMessage(
+      error.details,
+      fallback: switch (error.status) {
+        404 => '手機版後端尚未部署 create-meeting-session。',
+        401 => '登入已失效，請登出後重新登入。',
+        403 => '這次免費額度無法使用。',
+        502 => 'Soniox 金鑰無效、權限不足，或轉寫服務暫時無法使用。',
+        503 => '後端尚未設定 Soniox API 金鑰。',
+        _ => '無法取得會議授權（${error.status}）。',
+      },
+    );
   }
 
   Future<void> finish({required int durationSeconds}) async {
