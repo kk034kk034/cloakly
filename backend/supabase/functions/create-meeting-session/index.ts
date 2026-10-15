@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
       p_device_id: deviceIdOf(body),
     });
     if (error) {
+      console.error("reserve_meeting_session failed", error);
       throwIfQuotaError(error);
       throw new HttpError(500, "ALLOWANCE_RESERVATION_FAILED");
     }

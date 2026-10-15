@@ -16,8 +16,12 @@ export function deviceIdOf(body: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export function throwIfQuotaError(error: { message?: string }): void {
-  const message = error.message ?? "";
+export function throwIfQuotaError(
+  error: { message?: string; details?: string; hint?: string; code?: string },
+): void {
+  const message = [error.message, error.details, error.hint, error.code]
+    .filter((part): part is string => typeof part === "string" && part.length > 0)
+    .join(" ");
   for (const [code, status] of quotaStatuses) {
     if (message.includes(code)) throw new HttpError(status, code);
   }
