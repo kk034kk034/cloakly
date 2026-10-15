@@ -66,7 +66,24 @@ extension ProjectTaskStatusX on ProjectTaskStatus {
     ProjectTaskStatus.done => '完成',
     ProjectTaskStatus.uncertain => '待確認',
   };
+
+  /// Default completion % when legacy data has no explicit progress.
+  int get defaultProgress => switch (this) {
+    ProjectTaskStatus.done => 100,
+    ProjectTaskStatus.inProgress => 50,
+    _ => 0,
+  };
 }
+
+/// Clamp and sync progress when status changes on a leaf task.
+int progressForStatusChange(ProjectTaskStatus status, int currentProgress) =>
+    switch (status) {
+      ProjectTaskStatus.done => 100,
+      ProjectTaskStatus.planned || ProjectTaskStatus.uncertain => 0,
+      ProjectTaskStatus.inProgress =>
+        (currentProgress == 0 || currentProgress == 100) ? 50 : currentProgress,
+      ProjectTaskStatus.blocked => currentProgress.clamp(0, 100),
+    };
 
 /// A delivery slice of the project board. Keep each phase small; archive it
 /// when every task is done so the next phase starts with a clean board.
@@ -120,6 +137,9 @@ class ProjectPhase {
   );
 }
 
+/// Hierarchy: root (大項目) → category (子類別) → record (紀錄). Max depth 2.
+const int kProjectTaskMaxDepth = 2;
+
 class ProjectTask {
   const ProjectTask({
     required this.id,
@@ -127,9 +147,13 @@ class ProjectTask {
     required this.status,
     required this.updatedAt,
     this.phaseId,
+    this.parentId,
+    this.progress = 0,
+    this.sortOrder = 0,
     this.startDate,
     this.endDate,
     this.owner = '',
+    this.notes = '',
     this.sources = const [],
     this.confirmed = false,
   });
@@ -139,9 +163,21 @@ class ProjectTask {
   final ProjectTaskStatus status;
   final DateTime updatedAt;
   final String? phaseId;
+
+  /// Parent in the same phase. Null = top-level 大項目.
+  final String? parentId;
+
+  /// Leaf completion 0–100. Nodes with children use [ProjectPack.displayProgress].
+  final int progress;
+
+  /// Manual order among siblings (same parent / same phase roots).
+  final int sortOrder;
   final DateTime? startDate;
   final DateTime? endDate;
   final String owner;
+
+  /// Free-form notes / remarks shown in the edit dialog.
+  final String notes;
   final List<String> sources;
   final bool confirmed;
 
@@ -150,11 +186,16 @@ class ProjectTask {
     ProjectTaskStatus? status,
     String? phaseId,
     bool clearPhaseId = false,
+    String? parentId,
+    bool clearParentId = false,
+    int? progress,
+    int? sortOrder,
     DateTime? startDate,
     DateTime? endDate,
     bool clearStart = false,
     bool clearEnd = false,
     String? owner,
+    String? notes,
     List<String>? sources,
     bool? confirmed,
   }) => ProjectTask(
@@ -163,9 +204,13 @@ class ProjectTask {
     status: status ?? this.status,
     updatedAt: DateTime.now(),
     phaseId: clearPhaseId ? null : (phaseId ?? this.phaseId),
+    parentId: clearParentId ? null : (parentId ?? this.parentId),
+    progress: (progress ?? this.progress).clamp(0, 100),
+    sortOrder: sortOrder ?? this.sortOrder,
     startDate: clearStart ? null : (startDate ?? this.startDate),
     endDate: clearEnd ? null : (endDate ?? this.endDate),
     owner: owner ?? this.owner,
+    notes: notes ?? this.notes,
     sources: sources ?? this.sources,
     confirmed: confirmed ?? this.confirmed,
   );
@@ -176,35 +221,53 @@ class ProjectTask {
     'status': status.name,
     'updatedAt': updatedAt.millisecondsSinceEpoch,
     'phaseId': phaseId,
+    'parentId': parentId,
+    'progress': progress,
+    'sortOrder': sortOrder,
     'startDate': startDate?.millisecondsSinceEpoch,
     'endDate': endDate?.millisecondsSinceEpoch,
     'owner': owner,
+    'notes': notes,
     'sources': sources,
     'confirmed': confirmed,
   };
 
-  factory ProjectTask.fromJson(Map<String, dynamic> json) => ProjectTask(
-    id: json['id'] as String,
-    title: json['title'] as String,
-    status: ProjectTaskStatus.values.firstWhere(
+  factory ProjectTask.fromJson(Map<String, dynamic> json) {
+    final status = ProjectTaskStatus.values.firstWhere(
       (value) => value.name == json['status'],
       orElse: () => ProjectTaskStatus.uncertain,
-    ),
-    updatedAt: DateTime.fromMillisecondsSinceEpoch(
-      json['updatedAt'] as int? ?? 0,
-    ),
-    phaseId: json['phaseId'] as String?,
-    startDate: json['startDate'] == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(json['startDate'] as int),
-    endDate: json['endDate'] == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(json['endDate'] as int),
-    owner: json['owner'] as String? ?? '',
-    sources: List<String>.from(json['sources'] as List? ?? const []),
-    confirmed: json['confirmed'] as bool? ?? false,
-  );
+    );
+    final rawProgress = (json['progress'] as num?)?.toInt();
+    return ProjectTask(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      status: status,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(
+        json['updatedAt'] as int? ?? 0,
+      ),
+      phaseId: json['phaseId'] as String?,
+      parentId: json['parentId'] as String?,
+      progress: (rawProgress ?? status.defaultProgress).clamp(0, 100),
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      startDate: json['startDate'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['startDate'] as int),
+      endDate: json['endDate'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['endDate'] as int),
+      owner: json['owner'] as String? ?? '',
+      notes: json['notes'] as String? ?? '',
+      sources: List<String>.from(json['sources'] as List? ?? const []),
+      confirmed: json['confirmed'] as bool? ?? false,
+    );
+  }
 }
+
+String projectTaskRoleLabel(int depth) => switch (depth) {
+  0 => '大項目',
+  1 => '子類別',
+  _ => '紀錄',
+};
 
 class ProjectPack {
   const ProjectPack({
@@ -259,6 +322,116 @@ class ProjectPack {
     for (final task in tasks)
       if (task.phaseId == phaseId) task,
   ];
+
+  /// Top-level items in a phase (no parent, or parent missing / not in phase).
+  List<ProjectTask> rootTasksInPhase(String? phaseId) {
+    final inPhase = tasksInPhase(phaseId);
+    final ids = {for (final task in inPhase) task.id};
+    final roots = [
+      for (final task in inPhase)
+        if (task.parentId == null || !ids.contains(task.parentId)) task,
+    ]..sort(_compareTaskOrder);
+    return roots;
+  }
+
+  List<ProjectTask> childrenOf(String parentId) => [
+    for (final task in tasks)
+      if (task.parentId == parentId) task,
+  ]..sort(_compareTaskOrder);
+
+  static int _compareTaskOrder(ProjectTask a, ProjectTask b) {
+    final byOrder = a.sortOrder.compareTo(b.sortOrder);
+    if (byOrder != 0) return byOrder;
+    return a.id.compareTo(b.id);
+  }
+
+  bool hasChildren(String taskId) =>
+      tasks.any((task) => task.parentId == taskId);
+
+  ProjectTask? taskById(String id) {
+    for (final task in tasks) {
+      if (task.id == id) return task;
+    }
+    return null;
+  }
+
+  /// 0 = 大項目, 1 = 子類別, 2 = 紀錄.
+  int taskDepth(ProjectTask task) {
+    var depth = 0;
+    var current = task;
+    final seen = <String>{task.id};
+    while (current.parentId != null) {
+      final parent = taskById(current.parentId!);
+      if (parent == null || !seen.add(parent.id)) break;
+      depth += 1;
+      if (depth >= kProjectTaskMaxDepth) break;
+      current = parent;
+    }
+    return depth;
+  }
+
+  bool canAddChild(ProjectTask task) => taskDepth(task) < kProjectTaskMaxDepth;
+
+  List<ProjectTask> descendantsOf(String taskId) {
+    final result = <ProjectTask>[];
+    void walk(String id) {
+      for (final child in childrenOf(id)) {
+        result.add(child);
+        walk(child.id);
+      }
+    }
+
+    walk(taskId);
+    return result;
+  }
+
+  int nextSortOrder({String? parentId, String? phaseId}) {
+    final siblings = parentId == null
+        ? rootTasksInPhase(phaseId)
+        : childrenOf(parentId);
+    if (siblings.isEmpty) return 0;
+    return siblings.map((task) => task.sortOrder).reduce(
+          (a, b) => a > b ? a : b,
+        ) +
+        1;
+  }
+
+  /// Swap [task] with neighbour among siblings. [delta] is -1 (up) or +1 (down).
+  List<ProjectTask>? reorderedTasks(ProjectTask task, int delta) {
+    if (delta != -1 && delta != 1) return null;
+    final siblings = task.parentId == null
+        ? rootTasksInPhase(task.phaseId)
+        : childrenOf(task.parentId!);
+    final index = siblings.indexWhere((item) => item.id == task.id);
+    final swapIndex = index + delta;
+    if (index < 0 || swapIndex < 0 || swapIndex >= siblings.length) {
+      return null;
+    }
+    final ordered = [...siblings];
+    final moving = ordered.removeAt(index);
+    ordered.insert(swapIndex, moving);
+    final orderById = <String, int>{
+      for (var i = 0; i < ordered.length; i++) ordered[i].id: i,
+    };
+    return [
+      for (final item in tasks)
+        if (orderById.containsKey(item.id))
+          item.copyWith(sortOrder: orderById[item.id])
+        else
+          item,
+    ];
+  }
+
+  /// Display progress: recursive average of children, else stored progress.
+  int displayProgress(ProjectTask task) {
+    final kids = childrenOf(task.id);
+    if (kids.isEmpty) return task.progress.clamp(0, 100);
+    final sum = kids.fold<int>(
+      0,
+      (total, child) => total + displayProgress(child),
+    );
+    return ((sum / kids.length).round()).clamp(0, 100);
+  }
 
   List<ProjectTask> get activePhaseTasks {
     final phase = activePhase;

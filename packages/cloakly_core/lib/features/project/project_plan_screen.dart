@@ -80,7 +80,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           : FloatingActionButton.extended(
               onPressed: () => _editTask(project, phaseId: viewingPhase?.id),
               icon: const Icon(Icons.add),
-              label: const Text('新增工作'),
+              label: const Text('新增大項目'),
             ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -204,21 +204,46 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         ),
       const SizedBox(height: 8),
       Text(
-        '${phase.name} · 時間軸',
+        '${phase.name} · 進度總覽',
         style: Theme.of(context).textTheme.titleMedium,
       ),
       const SizedBox(height: 8),
       if (boardTasks.isEmpty)
-        const Card(
+        Card(
           child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Text('這個階段還沒有工作。可手動新增，或用 AI 建議時程。'),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('這個階段還沒有工作。可新增大項目，或用 AI 建議時程。'),
+                if (!peekingArchive) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        _editTask(project, phaseId: phase.id),
+                    icon: const Icon(Icons.add),
+                    label: const Text('新增第一個大項目'),
+                  ),
+                ],
+              ],
+            ),
           ),
         )
       else ...[
-        _GanttChart(tasks: boardTasks),
-        const SizedBox(height: 4),
-        Text('左右滑動可查看完整日期範圍', style: Theme.of(context).textTheme.bodySmall),
+        _ProgressOverview(
+          project: project,
+          tasks: boardTasks,
+          readOnly: peekingArchive,
+          onEdit: (task) => _editTask(project, task: task),
+          onAddChild: (parent) => _editTask(
+            project,
+            phaseId: phase.id,
+            parentId: parent.id,
+          ),
+          onDelete: (task) => _deleteTask(project, task),
+          onMove: (task, delta) => _moveTask(project, task, delta),
+          onAddRoot: () => _editTask(project, phaseId: phase.id),
+        ),
         const SizedBox(height: 20),
         Text(
           '${phase.name} · 工作看板',
@@ -246,10 +271,15 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     ProjectTask task,
     ProjectTaskStatus status,
   ) async {
+    final nextProgress = progressForStatusChange(status, task.progress);
     final next = [
       for (final item in pack.tasks)
         item.id == task.id
-            ? item.copyWith(status: status, confirmed: true)
+            ? item.copyWith(
+                status: status,
+                progress: nextProgress,
+                confirmed: true,
+              )
             : item,
     ];
     await ref.read(projectsProvider.notifier).updateTasks(pack.id, next);
@@ -517,23 +547,39 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     }
 
     final fallback = pack.activePhase?.name ?? pack.nextPhaseName();
+    final nextTaskOrder = <String, int>{};
+    int allocateSortOrder(String phaseId) {
+      final current =
+          nextTaskOrder[phaseId] ??
+          pack.copyWith(phases: phases).nextSortOrder(phaseId: phaseId);
+      nextTaskOrder[phaseId] = current + 1;
+      return current;
+    }
+
     final tasks = [
       ...pack.tasks,
       for (final item in selected)
-        ProjectTask(
-          id: const Uuid().v4(),
-          title: item.draft.title,
-          status: projectTaskStatusFromName(item.draft.status),
-          updatedAt: DateTime.now(),
-          phaseId: resolvePhaseId(
+        () {
+          final phaseId = resolvePhaseId(
             item.draft.phaseName.isEmpty ? fallback : item.draft.phaseName,
-          ),
-          startDate: item.draft.startDate,
-          endDate: item.draft.endDate,
-          owner: item.draft.owner,
-          sources: item.sourceLabels,
-          confirmed: false,
-        ),
+          );
+          return ProjectTask(
+            id: const Uuid().v4(),
+            title: item.draft.title,
+            status: projectTaskStatusFromName(item.draft.status),
+            updatedAt: DateTime.now(),
+            phaseId: phaseId,
+            progress: projectTaskStatusFromName(
+              item.draft.status,
+            ).defaultProgress,
+            sortOrder: allocateSortOrder(phaseId),
+            startDate: item.draft.startDate,
+            endDate: item.draft.endDate,
+            owner: item.draft.owner,
+            sources: item.sourceLabels,
+            confirmed: false,
+          );
+        }(),
     ];
     final preferred =
         pack.activePhase?.id ??
@@ -697,135 +743,292 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     );
   }
 
+  Future<void> _moveTask(ProjectPack pack, ProjectTask task, int delta) async {
+    final next = pack.reorderedTasks(task, delta);
+    if (next == null) return;
+    await ref.read(projectsProvider.notifier).updateTasks(pack.id, next);
+  }
+
+  Future<void> _deleteTask(ProjectPack pack, ProjectTask task) async {
+    final descendantCount = pack.descendantsOf(task.id).length;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('刪除工作？'),
+        content: Text(
+          descendantCount > 0
+              ? '「${task.title}」含 $descendantCount 項下層內容，將一併刪除。'
+              : '確定刪除「${task.title}」？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('刪除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final removeIds = {
+      task.id,
+      for (final child in pack.descendantsOf(task.id)) child.id,
+    };
+    final next = [
+      for (final item in pack.tasks)
+        if (!removeIds.contains(item.id)) item,
+    ];
+    await ref.read(projectsProvider.notifier).updateTasks(pack.id, next);
+  }
+
   Future<void> _editTask(
     ProjectPack pack, {
     ProjectTask? task,
     String? phaseId,
+    String? parentId,
   }) async {
     final title = TextEditingController(text: task?.title ?? '');
     final owner = TextEditingController(text: task?.owner ?? '');
+    final notes = TextEditingController(text: task?.notes ?? '');
     DateTime? start = task?.startDate;
     DateTime? end = task?.endDate;
     var status = task?.status ?? ProjectTaskStatus.planned;
+    var progress = task?.progress ?? status.defaultProgress;
     var selectedPhaseId = task?.phaseId ?? phaseId ?? pack.activePhase?.id;
-    var remove = false;
+    final resolvedParentId = task?.parentId ?? parentId;
+    final hasChildren = task != null && pack.hasChildren(task.id);
+    final computedParentProgress = task != null && hasChildren
+        ? pack.displayProgress(task)
+        : null;
+    final storedParentProgress = task?.progress ?? 0;
+    final depth = () {
+      if (task != null) return pack.taskDepth(task);
+      if (resolvedParentId == null) return 0;
+      final parent = pack.taskById(resolvedParentId);
+      if (parent == null) return 1;
+      return (pack.taskDepth(parent) + 1).clamp(0, kProjectTaskMaxDepth);
+    }();
+    final roleLabel = projectTaskRoleLabel(depth);
+    final isChild = resolvedParentId != null;
     final openPhases = pack.openPhases;
+    final isNew = task == null;
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(task == null ? '新增工作' : '編輯工作'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: title,
-                  decoration: const InputDecoration(labelText: '工作名稱'),
-                ),
-                TextField(
-                  controller: owner,
-                  decoration: const InputDecoration(labelText: '負責人（選填）'),
-                ),
-                if (openPhases.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    initialValue:
-                        selectedPhaseId != null &&
-                            openPhases.any(
-                              (phase) => phase.id == selectedPhaseId,
-                            )
-                        ? selectedPhaseId
-                        : openPhases.first.id,
-                    decoration: const InputDecoration(labelText: '所屬階段'),
-                    items: [
-                      for (final phase in openPhases)
-                        DropdownMenuItem(
-                          value: phase.id,
-                          child: Text(phase.name),
+      builder: (context) {
+        final media = MediaQuery.sizeOf(context);
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            void applyStatus(ProjectTaskStatus next) {
+              setDialogState(() {
+                status = next;
+                if (!hasChildren) {
+                  progress = progressForStatusChange(next, progress);
+                }
+              });
+            }
+
+            void applyProgress(int next) {
+              setDialogState(() {
+                progress = next.clamp(0, 100);
+                if (progress >= 100) {
+                  status = ProjectTaskStatus.done;
+                } else if (status == ProjectTaskStatus.done && progress < 100) {
+                  status = ProjectTaskStatus.inProgress;
+                }
+              });
+            }
+
+            String rangeLabel() {
+              if (start == null && end == null) return '點一下選取開始～結束日期';
+              final from = start == null
+                  ? '?'
+                  : DateFormat('yyyy/MM/dd').format(start!);
+              final to = end == null
+                  ? '?'
+                  : DateFormat('yyyy/MM/dd').format(end!);
+              return '$from ～ $to';
+            }
+
+            return AlertDialog(
+              title: Text(isNew ? '新增$roleLabel' : '編輯$roleLabel'),
+              constraints: BoxConstraints(
+                minWidth: math.min(560, media.width * 0.92),
+                maxWidth: math.min(720, media.width * 0.94),
+                maxHeight: media.height * 0.88,
+              ),
+              content: SizedBox(
+                width: math.min(640, media.width * 0.9),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: title,
+                        decoration: InputDecoration(labelText: '$roleLabel名稱'),
+                        autofocus: isNew,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: owner,
+                        decoration: const InputDecoration(
+                          labelText: '負責人（選填）',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: notes,
+                        decoration: const InputDecoration(
+                          labelText: '備註',
+                          hintText: '可寫進度細節、重做原因、會議結論…',
+                          alignLabelWithHint: true,
+                        ),
+                        minLines: 4,
+                        maxLines: 8,
+                        textAlignVertical: TextAlignVertical.top,
+                      ),
+                      if (openPhases.isNotEmpty && !isChild) ...[
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue:
+                              selectedPhaseId != null &&
+                                  openPhases.any(
+                                    (phase) => phase.id == selectedPhaseId,
+                                  )
+                              ? selectedPhaseId
+                              : openPhases.first.id,
+                          decoration: const InputDecoration(labelText: '所屬階段'),
+                          items: [
+                            for (final phase in openPhases)
+                              DropdownMenuItem(
+                                value: phase.id,
+                                child: Text(phase.name),
+                              ),
+                          ],
+                          onChanged: (value) =>
+                              setDialogState(() => selectedPhaseId = value),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<ProjectTaskStatus>(
+                        key: ValueKey(status),
+                        initialValue: status,
+                        decoration: const InputDecoration(labelText: '狀態'),
+                        items: [
+                          for (final value in ProjectTaskStatus.values)
+                            DropdownMenuItem(
+                              value: value,
+                              child: Text(value.label),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) applyStatus(value);
+                        },
+                      ),
+                      if (computedParentProgress != null)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('完成進度'),
+                          subtitle: Text(
+                            '由子任務計算 · $computedParentProgress%',
+                          ),
+                        )
+                      else
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('完成進度 · $progress%'),
+                          subtitle: Slider(
+                            value: progress.toDouble(),
+                            min: 0,
+                            max: 100,
+                            divisions: 20,
+                            label: '$progress%',
+                            onChanged: (value) => applyProgress(value.round()),
+                          ),
+                        ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.date_range),
+                        title: const Text('日期區間'),
+                        subtitle: Text(rangeLabel()),
+                        trailing: start != null || end != null
+                            ? IconButton(
+                                tooltip: '清除日期',
+                                onPressed: () => setDialogState(() {
+                                  start = null;
+                                  end = null;
+                                }),
+                                icon: const Icon(Icons.clear),
+                              )
+                            : null,
+                        onTap: () async {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                            initialDateRange: start != null && end != null
+                                ? DateTimeRange(start: start!, end: end!)
+                                : null,
+                            helpText: '選取開始與結束日期',
+                            saveText: '完成',
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              start = picked.start;
+                              end = picked.end;
+                            });
+                          }
+                        },
+                      ),
+                      if (task?.sources.isNotEmpty ?? false)
+                        ExpansionTile(
+                          title: const Text('資料依據'),
+                          children: [
+                            for (final source in task!.sources)
+                              ListTile(dense: true, title: Text(source)),
+                          ],
                         ),
                     ],
-                    onChanged: (value) =>
-                        setDialogState(() => selectedPhaseId = value),
                   ),
-                DropdownButtonFormField<ProjectTaskStatus>(
-                  initialValue: status,
-                  decoration: const InputDecoration(labelText: '狀態'),
-                  items: [
-                    for (final value in ProjectTaskStatus.values)
-                      DropdownMenuItem(value: value, child: Text(value.label)),
-                  ],
-                  onChanged: (value) => status = value ?? status,
                 ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('開始日期'),
-                  subtitle: Text(
-                    start == null
-                        ? '未設定'
-                        : DateFormat('yyyy/MM/dd').format(start!),
-                  ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                      initialDate: start ?? DateTime.now(),
-                    );
-                    if (picked != null) setDialogState(() => start = picked);
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('結束日期'),
-                  subtitle: Text(
-                    end == null ? '未設定' : DateFormat('yyyy/MM/dd').format(end!),
-                  ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                      initialDate: end ?? start ?? DateTime.now(),
-                    );
-                    if (picked != null) setDialogState(() => end = picked);
-                  },
-                ),
-                if (task?.sources.isNotEmpty ?? false)
-                  ExpansionTile(
-                    title: const Text('資料依據'),
-                    children: [
-                      for (final source in task!.sources)
-                        ListTile(dense: true, title: Text(source)),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            if (task != null)
-              TextButton(
-                onPressed: () {
-                  remove = true;
-                  Navigator.pop(context, true);
-                },
-                child: const Text('刪除'),
               ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('儲存並確認'),
-            ),
-          ],
-        ),
-      ),
+              actions: [
+                if (task != null)
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(context, false);
+                      await _deleteTask(pack, task);
+                    },
+                    child: const Text('刪除'),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('儲存並確認'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
     if (saved != true || !mounted) return;
     var phases = pack.phases;
     var activePhaseId = pack.activePhaseId;
-    if (selectedPhaseId == null && title.text.trim().isNotEmpty && !remove) {
+    if (selectedPhaseId == null && title.text.trim().isNotEmpty) {
       final phase = ProjectPhase(
         id: const Uuid().v4(),
         name: pack.nextPhaseName(),
@@ -835,19 +1038,44 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       selectedPhaseId = phase.id;
       activePhaseId = phase.id;
     }
+    if (isChild) {
+      ProjectTask? parent;
+      for (final item in pack.tasks) {
+        if (item.id == resolvedParentId) parent = item;
+      }
+      selectedPhaseId = parent?.phaseId ?? selectedPhaseId;
+    }
     final next = [...pack.tasks];
-    if (remove) {
-      next.removeWhere((item) => item.id == task!.id);
-    } else if (title.text.trim().isNotEmpty) {
+    if (title.text.trim().isNotEmpty) {
+      var syncedStatus = status;
+      final leafProgress = progress.clamp(0, 100);
+      var syncedProgress =
+          hasChildren ? storedParentProgress : leafProgress;
+      if (!hasChildren) {
+        if (syncedStatus == ProjectTaskStatus.done) {
+          syncedProgress = 100;
+        } else if (syncedProgress >= 100) {
+          syncedStatus = ProjectTaskStatus.done;
+          syncedProgress = 100;
+        }
+      }
       final updated = ProjectTask(
         id: task?.id ?? const Uuid().v4(),
         title: title.text.trim(),
-        status: status,
+        status: syncedStatus,
         updatedAt: DateTime.now(),
         phaseId: selectedPhaseId,
+        parentId: resolvedParentId,
+        progress: syncedProgress,
+        sortOrder: task?.sortOrder ??
+            pack.nextSortOrder(
+              parentId: resolvedParentId,
+              phaseId: selectedPhaseId,
+            ),
         startDate: start,
         endDate: end,
         owner: owner.text.trim(),
+        notes: notes.text.trim(),
         sources: task?.sources ?? const [],
         confirmed: true,
       );
@@ -867,8 +1095,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           activePhaseId: activePhaseId,
         );
     final completedPhaseId = selectedPhaseId;
-    if (!remove &&
-        completedPhaseId != null &&
+    if (completedPhaseId != null &&
         status == ProjectTaskStatus.done &&
         pack
             .copyWith(tasks: next, phases: phases)
@@ -1037,224 +1264,531 @@ class _AcceptedSuggestion {
   final List<String> sourceLabels;
 }
 
-class _GanttChart extends StatefulWidget {
-  const _GanttChart({required this.tasks});
+class _ProgressOverview extends StatefulWidget {
+  const _ProgressOverview({
+    required this.project,
+    required this.tasks,
+    required this.readOnly,
+    required this.onEdit,
+    required this.onAddChild,
+    required this.onDelete,
+    required this.onMove,
+    required this.onAddRoot,
+  });
+
+  final ProjectPack project;
   final List<ProjectTask> tasks;
+  final bool readOnly;
+  final ValueChanged<ProjectTask> onEdit;
+  final ValueChanged<ProjectTask> onAddChild;
+  final ValueChanged<ProjectTask> onDelete;
+  final void Function(ProjectTask task, int delta) onMove;
+  final VoidCallback onAddRoot;
 
   @override
-  State<_GanttChart> createState() => _GanttChartState();
+  State<_ProgressOverview> createState() => _ProgressOverviewState();
 }
 
-class _GanttChartState extends State<_GanttChart> {
-  late final ScrollController _scrollController;
+class _ProgressOverviewState extends State<_ProgressOverview> {
+  final Set<String> _collapsed = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
+  /// 0 = 只看大項目, 1 = 到子類別, 2 = 全部展開
+  int _viewDepth = 2;
+  DateTimeRange? _focusRange;
+
+  bool _taskOverlapsRange(ProjectTask task, DateTimeRange range) {
+    final start = task.startDate ?? task.endDate;
+    final end = task.endDate ?? task.startDate;
+    if (start == null || end == null) return false;
+    final rangeEnd = DateTime(
+      range.end.year,
+      range.end.month,
+      range.end.day,
+      23,
+      59,
+      59,
+    );
+    return !end.isBefore(range.start) && !start.isAfter(rangeEnd);
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
+  bool _subtreeTouchesRange(ProjectTask node, DateTimeRange range) {
+    if (_taskOverlapsRange(node, range)) return true;
+    for (final child in widget.project.childrenOf(node.id)) {
+      if (_subtreeTouchesRange(child, range)) return true;
+    }
+    return false;
+  }
+
+  void _applyViewDepth(int depth) {
+    setState(() {
+      _viewDepth = depth;
+      _focusRange = null;
+      _collapsed
+        ..clear()
+        ..addAll({
+          for (final task in widget.tasks)
+            if (widget.project.hasChildren(task.id) &&
+                widget.project.taskDepth(task) >= depth)
+              task.id,
+        });
+    });
+  }
+
+  void _expandAll() {
+    setState(() {
+      _viewDepth = 2;
+      _focusRange = null;
+      _collapsed.clear();
+    });
+  }
+
+  Future<void> _focusByDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      initialDateRange: _focusRange,
+      helpText: '只展開落在此區間的項目',
+      saveText: '套用',
+    );
+    if (picked == null || !mounted) return;
+    final collapse = <String>{};
+    for (final task in widget.tasks) {
+      if (!widget.project.hasChildren(task.id)) continue;
+      // Expand ancestors that lead to a matching leaf/node; collapse the rest.
+      if (!_subtreeTouchesRange(task, picked)) {
+        collapse.add(task.id);
+      }
+    }
+    setState(() {
+      _focusRange = picked;
+      _viewDepth = 2;
+      _collapsed
+        ..clear()
+        ..addAll(collapse);
+    });
+  }
+
+  void _clearDateFocus() {
+    setState(() {
+      _focusRange = null;
+      _collapsed.clear();
+      _viewDepth = 2;
+    });
+  }
+
+  void _toggle(String id) {
+    setState(() {
+      if (_collapsed.contains(id)) {
+        _collapsed.remove(id);
+      } else {
+        _collapsed.add(id);
+      }
+      // Manual tweak leaves depth chips as "custom" feel → keep last depth.
+    });
+  }
+
+  List<Widget> _buildBranch(
+    ProjectTask node, {
+    required int depth,
+    required List<ProjectTask> siblings,
+  }) {
+    final range = _focusRange;
+    if (range != null && !_subtreeTouchesRange(node, range)) {
+      return const [];
+    }
+
+    final allKids = widget.project.childrenOf(node.id);
+    final kids = range == null
+        ? allKids
+        : [
+            for (final child in allKids)
+              if (_subtreeTouchesRange(child, range)) child,
+          ];
+    final expanded = !_collapsed.contains(node.id);
+    final index = siblings.indexWhere((item) => item.id == node.id);
+    final rows = <Widget>[
+      _ProgressRow(
+        task: node,
+        depth: depth,
+        progress: widget.project.displayProgress(node),
+        expanded: expanded,
+        childCount: kids.length,
+        canMoveUp: index > 0,
+        canMoveDown: index >= 0 && index < siblings.length - 1,
+        readOnly: widget.readOnly,
+        onToggle: kids.isEmpty ? null : () => _toggle(node.id),
+        onEdit: () => widget.onEdit(node),
+        onAddChild: widget.project.canAddChild(node)
+            ? () => widget.onAddChild(node)
+            : null,
+        onDelete: () => widget.onDelete(node),
+        onMoveUp: () => widget.onMove(node, -1),
+        onMoveDown: () => widget.onMove(node, 1),
+      ),
+    ];
+    if (expanded) {
+      for (final child in kids) {
+        rows.addAll(
+          _buildBranch(child, depth: depth + 1, siblings: kids),
+        );
+      }
+    }
+    return rows;
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheduled = widget.tasks
-        .where((task) => task.startDate != null || task.endDate != null)
-        .toList();
-    if (scheduled.isEmpty) {
-      return const Card(
+    final scheme = Theme.of(context).colorScheme;
+    final phaseId = widget.tasks.isEmpty ? null : widget.tasks.first.phaseId;
+    final roots = [
+      for (final task in widget.project.rootTasksInPhase(phaseId))
+        if (widget.tasks.any((item) => item.id == task.id)) task,
+    ];
+    final visibleRoots = _focusRange == null
+        ? roots
+        : [
+            for (final root in roots)
+              if (_subtreeTouchesRange(root, _focusRange!)) root,
+          ];
+    final rangeLabel = _focusRange == null
+        ? null
+        : '${DateFormat('MM/dd').format(_focusRange!.start)}～${DateFormat('MM/dd').format(_focusRange!.end)}';
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '顯示',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('大項目'),
+                  selected: _focusRange == null && _viewDepth == 0,
+                  onSelected: (_) => _applyViewDepth(0),
+                ),
+                FilterChip(
+                  label: const Text('＋子類別'),
+                  selected: _focusRange == null && _viewDepth == 1,
+                  onSelected: (_) => _applyViewDepth(1),
+                ),
+                FilterChip(
+                  label: const Text('全部'),
+                  selected: _focusRange == null && _viewDepth == 2,
+                  onSelected: (_) => _expandAll(),
+                ),
+                FilterChip(
+                  avatar: Icon(
+                    Icons.date_range,
+                    size: 18,
+                    color: _focusRange != null
+                        ? scheme.onSecondaryContainer
+                        : scheme.onSurfaceVariant,
+                  ),
+                  label: Text(rangeLabel == null ? '依日期' : '日期 $rangeLabel'),
+                  selected: _focusRange != null,
+                  onSelected: (_) => _focusByDateRange(),
+                ),
+                if (_focusRange != null)
+                  ActionChip(
+                    avatar: const Icon(Icons.clear, size: 16),
+                    label: const Text('清除日期'),
+                    onPressed: _clearDateFocus,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              _focusRange == null
+                  ? '大項目 → 子類別 → 紀錄 · 可用 ↑↓ 調整同層順序'
+                  : '只顯示與 $rangeLabel 有交集的項目（無日期者不顯示）',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          if (visibleRoots.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Text(
+                _focusRange == null
+                    ? '尚無項目'
+                    : '這個日期區間沒有對應項目。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          else
+            for (var i = 0; i < visibleRoots.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  color: scheme.outlineVariant.withValues(alpha: 0.45),
+                ),
+              ..._buildBranch(
+                visibleRoots[i],
+                depth: 0,
+                siblings: visibleRoots,
+              ),
+            ],
+          if (!widget.readOnly)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: OutlinedButton.icon(
+                onPressed: widget.onAddRoot,
+                icon: const Icon(Icons.add),
+                label: const Text('新增大項目'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressRow extends StatelessWidget {
+  const _ProgressRow({
+    required this.task,
+    required this.depth,
+    required this.progress,
+    required this.expanded,
+    required this.childCount,
+    required this.canMoveUp,
+    required this.canMoveDown,
+    required this.readOnly,
+    required this.onToggle,
+    required this.onEdit,
+    required this.onAddChild,
+    required this.onDelete,
+    required this.onMoveUp,
+    required this.onMoveDown,
+  });
+
+  final ProjectTask task;
+  final int depth;
+  final int progress;
+  final bool expanded;
+  final int childCount;
+  final bool canMoveUp;
+  final bool canMoveDown;
+  final bool readOnly;
+  final VoidCallback? onToggle;
+  final VoidCallback onEdit;
+  final VoidCallback? onAddChild;
+  final VoidCallback onDelete;
+  final VoidCallback onMoveUp;
+  final VoidCallback onMoveDown;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final role = projectTaskRoleLabel(depth);
+    final isRecord = depth >= 2;
+    final missingDate = task.startDate == null && task.endDate == null;
+    final barHeight = isRecord ? 5.0 : (depth == 0 ? 8.0 : 6.0);
+    final indent = 12.0 + depth * 18.0;
+
+    return Material(
+      color: depth == 0
+          ? Colors.transparent
+          : scheme.surfaceContainerHighest.withValues(
+              alpha: isRecord ? 0.18 : 0.28,
+            ),
+      child: InkWell(
+        onTap: onEdit,
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('目前沒有具體日期，先列為待確認工作。'),
-        ),
-      );
-    }
-    final starts = scheduled
-        .map((task) => task.startDate ?? task.endDate!)
-        .toList();
-    final ends = scheduled
-        .map((task) => task.endDate ?? task.startDate!)
-        .toList();
-    final minDate = starts.reduce((a, b) => a.isBefore(b) ? a : b);
-    final maxDate = ends.reduce((a, b) => a.isAfter(b) ? a : b);
-    final days = math.max(1, maxDate.difference(minDate).inDays + 1);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final viewportWidth = constraints.maxWidth.isFinite
-            ? constraints.maxWidth
-            : 720.0;
-        final labelWidth = math.min(220.0, math.max(140.0, viewportWidth * .3));
-        final dayWidth = viewportWidth < 600 ? 22.0 : 28.0;
-        final timelineWidth = math.max(
-          math.max(520.0, viewportWidth - labelWidth),
-          days * dayWidth,
-        );
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          child: Scrollbar(
-            controller: _scrollController,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: labelWidth + timelineWidth,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(width: labelWidth),
-                        SizedBox(
-                          width: timelineWidth,
-                          height: 48,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: _TimelineGridPainter(
-                                    days: days,
-                                    dayWidth: dayWidth,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outlineVariant,
-                                  ),
-                                ),
+          padding: EdgeInsets.fromLTRB(indent, isRecord ? 8 : 10, 8, isRecord ? 8 : 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 32,
+                    child: childCount > 0
+                        ? IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            tooltip: expanded ? '收起' : '展開',
+                            onPressed: onToggle,
+                            icon: Icon(
+                              expanded
+                                  ? Icons.expand_more
+                                  : Icons.chevron_right,
+                              size: 20,
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 8, left: 10),
+                            child: Icon(
+                              isRecord
+                                  ? Icons.circle
+                                  : Icons.subdirectory_arrow_right,
+                              size: isRecord ? 6 : 14,
+                              color: scheme.onSurfaceVariant.withValues(
+                                alpha: 0.55,
                               ),
-                              for (var day = 0; day <= days; day += 7)
-                                Positioned(
-                                  left: day * dayWidth + 4,
-                                  top: 6,
-                                  child: Text(
-                                    DateFormat(
-                                      'MM/dd',
-                                    ).format(minDate.add(Duration(days: day))),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.labelSmall,
-                                  ),
+                            ),
+                          ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.primary.withValues(
+                                  alpha: depth == 0
+                                      ? 0.18
+                                      : (isRecord ? 0.08 : 0.12),
                                 ),
-                            ],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                role,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: scheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      task.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: (isRecord
+                                              ? Theme.of(
+                                                  context,
+                                                ).textTheme.bodyMedium
+                                              : Theme.of(
+                                                  context,
+                                                ).textTheme.titleSmall)
+                                          ?.copyWith(
+                                            fontWeight: depth == 0
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                          ),
+                                    ),
+                                  ),
+                                  if (missingDate) ...[
+                                    const SizedBox(width: 6),
+                                    Tooltip(
+                                      message: '尚未設定日期',
+                                      child: Icon(
+                                        Icons.error_outline,
+                                        size: 16,
+                                        color: scheme.tertiary,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '$progress%',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: progress / 100,
+                            minHeight: barHeight,
+                            backgroundColor: scheme.surfaceContainerHighest
+                                .withValues(alpha: 0.55),
+                            color: _barColor(context, task.status),
                           ),
                         ),
                       ],
                     ),
-                    for (final task in scheduled)
-                      SizedBox(
-                        height: 48,
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: labelWidth,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Text(
-                                  task.title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: timelineWidth,
-                              child: Stack(
-                                alignment: Alignment.centerLeft,
-                                children: [
-                                  Positioned.fill(
-                                    child: CustomPaint(
-                                      painter: _TimelineGridPainter(
-                                        days: days,
-                                        dayWidth: dayWidth,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.outlineVariant,
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    left:
-                                        (task.startDate ?? task.endDate!)
-                                            .difference(minDate)
-                                            .inDays *
-                                        dayWidth,
-                                    width: math.max(
-                                      dayWidth,
-                                      ((task.endDate ?? task.startDate!)
-                                                  .difference(
-                                                    task.startDate ??
-                                                        task.endDate!,
-                                                  )
-                                                  .inDays +
-                                              1) *
-                                          dayWidth,
-                                    ),
-                                    height: 22,
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        color: _barColor(context, task.status),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                  ),
+                  if (!readOnly)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: '上移',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: canMoveUp ? onMoveUp : null,
+                          icon: const Icon(Icons.keyboard_arrow_up, size: 20),
                         ),
-                      ),
-                  ],
-                ),
+                        IconButton(
+                          tooltip: '下移',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: canMoveDown ? onMoveDown : null,
+                          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                        ),
+                        if (onAddChild != null)
+                          IconButton(
+                            tooltip: '新增${projectTaskRoleLabel(depth + 1)}',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onAddChild,
+                            icon: const Icon(Icons.add, size: 20),
+                          ),
+                        IconButton(
+                          tooltip: '刪除',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onDelete,
+                          icon: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: scheme.error.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
 Color _barColor(BuildContext context, ProjectTaskStatus status) =>
     switch (status) {
-      ProjectTaskStatus.done => Colors.green.shade600,
+      ProjectTaskStatus.done => const Color(0xFF3D9B7A),
       ProjectTaskStatus.blocked => Theme.of(context).colorScheme.error,
       ProjectTaskStatus.inProgress => Theme.of(context).colorScheme.primary,
-      _ => Theme.of(context).colorScheme.secondary,
+      _ => Theme.of(context).colorScheme.outline,
     };
-
-class _TimelineGridPainter extends CustomPainter {
-  const _TimelineGridPainter({
-    required this.days,
-    required this.dayWidth,
-    required this.color,
-  });
-  final int days;
-  final double dayWidth;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final line = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    for (var day = 0; day <= days; day += 7) {
-      final x = day * dayWidth;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
-    }
-    canvas.drawLine(
-      Offset(0, size.height - 1),
-      Offset(size.width, size.height - 1),
-      line,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _TimelineGridPainter oldDelegate) =>
-      oldDelegate.days != days ||
-      oldDelegate.dayWidth != dayWidth ||
-      oldDelegate.color != color;
-}

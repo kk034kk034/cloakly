@@ -156,9 +156,11 @@ void main() {
       title: '完成實驗',
       status: ProjectTaskStatus.inProgress,
       updatedAt: DateTime(2026, 9, 21),
+      progress: 40,
       startDate: DateTime(2026, 9, 1),
       endDate: DateTime(2026, 10, 1),
       owner: 'Kate',
+      notes: '需要補一輪 ablation',
       sources: const ['週會 · 逐字稿 1:05'],
       confirmed: true,
     );
@@ -173,12 +175,144 @@ void main() {
     final restored = ProjectPack.fromJson(pack.toJson());
     expect(restored.tasks.single.title, '完成實驗');
     expect(restored.tasks.single.confirmed, isTrue);
+    expect(restored.tasks.single.progress, 40);
+    expect(restored.tasks.single.notes, '需要補一輪 ablation');
+    expect(restored.tasks.single.parentId, isNull);
     expect(restored.phases, isNotEmpty);
     expect(restored.tasks.single.phaseId, restored.phases.single.id);
     expect(restored.activePhaseTasks.single.title, '完成實驗');
 
     final legacy = Map<String, Object?>.from(pack.toJson())..remove('tasks');
     expect(ProjectPack.fromJson(legacy).tasks, isEmpty);
+  });
+
+  test('舊工作缺 progress／parentId 仍可還原，進度依狀態推估', () {
+    final pack = ProjectPack(
+      id: 'p1',
+      folderPath: r'C:\work\alpha',
+      name: 'alpha',
+      indexedAt: DateTime(2026),
+      docs: const [],
+      phases: const [ProjectPhase(id: 'ph1', name: '階段 1', sortOrder: 0)],
+      activePhaseId: 'ph1',
+      tasks: [
+        ProjectTask(
+          id: 't1',
+          title: '進行中',
+          status: ProjectTaskStatus.inProgress,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          progress: 50,
+        ),
+      ],
+    );
+    final raw = Map<String, Object?>.from(pack.toJson());
+    final tasks = List<Map<String, Object?>>.from(
+      (raw['tasks'] as List).map(
+        (item) => Map<String, Object?>.from(item as Map),
+      ),
+    );
+    tasks[0]
+      ..remove('progress')
+      ..remove('parentId');
+    raw['tasks'] = tasks;
+    final restored = ProjectPack.fromJson(raw);
+    expect(restored.tasks.single.progress, 50);
+    expect(restored.tasks.single.parentId, isNull);
+  });
+
+  test('三層階層進度遞迴平均，並可手動排序', () {
+    const phase = ProjectPhase(id: 'ph1', name: 'Main', sortOrder: 0);
+    final pack = ProjectPack(
+      id: 'p1',
+      folderPath: r'C:\work\alpha',
+      name: 'alpha',
+      indexedAt: DateTime(2026),
+      docs: const [],
+      phases: const [phase],
+      activePhaseId: 'ph1',
+      tasks: [
+        ProjectTask(
+          id: 'parent',
+          title: '論文主線',
+          status: ProjectTaskStatus.inProgress,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          progress: 0,
+          sortOrder: 0,
+        ),
+        ProjectTask(
+          id: 'c1',
+          title: '實驗類',
+          status: ProjectTaskStatus.inProgress,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          parentId: 'parent',
+          progress: 0,
+          sortOrder: 1,
+        ),
+        ProjectTask(
+          id: 'r1',
+          title: '重跑 baseline',
+          status: ProjectTaskStatus.inProgress,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          parentId: 'c1',
+          progress: 40,
+          sortOrder: 0,
+        ),
+        ProjectTask(
+          id: 'r2',
+          title: '補實驗',
+          status: ProjectTaskStatus.done,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          parentId: 'c1',
+          progress: 100,
+          sortOrder: 1,
+        ),
+        ProjectTask(
+          id: 'c2',
+          title: '撰寫',
+          status: ProjectTaskStatus.done,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          parentId: 'parent',
+          progress: 100,
+          sortOrder: 0,
+        ),
+        ProjectTask(
+          id: 'other',
+          title: '雜務',
+          status: ProjectTaskStatus.planned,
+          updatedAt: DateTime(2026),
+          phaseId: 'ph1',
+          progress: 0,
+          sortOrder: 1,
+        ),
+      ],
+    );
+    expect(pack.rootTasksInPhase('ph1').map((t) => t.id), ['parent', 'other']);
+    expect(pack.childrenOf('parent').map((t) => t.id), ['c2', 'c1']);
+    expect(pack.taskDepth(pack.taskById('r1')!), 2);
+    expect(pack.canAddChild(pack.taskById('r1')!), isFalse);
+    expect(pack.canAddChild(pack.taskById('c1')!), isTrue);
+    // c1 = avg(40,100)=70; parent = avg(100,70)=85
+    expect(pack.displayProgress(pack.taskById('c1')!), 70);
+    expect(pack.displayProgress(pack.taskById('parent')!), 85);
+
+    final moved = pack.reorderedTasks(pack.taskById('c1')!, -1)!;
+    final resorted = ProjectPack(
+      id: pack.id,
+      folderPath: pack.folderPath,
+      name: pack.name,
+      indexedAt: pack.indexedAt,
+      docs: pack.docs,
+      phases: pack.phases,
+      activePhaseId: pack.activePhaseId,
+      tasks: moved,
+    );
+    expect(resorted.childrenOf('parent').map((t) => t.id), ['c1', 'c2']);
   });
 
   test('完成階段可封存，看板只顯示現行階段', () {

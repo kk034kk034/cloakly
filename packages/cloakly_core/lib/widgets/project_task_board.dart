@@ -175,6 +175,19 @@ class ProjectTaskBoard extends StatelessWidget {
               ],
               Text(task.title, maxLines: 3, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
+              Text(
+                '${task.progress}%',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: task.progress.clamp(0, 100) / 100,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: 6),
               if (task.owner.isNotEmpty)
                 Text(task.owner, style: Theme.of(context).textTheme.bodySmall),
               Text(

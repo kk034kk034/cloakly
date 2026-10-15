@@ -78,7 +78,14 @@ class ProjectPickerScreen extends ConsumerWidget {
             final next = [
               for (final item in pack.tasks)
                 item.id == task.id
-                    ? item.copyWith(status: status, confirmed: true)
+                    ? item.copyWith(
+                        status: status,
+                        progress: progressForStatusChange(
+                          status,
+                          task.progress,
+                        ),
+                        confirmed: true,
+                      )
                     : item,
             ];
             await ref
