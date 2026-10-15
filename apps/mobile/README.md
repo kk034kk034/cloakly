@@ -31,4 +31,4 @@ Dashboard 最少需要：
 
 ## 商店／內部測試發版
 
-見 [`docs/store-release.md`](../../docs/store-release.md)。GitHub Actions workflow：`Mobile Internal Release`（TestFlight + Play 內部測試）。
+見 [`docs/store-release.md`](../../docs/store-release.md)。推上 `main` 且改到手機程式時會自動跑 **Mobile Internal Release（both）** 並自動遞增 build；Android 內測請用 Play Console 的加入連結，商店搜尋找不到是正常的。

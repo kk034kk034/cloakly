@@ -1,6 +1,13 @@
 name: Mobile Internal Release
 
 on:
+  # Push to main that touches the app → auto both + build bump (no manual version bump).
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/cloakly_core/**"
+      - ".github/workflows/mobile-internal.yml"
   workflow_dispatch:
     inputs:
       platform:
@@ -24,11 +31,16 @@ concurrency:
 
 jobs:
   android:
-    if: inputs.platform == 'both' || inputs.platform == 'android'
+    if: ${{ github.event_name == 'push' || inputs.platform == 'both' || inputs.platform == 'android' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Bump mobile build number
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: python3 .github/scripts/bump_mobile_build.py
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -132,11 +144,16 @@ jobs:
           status: completed
 
   ios:
-    if: inputs.platform == 'both' || inputs.platform == 'ios'
+    if: ${{ github.event_name == 'push' || inputs.platform == 'both' || inputs.platform == 'ios' }}
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Bump mobile build number
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: python3 .github/scripts/bump_mobile_build.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
