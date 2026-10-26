@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cloakly 隱私權政策（草稿）</title>
+<title>Cloakly 隱私權政策</title>
 <style>
   :root { color-scheme: light; }
   body { font-family: "PingFang TC", "Noto Sans TC", sans-serif; line-height: 1.65; max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; color: #1c1917; }
@@ -18,18 +18,18 @@
 </style>
 </head>
 <body>
-<p class="banner"><strong>草稿，尚未生效。</strong>標成 <code>[[REPLACE_ME:…]]</code> 的欄位此程式庫無法從程式得知，公開或送審前必須由營運者填上並請合格法律顧問審過。本頁描述的是撰寫當下程式實際做的事，不是未來功能的承諾。</p>
+<p class="banner">聯絡信箱 <code>REPLACE_ME_CONTACT_EMAIL</code> 在 Cloud52 換成真正信箱並開始收信之前，不是可用的聯絡或刪除管道。App 內刪除帳號不依賴這封信箱。本頁描述的是目前程式實際做的事。</p>
 
 <h1>Cloakly 手機版隱私權政策</h1>
-<p>生效日：[[REPLACE_ME:POLICY_EFFECTIVE_DATE]]</p>
+<p>生效日：2026-10-26</p>
 <p>本政策適用於 App Store 與 Google Play 上的 Cloakly 手機版（iOS／Android，套件識別碼 <code>com.cloud52.cloakly</code>）。電腦版若改用你自己的 API 金鑰，資料會直接送到你選擇的服務，不在本政策範圍。</p>
 <p>其他語言：<a href="privacy.en.html">English</a>。使用條款：<a href="terms.zh-TW.html">繁體中文</a>。帳號刪除說明：<a href="delete-account.zh-TW.html">如何刪除帳號</a>。</p>
 
 <h2>誰處理你的資料</h2>
-<p>營運者：[[REPLACE_ME:LEGAL_ENTITY_NAME]]<br>
-地址：[[REPLACE_ME:POSTAL_ADDRESS]]<br>
-聯絡信箱：[[REPLACE_ME:CONTACT_EMAIL]]</p>
-<p>在本政策中，「我們」指上面的營運者。後端使用 Supabase。專案所在區域：[[REPLACE_ME:SUPABASE_REGION]]。</p>
+<p>營運者：Cloud52<br>
+地址：台灣<br>
+聯絡信箱：REPLACE_ME_CONTACT_EMAIL</p>
+<p>在本政策中，「我們」指 Cloud52。後端使用 Supabase。帳號與用量資料存放在雲端供應商 Supabase 營運的資料中心。此儲存庫的專案設定沒有記載區域，因此本政策不指定城市或區域。</p>
 
 <h2>產品是什麼，以及錄音同意</h2>
 <p>Cloakly 是顯示在畫面上的會議助手。它不是隱藏視窗，也不是用來在面試或考試中作弊的工具。麥克風只在你按下開始會議之後使用。</p>
@@ -106,9 +106,9 @@
 <h2>第三方</h2>
 <p>下列服務會在提供功能時處理資料。送審前請再讀一次他們當時的條款，並把與本頁不符的地方改掉。</p>
 <ul>
-  <li><strong>Supabase</strong>：帳號、資料庫、Edge Functions。函式在記憶體中處理文字並回傳結果，不把逐字稿寫進資料表。失敗時，程式可能把供應商的錯誤回應寫進函式日誌。日誌保留多久由 Supabase 方案決定：[[REPLACE_ME:SUPABASE_LOG_RETENTION]]。連線日誌可能含 IP；我們的資料表沒有 IP 欄位，也不會用 IP 推斷位置。</li>
+  <li><strong>Supabase</strong>：帳號、資料庫、Edge Functions。函式在記憶體中處理文字並回傳結果，不把逐字稿寫進資料表。失敗時，程式可能把供應商的錯誤回應寫進函式日誌。這些日誌會保留一段有限期間；天數依 Supabase 當時的方案與設定，本政策不另行指定。連線日誌可能含 IP；我們的資料表沒有 IP 欄位，也不會用 IP 推斷位置。</li>
   <li><strong>Soniox</strong>（<a href="https://soniox.com/policies/privacy-policy">隱私權政策</a>、<a href="https://soniox.com/docs/security-and-privacy">安全說明</a>）：即時轉寫。後端用長效金鑰向 <code>api.soniox.com</code> 換一枚約 60 秒、單次使用的短效金鑰，手機再用它連上 WebSocket。依 2026-10-26 讀到的公開文件，即時請求是短暫處理、不用客戶內容訓練模型，營運日誌不含原始音訊或逐字稿，但用量紀錄可以包含 <code>client_reference_id</code>。Cloakly 沒有呼叫會保存音檔的 Async API。若這段與 Soniox 最新條款不同，以最新條款為準並更新本頁。</li>
-  <li><strong>OpenAI</strong>：只在你使用回答建議、會議紀錄、專案問答或計畫建議時，由後端呼叫 <code>https://api.openai.com/v1/chat/completions</code>。預設模型是 <code>gpt-4o-mini</code>，可由伺服器環境變數 <code>OPENAI_CHAT_MODEL</code> 覆寫。送出的是文字，不是音訊。此程式沒有打開「用我的內容訓練模型」的開關。保留期限與是否用於訓練，以你的 OpenAI API 設定與 OpenAI 當時條款為準：[[REPLACE_ME:OPENAI_RETENTION_SENTENCE]]。</li>
+  <li><strong>OpenAI</strong>：只在你使用回答建議、會議紀錄、專案問答或計畫建議時，由後端呼叫 <code>https://api.openai.com/v1/chat/completions</code>。預設模型是 <code>gpt-4o-mini</code>，可由伺服器環境變數 <code>OPENAI_CHAT_MODEL</code> 覆寫。送出的是文字，不是音訊。Cloakly 沒有把內容送給其他大型語言模型。依 OpenAI 公開的 <a href="https://developers.openai.com/api/docs/guides/your-data">API 資料控制說明</a>，經 API 送出的內容預設不會用來訓練或改進其模型，除非客戶明確選擇加入；濫用監控日誌可能包含提示與回應，對這個端點預設最多保留 30 天，法律要求或為防止損害而合理必要時可能更久。此程式沒有送出訓練加入，也沒有申請零資料保留。若 OpenAI 的政策或專案設定與此不同，以其當時政策為準。</li>
   <li><strong>RevenueCat</strong>（<a href="https://www.revenuecat.com/privacy">隱私權政策</a>）：購買、恢復購買與權益。我們會設定 App User ID 與 Email。刪除帳號時會盡力呼叫 RevenueCat 刪除顧客；金鑰未設定或呼叫失敗時，Supabase 帳號仍會刪除，RevenueCat 側的資料可能留下。</li>
   <li><strong>Apple 與 Google</strong>：商店發行、付款、訂閱管理，以及你若同意提供給開發者的當機報告。卡號由商店處理。</li>
 </ul>
@@ -129,18 +129,19 @@
 <p>與 Supabase、Soniox、OpenAI、RevenueCat 的連線使用 TLS（HTTPS 或 WSS）。手機上的 SQLite 沒有再加密。請使用裝置螢幕鎖。我們無法保證傳輸或儲存絕對不被入侵。</p>
 
 <h2>兒童</h2>
-<p>本服務不是為兒童設計。年齡門檻：[[REPLACE_ME:MINIMUM_AGE]]。我們不會明知而向低於該年齡的人收集帳號資料。</p>
+<p>本服務不是為兒童設計。你必須年滿 13 歲才能建立帳號。我們不會明知而向未滿 13 歲的人收集帳號資料。</p>
 
 <h2>國際傳輸</h2>
-<p>Supabase、Soniox、OpenAI、RevenueCat、Apple 與 Google 可能在你所在國家以外處理資料。Supabase 專案區域見上方佔位符。其他服務的區域以其文件為準：[[REPLACE_ME:TRANSFER_NOTE]]。</p>
+<p>Supabase、Soniox、OpenAI、RevenueCat、Apple 與 Google 可能在台灣以外、以及你所在國家以外，於各該供應商營運的資料中心處理資料。本政策不指定 Supabase 的區域，因為儲存庫裡的專案設定沒有記載區域。其他服務的機房位置依各該供應商當時的文件。</p>
 
 <h2>你的請求</h2>
-<p>你可以用 App 內功能刪除帳號。若要存取、更正，或無法登入而仍要刪除，請寄信到 [[REPLACE_ME:CONTACT_EMAIL]]。伺服器上沒有逐字稿檔案可匯出；逐字稿在你的手機上。我們沒有另外做一套線上個資申請入口。</p>
+<p>你可以用 App 內功能刪除帳號。若要存取、更正，或無法登入而仍要刪除，請寄信到 REPLACE_ME_CONTACT_EMAIL。該信箱在 Cloud52 換成真正地址並開始收信之前無法處理請求；在那之前請使用 App 內刪除。伺服器上沒有逐字稿檔案可匯出；逐字稿在你的手機上。我們沒有另外做一套線上個資申請入口。</p>
 
 <h2>政策變更</h2>
 <p>若處理方式有實質改變，我們會更新本頁與生效日。繼續使用即表示你看到的是當時公開的版本。</p>
 
 <h2>聯絡</h2>
-<p>[[REPLACE_ME:LEGAL_ENTITY_NAME]]<br>[[REPLACE_ME:CONTACT_EMAIL]]<br>[[REPLACE_ME:POSTAL_ADDRESS]]</p>
+<p>Cloud52<br>REPLACE_ME_CONTACT_EMAIL<br>台灣</p>
+<p>© 2026 Cloud52</p>
 </body>
 </html>

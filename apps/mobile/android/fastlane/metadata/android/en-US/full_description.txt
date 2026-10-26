@@ -25,6 +25,7 @@ Entitlement id: pro. Prices below are US dollars. Google Play shows your region'
 
 Google Play bills your Google account when you confirm the purchase. The subscription renews automatically unless you cancel at least 24 hours before the current period ends. Manage or cancel in Google Play > Payments and subscriptions. Deleting your Cloakly account does not cancel the Play subscription and does not refund a charge. If a free trial is offered, any unused portion is forfeited when you subscribe, where Google applies that rule.
 
-Privacy Policy: https://example.com/REPLACE_ME/privacy-policy
-Terms of Use: https://example.com/REPLACE_ME/terms-of-use
-Support: https://example.com/REPLACE_ME/support
+Privacy Policy: https://kk034kk034.github.io/cloakly/legal/privacy.en.html
+Terms of Use: https://kk034kk034.github.io/cloakly/legal/terms.en.html
+Support: https://kk034kk034.github.io/cloakly/legal/index.html
+Account deletion: https://kk034kk034.github.io/cloakly/legal/delete-account.en.html

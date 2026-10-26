@@ -25,7 +25,8 @@ Cloakly Pro 自動續訂訂閱
 
 確認購買時，費用會計入你的 Apple ID。除非你在目前週期結束前至少 24 小時關閉自動續訂，否則訂閱會自動續約。續約費用會在週期結束前 24 小時內入帳。購買後可在「設定 > Apple ID > 訂閱」管理或取消。若商店提供免費試用，在 Apple 適用該規則的情況下，購買訂閱時未使用的試用期間會被放棄。
 
-隱私權政策：https://example.com/REPLACE_ME/privacy-policy
-使用條款（EULA）：https://example.com/REPLACE_ME/terms-of-use
+隱私權政策：https://kk034kk034.github.io/cloakly/legal/privacy.zh-TW.html
+使用條款（EULA）：https://kk034kk034.github.io/cloakly/legal/terms.zh-TW.html
 Apple 標準授權合約：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-支援：https://example.com/REPLACE_ME/support
+支援：https://kk034kk034.github.io/cloakly/legal/index.html
+帳號刪除：https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html

@@ -120,6 +120,7 @@ platform :ios do
     ios_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
     metadata_dir = File.join(ios_dir, "fastlane", "metadata")
     reject_unfilled_store_copy!(metadata_dir)
+    reject_unfilled_store_copy!(File.expand_path("../../../../../docs/legal", metadata_dir))
 
     key_content = ENV.fetch("ASC_KEY_P8").dup
     key_content.force_encoding("UTF-8")

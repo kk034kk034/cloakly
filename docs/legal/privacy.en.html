@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cloakly Privacy Policy (draft)</title>
+<title>Cloakly Privacy Policy</title>
 <style>
   :root { color-scheme: light; }
   body { font-family: "Iowan Old Style", Georgia, sans-serif; line-height: 1.65; max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; color: #1c1917; }
@@ -18,18 +18,18 @@
 </style>
 </head>
 <body>
-<p class="banner"><strong>Draft. Not in effect.</strong> Anything marked <code>[[REPLACE_ME:…]]</code> is unknown from the source tree. Fill it in and have counsel review the page before you publish it or send the app to review. This page describes what the code does at the time of writing.</p>
+<p class="banner">The mailbox <code>REPLACE_ME_CONTACT_EMAIL</code> is not a working contact or deletion channel until Cloud52 replaces it with a real address and monitors it. In-app account deletion does not depend on that mailbox. This page describes what the code does now.</p>
 
 <h1>Cloakly mobile Privacy Policy</h1>
-<p>Effective date: [[REPLACE_ME:POLICY_EFFECTIVE_DATE]]</p>
+<p>Effective date: 2026-10-26</p>
 <p>This policy covers the Cloakly mobile apps on the App Store and Google Play (iOS and Android, package id <code>com.cloud52.cloakly</code>). The desktop app, when you supply your own API keys, sends data to the services you choose and is outside this policy.</p>
 <p>Other language: <a href="privacy.zh-TW.html">繁體中文</a>. Terms: <a href="terms.en.html">English</a>. Account deletion: <a href="delete-account.en.html">How to delete an account</a>.</p>
 
 <h2>Who processes your data</h2>
-<p>Operator: [[REPLACE_ME:LEGAL_ENTITY_NAME]]<br>
-Address: [[REPLACE_ME:POSTAL_ADDRESS]]<br>
-Email: [[REPLACE_ME:CONTACT_EMAIL]]</p>
-<p>"We" means that operator. The backend is Supabase. Project region: [[REPLACE_ME:SUPABASE_REGION]].</p>
+<p>Operator: Cloud52<br>
+Address: Taiwan<br>
+Email: REPLACE_ME_CONTACT_EMAIL</p>
+<p>"We" means Cloud52. The backend is Supabase. Account and usage data are stored with our cloud provider Supabase, in data centers it operates. The project configuration in this repository does not record a region, so this policy does not name one.</p>
 
 <h2>What the product is, and consent to record</h2>
 <p>Cloakly is an on-screen meeting assistant. It is not a hidden window and it is not a tool for cheating on interviews or exams. The microphone is used only after you start a meeting.</p>
@@ -106,9 +106,9 @@ Email: [[REPLACE_ME:CONTACT_EMAIL]]</p>
 <h2>Third parties</h2>
 <p>These services process data to provide the product. Re-read their current terms before you submit the app, and update this page if they differ.</p>
 <ul>
-  <li><strong>Supabase</strong> hosts auth, the database, and Edge Functions. Functions handle text in memory and return a result. They do not write the transcript into a table. On failure, the code may log the provider error body. Log retention follows the Supabase plan: [[REPLACE_ME:SUPABASE_LOG_RETENTION]]. Connection logs may include IP addresses. Our tables have no IP column, and the app does not turn IP addresses into a location.</li>
+  <li><strong>Supabase</strong> hosts auth, the database, and Edge Functions. Functions handle text in memory and return a result. They do not write the transcript into a table. On failure, the code may log the provider error body. Those logs are retained for a limited period. The number of days follows the Supabase plan and settings then in effect, and this policy does not state a specific number. Connection logs may include IP addresses. Our tables have no IP column, and the app does not turn IP addresses into a location.</li>
   <li><strong>Soniox</strong> (<a href="https://soniox.com/policies/privacy-policy">privacy policy</a>, <a href="https://soniox.com/docs/security-and-privacy">security notes</a>) performs live transcription. The backend exchanges its long-lived key for a single-use key of about 60 seconds at <code>api.soniox.com</code>. The phone then opens the WebSocket. Public Soniox documents read on 2026-10-26 say real-time requests are processed transiently, customer content is not used to train models, and operational logs do not contain raw audio or transcripts, though usage records can include <code>client_reference_id</code>. Cloakly does not call the async API that stores audio files. If Soniox's latest terms differ, those terms win and this page should be updated.</li>
-  <li><strong>OpenAI</strong> is called only when you use answer suggestions, minutes, project Q&amp;A, or plan suggestions. The backend calls <code>https://api.openai.com/v1/chat/completions</code>. The default model is <code>gpt-4o-mini</code>, overridable with the server environment variable <code>OPENAI_CHAT_MODEL</code>. The payload is text, not audio. This code does not set a training opt-in. Retention and training depend on the OpenAI API settings and OpenAI's current terms: [[REPLACE_ME:OPENAI_RETENTION_SENTENCE]].</li>
+  <li><strong>OpenAI</strong> is called only when you use answer suggestions, minutes, project Q&amp;A, or plan suggestions. The backend calls <code>https://api.openai.com/v1/chat/completions</code>. The default model is <code>gpt-4o-mini</code>, overridable with the server environment variable <code>OPENAI_CHAT_MODEL</code>. The payload is text, not audio. Cloakly does not send content to any other large language model. OpenAI's public <a href="https://developers.openai.com/api/docs/guides/your-data">API data controls</a> say that data sent to the API is not used to train or improve OpenAI models by default unless the customer explicitly opts in, and that abuse-monitoring logs may include prompts and responses and are retained for up to 30 days for this endpoint, or longer when the law requires it or when that is reasonably necessary to prevent harm. This code does not send a training opt-in and does not request zero data retention. If OpenAI's policy or the project's settings differ, that current policy controls.</li>
   <li><strong>RevenueCat</strong> (<a href="https://www.revenuecat.com/privacy">privacy policy</a>) handles purchases, restores, and entitlements. We set the app user id and the email. Account deletion tries to delete the RevenueCat subscriber. If the secret is missing or the call fails, the Supabase user is still deleted and the RevenueCat profile may remain.</li>
   <li><strong>Apple and Google</strong> distribute the app, take payment, manage subscriptions, and may show us crash reports you choose to share. They process the card number. We do not.</li>
 </ul>
@@ -129,18 +129,19 @@ Email: [[REPLACE_ME:CONTACT_EMAIL]]</p>
 <p>Connections to Supabase, Soniox, OpenAI, and RevenueCat use TLS (HTTPS or WSS). The on-device SQLite database is not encrypted by the app. Use a device passcode. We do not promise that transmission or storage cannot be compromised.</p>
 
 <h2>Children</h2>
-<p>The service is not directed at children. Minimum age: [[REPLACE_ME:MINIMUM_AGE]]. We do not knowingly collect an account from someone under that age.</p>
+<p>The service is not directed at children. You must be at least 13 years old to create an account. We do not knowingly collect an account from someone under 13.</p>
 
 <h2>International transfers</h2>
-<p>Supabase, Soniox, OpenAI, RevenueCat, Apple, and Google may process data outside your country. The Supabase region is the placeholder above. Other regions follow each provider's docs: [[REPLACE_ME:TRANSFER_NOTE]].</p>
+<p>Supabase, Soniox, OpenAI, RevenueCat, Apple, and Google may process data outside Taiwan and outside your country, in data centers those providers operate. This policy does not name a Supabase region, because the project configuration in this repository does not record one. Where the other services keep data follows their current documentation.</p>
 
 <h2>Your requests</h2>
-<p>You can delete the account in the app. For access, correction, or deletion when you cannot sign in, email [[REPLACE_ME:CONTACT_EMAIL]]. There is no transcript archive on the server to export; the transcript is on your phone. There is no separate web portal for privacy requests.</p>
+<p>You can delete the account in the app. For access, correction, or deletion when you cannot sign in, email REPLACE_ME_CONTACT_EMAIL. That mailbox cannot act on a request until Cloud52 replaces it with a real address and monitors it. Until then, use in-app deletion. There is no transcript archive on the server to export; the transcript is on your phone. There is no separate web portal for privacy requests.</p>
 
 <h2>Changes</h2>
 <p>If the processing changes in a material way, we will update this page and the effective date. Continued use is of the version then published.</p>
 
 <h2>Contact</h2>
-<p>[[REPLACE_ME:LEGAL_ENTITY_NAME]]<br>[[REPLACE_ME:CONTACT_EMAIL]]<br>[[REPLACE_ME:POSTAL_ADDRESS]]</p>
+<p>Cloud52<br>REPLACE_ME_CONTACT_EMAIL<br>Taiwan</p>
+<p>© 2026 Cloud52</p>
 </body>
 </html>

@@ -38,7 +38,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check metadata limits and placeholders
+      - name: Check metadata limits and legal-page placeholders
         run: python3 apps/mobile/tool/check_store_metadata.py --strict
 
       - name: Setup Ruby
@@ -67,7 +67,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check metadata limits and placeholders
+      - name: Check metadata limits and legal-page placeholders
         run: python3 apps/mobile/tool/check_store_metadata.py --strict
 
       - name: Setup Ruby

@@ -1,23 +1,47 @@
-# Cloakly 法律頁（草稿）
+# Cloakly 法律頁
 
 `privacy.*.html`、`terms.*.html`、`delete-account.*.html` 依照目前程式撰寫：Supabase 帳號、Soniox 即時轉寫、OpenAI Chat Completions、RevenueCat、裝置識別的 SHA-256，以及 `delete-account` 實際刪除與留下的資料。
 
-標成 `[[REPLACE_ME:…]]` 的欄位不能從程式庫得知。公開前請填上並請法律顧問審過。完整清單在 [商店上架說明](../store-listing.md)。
+已填上的項目：
 
-## 怎麼公開成 HTTPS 網址
+- 營運者：Cloud52（對應 `com.cloud52` 與 cloud-52.com）
+- 地址：台灣（沒有街道地址）
+- 準據法：中華民國（台灣）法律；第一審法院：臺灣臺北地方法院
+- 最低年齡：13 歲
+- 責任上限：該請求前 12 個月內，使用者實際支付給 Cloud52 的金額
+- 生效日：2026-10-26；著作權年份：2026
 
-商店要的是公開、無需登入就能打開的 HTTPS。此 repo 沒有現成的正式網域。
+Supabase 區域沒有寫在 `backend/supabase/config.toml`（只有 `project_id = "cloakly"`）、範例網址或文件裡，所以政策不指定城市或區域：資料存放在 Supabase 營運的資料中心，日誌保留一段有限期間，不寫死天數。
 
-1. **GitHub Pages，來源選 `/docs`。** 在 GitHub 倉庫 Settings → Pages → Deploy from branch，分支用預設分支，資料夾選 `/docs`。隱私權政策會落在 `https://<GitHub 擁有者>.github.io/<倉庫>/legal/privacy.zh-TW.html`（英文把檔名換成 `privacy.en.html`）。擁有者與倉庫名稱以你的 GitHub 為準，這裡不猜測。Pages 會一併公開 `docs/` 底下其他文件；不要把真正的審核密碼寫進那些檔案。
-2. **沿用 `apps/cloakly-auth/` 的靜態站。** 該目錄現在只有信箱確認頁 `index.html`。若這個目錄已經部署到某個公開網址，可以把 `docs/legal/` 的 HTML 放到同一個主機，讓確認信與政策共用一個網域。此 repo 沒有記錄那個網址。
-3. **任何其他靜態主機。** 上傳 `docs/legal/` 即可。頁面沒有外部腳本，相對連結在同一目錄下即可運作。
+OpenAI 的句子依照其公開的 [API 資料控制說明](https://developers.openai.com/api/docs/guides/your-data)：API 內容預設不用於訓練，除非客戶明確加入；`/v1/chat/completions` 的濫用監控日誌最多約 30 天，法律要求時可能更久。程式只呼叫這個端點，沒有送出訓練加入，也沒有送音訊。後端的大型語言模型只有 OpenAI。
 
-公開後用瀏覽器無痕視窗點一次，確認不需要登入。再把最終網址寫進：
+## 公開網址（GitHub Pages）
 
-- `apps/mobile/ios/fastlane/metadata/<locale>/privacy_url.txt`
-- `apps/mobile/ios/fastlane/metadata/<locale>/support_url.txt`
-- `apps/mobile/ios/fastlane/metadata/<locale>/marketing_url.txt`（沒有行銷網站就填支援網址，或刪掉這行之前先確定 deliver 不會清掉已存在的值）
-- 兩個平台的描述檔裡所有 `https://example.com/REPLACE_ME/...`
-- Google Play Console 的隱私權政策網址，以及帳號刪除的網頁連結（可用 `delete-account.zh-TW.html`）
+網站是公開 repo [kk034kk034/cloakly](https://github.com/kk034kk034/cloakly) 的 `/docs`。`docs/.nojekyll` 讓 GitHub 不要用 Jekyll 濾掉檔案。`docs/index.html` 是網站首頁。
 
-然後執行 `python3 apps/mobile/tool/check_store_metadata.py --strict`。還有 `REPLACE_ME` 時，上傳 workflow 會拒絕執行。
+**擁有者必須自己開啟：** GitHub 倉庫 → Settings → Pages → Branch `main`、資料夾 `/docs`。在那之前下面的網址是 404，商店審查會打不開。
+
+| 頁面 | 網址 |
+| --- | --- |
+| 網站首頁 | https://kk034kk034.github.io/cloakly/ |
+| 法律文件目錄 | https://kk034kk034.github.io/cloakly/legal/index.html |
+| 隱私權政策（繁中） | https://kk034kk034.github.io/cloakly/legal/privacy.zh-TW.html |
+| Privacy Policy | https://kk034kk034.github.io/cloakly/legal/privacy.en.html |
+| 使用條款（繁中） | https://kk034kk034.github.io/cloakly/legal/terms.zh-TW.html |
+| Terms of Use | https://kk034kk034.github.io/cloakly/legal/terms.en.html |
+| 刪除帳號（繁中） | https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html |
+| Delete account | https://kk034kk034.github.io/cloakly/legal/delete-account.en.html |
+
+iOS 的 `privacy_url` 指向該語系的隱私權政策，`support_url` 指向法律文件目錄，`marketing_url` 指向網站首頁。Google Play 的隱私權政策請填對應語系頁。Play Console 的帳號刪除網址請填：
+
+https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html
+
+英文審查可改用 `delete-account.en.html`。該頁說明 App 內刪除，以及無法登入時寄信。
+
+## 還沒填的只有聯絡信箱
+
+Repo 裡沒有 Cloakly 或 Cloud52 的既有支援信箱，所以沒有自創一個。法律頁裡唯一的佔位符是 `REPLACE_ME_CONTACT_EMAIL`。換成真正信箱時，`docs/legal` 裡每一處都要一起換掉，包含本檔。
+
+`python3 apps/mobile/tool/check_store_metadata.py --strict` 會檢查商店文案字數，並在商店文案或 `docs/legal` 仍含 `REPLACE_ME` 時失敗。**Mobile Store Metadata** 使用 `--strict`，所以信箱還沒換之前 workflow 不會上傳。fastlane 的 `metadata` lane 也會拒絕。
+
+審核示範帳號的帳號密碼只填在 App Store Connect 與 Play Console，不要 commit。

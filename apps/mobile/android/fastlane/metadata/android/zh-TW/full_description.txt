@@ -25,6 +25,7 @@ Cloakly Pro 自動續訂訂閱
 
 確認購買時，由 Google Play 向你的 Google 帳號收費。除非你在目前週期結束前至少 24 小時取消，否則會自動續訂。可在 Google Play 的「付款與訂閱」管理或取消。刪除 Cloakly 帳號不會取消 Play 訂閱，也不會自動退款。若商店提供免費試用，在 Google 適用該規則的情況下，訂閱時未使用的試用期間會被放棄。
 
-隱私權政策：https://example.com/REPLACE_ME/privacy-policy
-使用條款：https://example.com/REPLACE_ME/terms-of-use
-支援：https://example.com/REPLACE_ME/support
+隱私權政策：https://kk034kk034.github.io/cloakly/legal/privacy.zh-TW.html
+使用條款：https://kk034kk034.github.io/cloakly/legal/terms.zh-TW.html
+支援：https://kk034kk034.github.io/cloakly/legal/index.html
+帳號刪除：https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html

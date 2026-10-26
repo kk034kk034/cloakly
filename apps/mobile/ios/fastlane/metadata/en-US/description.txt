@@ -25,7 +25,8 @@ Entitlement id: pro. Prices below are US dollars. The App Store shows your regio
 
 Payment is charged to your Apple ID when you confirm the purchase. The subscription renews automatically unless you turn off auto-renew at least 24 hours before the current period ends. Your account is charged for renewal within 24 hours before the period ends. After purchase, manage or cancel in Settings > Apple ID > Subscriptions. If a free trial is offered, any unused portion is forfeited when you buy a subscription, where Apple applies that rule.
 
-Privacy Policy: https://example.com/REPLACE_ME/privacy-policy
-Terms of Use (EULA): https://example.com/REPLACE_ME/terms-of-use
+Privacy Policy: https://kk034kk034.github.io/cloakly/legal/privacy.en.html
+Terms of Use (EULA): https://kk034kk034.github.io/cloakly/legal/terms.en.html
 Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Support: https://example.com/REPLACE_ME/support
+Support: https://kk034kk034.github.io/cloakly/legal/index.html
+Account deletion: https://kk034kk034.github.io/cloakly/legal/delete-account.en.html

@@ -31,17 +31,25 @@ iOS 類別預設是 Productivity，次類別 Business。若 App Store Connect �
 
 描述已寫明：這是顯示在畫面上的會議助手、錄音前要取得參與者同意、手機不能抓其他 App 的系統聲音、月繳 USD 19.99（`cloakly_pro_monthly`）、年繳 USD 199.99（`cloakly_pro_yearly`）、權益 `pro`、每一段轉寫 30 分鐘。iOS 描述另含 Apple 標準 EULA 連結。
 
-## 必須先換掉的佔位符
+## 公開網址與剩下的佔位符
 
-文案裡的網址目前是 `https://example.com/REPLACE_ME/...`。版權是 `[[REPLACE_ME:COPYRIGHT_YEAR]] [[REPLACE_ME:LEGAL_ENTITY_NAME]]`。法律頁的佔位符見 [legal/README.md](legal/README.md)。
+版權是 `2026 Cloud52`。隱私權政策、使用條款、支援與行銷網址已指向 GitHub Pages。網站根目錄是這個 repo 的 `/docs`。擁有者必須在 GitHub → Settings → Pages 選擇分支 `main`、資料夾 `/docs`，否則審查時這些網址是 404。細節與完整網址表見 [legal/README.md](legal/README.md)。
 
-換完後執行：
+| 欄位 | 網址 |
+| --- | --- |
+| iOS `marketing_url` | https://kk034kk034.github.io/cloakly/ |
+| iOS `support_url` | https://kk034kk034.github.io/cloakly/legal/index.html |
+| iOS `privacy_url`（en-US） | https://kk034kk034.github.io/cloakly/legal/privacy.en.html |
+| iOS `privacy_url`（zh-Hant） | https://kk034kk034.github.io/cloakly/legal/privacy.zh-TW.html |
+| Play 帳號刪除（在 Play Console 填） | https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html |
+
+Repo 裡沒有既有的 Cloakly 或 Cloud52 支援信箱，所以沒有自創一個。法律頁仍有唯一佔位符 `REPLACE_ME_CONTACT_EMAIL`。換完後執行：
 
 ```bash
 python3 apps/mobile/tool/check_store_metadata.py --strict
 ```
 
-沒加 `--strict` 只檢查字數，並列出還沒填的檔案。`--strict` 有 `REPLACE_ME` 就會失敗。上傳 workflow 使用 `--strict`。
+沒加 `--strict` 只檢查字數，並列出還沒填的檔案。`--strict` 會掃描商店文案與 `docs/legal`；還有 `REPLACE_ME` 就會失敗。上傳 workflow 與 fastlane `metadata` lane 都使用這個檢查。商店文案本身不應再出現 `REPLACE_ME`。
 
 ## 只上傳文案、不送審
 

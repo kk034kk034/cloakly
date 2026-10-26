@@ -14,6 +14,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 IOS = ROOT / "apps/mobile/ios/fastlane/metadata"
 ANDROID = ROOT / "apps/mobile/android/fastlane/metadata/android"
+# Legal pages are what the store URLs point at. The contact email is the
+# remaining REPLACE_ME token, and it lives here rather than in listing copy.
+LEGAL = ROOT / "docs" / "legal"
 
 IOS_LOCALES = ("en-US", "zh-Hant")
 ANDROID_LOCALES = ("en-US", "zh-TW")
@@ -105,7 +108,7 @@ def main() -> int:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="fail if any metadata file still contains REPLACE_ME",
+        help="fail if store metadata or docs/legal still contains REPLACE_ME",
     )
     args = parser.parse_args()
     errors: list[str] = []
@@ -157,15 +160,17 @@ def main() -> int:
             if "meeting" not in text.lower() and "會議" not in text:
                 errors.append(f"{short.relative_to(ROOT)} lost the meeting positioning")
 
-    hits = placeholder_hits([IOS, ANDROID])
+    hits = placeholder_hits([IOS, ANDROID, LEGAL])
     if hits:
         print(f"placeholders remaining: {len(hits)} file(s)")
         for path in hits:
             print(f"  {path.relative_to(ROOT)}")
         if args.strict:
-            errors.append("metadata still contains REPLACE_ME; fill those files before uploading")
+            errors.append(
+                "store metadata or docs/legal still contains REPLACE_ME; fill those files before uploading"
+            )
     elif args.strict:
-        print("no REPLACE_ME placeholders in store metadata")
+        print("no REPLACE_ME placeholders in store metadata or docs/legal")
 
     if errors:
         print("store metadata check failed:", file=sys.stderr)

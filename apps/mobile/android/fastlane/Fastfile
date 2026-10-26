@@ -10,6 +10,7 @@ platform :android do
     android_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
     metadata_dir = File.join(android_dir, "fastlane", "metadata")
     reject_unfilled_store_copy!(metadata_dir)
+    reject_unfilled_store_copy!(File.expand_path("../../../../../docs/legal", metadata_dir))
 
     upload_images = ENV["UPLOAD_SCREENSHOTS"] == "1"
     # Listing text is global. Changelogs attach to an existing version on the
