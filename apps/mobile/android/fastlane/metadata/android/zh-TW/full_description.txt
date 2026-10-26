@@ -28,4 +28,5 @@ Cloakly Pro 自動續訂訂閱
 隱私權政策：https://kk034kk034.github.io/cloakly/legal/privacy.zh-TW.html
 使用條款：https://kk034kk034.github.io/cloakly/legal/terms.zh-TW.html
 支援：https://kk034kk034.github.io/cloakly/legal/index.html
+支援信箱：contact@cloud-52.com
 帳號刪除：https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html

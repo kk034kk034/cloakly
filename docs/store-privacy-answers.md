@@ -1,6 +1,6 @@
 # 商店隱私問卷、分級與送審清單
 
-答案依照目前程式，不是依照希望中的架構。法律頁已填 Cloud52、台灣、準據法與年齡；唯一還留在 repo 的佔位符是聯絡信箱 `REPLACE_ME_CONTACT_EMAIL`（沒有既有支援信箱，所以沒有自創）。審核示範帳號的帳號密碼只填在 App Store Connect 與 Play Console，不要 commit。
+答案依照目前程式，不是依照希望中的架構。法律頁已填 Cloud52、台灣、準據法、年齡，以及支援信箱 `contact@cloud-52.com`。審核示範帳號的帳號密碼只填在 App Store Connect 與 Play Console，不要 commit。
 
 對照文件：[商店文案](store-listing.md)、[法律頁](legal/README.md)、[內部測試](store-release.md)。
 
@@ -46,7 +46,7 @@
 
 傳輸中加密：**是**（HTTPS／WSS）。不要回答「本機資料庫有加密」；SQLite 沒有再加密。
 
-使用者可要求刪除：**是**。路徑是 App 內帳號頁。Play Console 的帳號刪除網址填 https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html （頁面說明 App 內刪除，以及無法登入時寄信）。該頁的信箱 `REPLACE_ME_CONTACT_EMAIL` 在換成真正信箱並開始收信之前，還不能當正式管道。網址要等 GitHub Pages（Settings → Pages → `main` / `/docs`）開啟後才開得起來。
+使用者可要求刪除：**是**。路徑是 App 內帳號頁。無法登入時寄到 `contact@cloud-52.com`。Play Console 的帳號刪除網址填 https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html 。頁面由 GitHub Pages 提供（Settings → Pages → `main` / `/docs`）。
 
 「分享」的保守填法：獨立第三方收到內容就勾分享，目的只有 App 功能（裝置識別另加詐欺預防／安全）。Supabase 是我們的後端，算處理者，不另勾成廣告分享。若你與 Soniox、OpenAI、RevenueCat 的合約明確禁止他們自用，且你願意對這個認定負責，可以把對應列改成「收集、不分享」，並在說明寫服務供應商。下面這張是審查時比較站得住的勾法。
 
@@ -160,7 +160,7 @@ Google 要求一段示範影片。此 repo 無法代拍。影片需顯示：使�
 兩邊都要：
 
 - [ ] GitHub → Settings → Pages → 分支 `main`、資料夾 `/docs` 已開啟，法律頁網址在無痕視窗開得起來
-- [ ] `docs/legal` 裡的 `REPLACE_ME_CONTACT_EMAIL` 已換成真正信箱，且 `check_store_metadata.py --strict` 通過
+- [ ] `python3 apps/mobile/tool/check_store_metadata.py --strict` 通過（聯絡信箱已是 `contact@cloud-52.com`）
 - [ ] Play Console 隱私權政策網址與帳號刪除網址已填（刪除頁：https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html ）
 - [ ] 執行 **Mobile Store Metadata**（不要開送審；這個 workflow 本身也不會送審）
 - [ ] App Store／Play 的訂閱價格改成月繳 USD 19.99、年繳 USD 199.99，商品 ID 為 `cloakly_pro_monthly`、`cloakly_pro_yearly`，權益 `pro`，並接到 RevenueCat 的 Current Offering

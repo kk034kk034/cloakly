@@ -38,10 +38,10 @@ https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html
 
 英文審查可改用 `delete-account.en.html`。該頁說明 App 內刪除，以及無法登入時寄信。
 
-## 還沒填的只有聯絡信箱
+## 聯絡信箱
 
-Repo 裡沒有 Cloakly 或 Cloud52 的既有支援信箱，所以沒有自創一個。法律頁裡唯一的佔位符是 `REPLACE_ME_CONTACT_EMAIL`。換成真正信箱時，`docs/legal` 裡每一處都要一起換掉，包含本檔。
+支援、個資請求與無法登入時的刪除申請都使用 `contact@cloud-52.com`。
 
-`python3 apps/mobile/tool/check_store_metadata.py --strict` 會檢查商店文案字數，並在商店文案或 `docs/legal` 仍含 `REPLACE_ME` 時失敗。**Mobile Store Metadata** 使用 `--strict`，所以信箱還沒換之前 workflow 不會上傳。fastlane 的 `metadata` lane 也會拒絕。
+`python3 apps/mobile/tool/check_store_metadata.py --strict` 會檢查商店文案字數，並掃描商店文案與 `docs/legal`。這兩個位置若再出現未填佔位符，**Mobile Store Metadata** 與 fastlane 的 `metadata` lane 會拒絕上傳。目前這項檢查可以通過。
 
-審核示範帳號的帳號密碼只填在 App Store Connect 與 Play Console，不要 commit。
+審核示範帳號的帳號密碼只填在 App Store Connect 與 Play Console，不要 commit。網站由 GitHub Pages 提供：Settings → Pages → 分支 `main`、資料夾 `/docs`。

@@ -14,8 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 IOS = ROOT / "apps/mobile/ios/fastlane/metadata"
 ANDROID = ROOT / "apps/mobile/android/fastlane/metadata/android"
-# Legal pages are what the store URLs point at. The contact email is the
-# remaining REPLACE_ME token, and it lives here rather than in listing copy.
+# Legal pages are what the store URLs point at. Scan them with the listing
+# so an unfilled placeholder cannot ship.
 LEGAL = ROOT / "docs" / "legal"
 
 IOS_LOCALES = ("en-US", "zh-Hant")

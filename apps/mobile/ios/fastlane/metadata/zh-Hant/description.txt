@@ -29,4 +29,5 @@ Cloakly Pro 自動續訂訂閱
 使用條款（EULA）：https://kk034kk034.github.io/cloakly/legal/terms.zh-TW.html
 Apple 標準授權合約：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 支援：https://kk034kk034.github.io/cloakly/legal/index.html
+支援信箱：contact@cloud-52.com
 帳號刪除：https://kk034kk034.github.io/cloakly/legal/delete-account.zh-TW.html

@@ -29,4 +29,5 @@ Privacy Policy: https://kk034kk034.github.io/cloakly/legal/privacy.en.html
 Terms of Use (EULA): https://kk034kk034.github.io/cloakly/legal/terms.en.html
 Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 Support: https://kk034kk034.github.io/cloakly/legal/index.html
+Support email: contact@cloud-52.com
 Account deletion: https://kk034kk034.github.io/cloakly/legal/delete-account.en.html

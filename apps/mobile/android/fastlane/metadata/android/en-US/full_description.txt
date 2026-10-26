@@ -28,4 +28,5 @@ Google Play bills your Google account when you confirm the purchase. The subscri
 Privacy Policy: https://kk034kk034.github.io/cloakly/legal/privacy.en.html
 Terms of Use: https://kk034kk034.github.io/cloakly/legal/terms.en.html
 Support: https://kk034kk034.github.io/cloakly/legal/index.html
+Support email: contact@cloud-52.com
 Account deletion: https://kk034kk034.github.io/cloakly/legal/delete-account.en.html
