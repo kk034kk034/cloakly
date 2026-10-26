@@ -16,6 +16,10 @@
 	<string>Cloakly 不會開啟相機，也不會拍照或錄影。內含的檔案選擇元件仍帶有相機程式，所以系統要求這段說明。</string>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Cloakly 不會讀取音樂資料庫。內含的檔案選擇元件仍帶有音樂選擇程式，所以系統要求這段說明。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Cloakly 不會要求或使用你的位置。內含的檔案選擇元件含有可讀取照片位置資訊的程式，所以系統要求這段說明。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Cloakly 不會把檔案存進你的相簿。內含的檔案選擇元件仍帶有寫入相簿的程式，所以系統要求這段說明。</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>

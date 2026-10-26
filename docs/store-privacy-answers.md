@@ -37,7 +37,7 @@
 | 使用資料 → 廣告資料 | 不要 | | | | |
 | 診斷 → 當機資料 | 見下方 | | | | |
 | 診斷 → 效能資料 | 不要 | | | | 沒有效能 SDK |
-| 位置、健康、財務、聯絡人、瀏覽紀錄、搜尋紀錄、敏感資訊、環境掃描 | 不要 | | | | 沒有對應功能。會議裡碰巧講到的內容算音訊／其他使用者內容，不要另勾健康或敏感資訊 |
+| 位置、健康、財務、聯絡人、瀏覽紀錄、搜尋紀錄、敏感資訊、環境掃描 | 不要 | | | | 沒有對應功能。`Info.plist` 雖有使用期間定位說明，那是檔案選擇元件被編進去，App 不收集位置，這裡仍答不要。會議裡碰巧講到的內容算音訊／其他使用者內容，不要另勾健康或敏感資訊 |
 | 用於追蹤你的資料 | 無 | | | | |
 
 當機資料：App 沒有把當機報告上傳到 Sentry 或 Crashlytics。若你會在 App Store Connect 看使用者選擇分享的當機紀錄，表單可能仍要你宣告。建議：收集＝是（僅限使用者同意分享給開發者的系統當機）、連結身分＝否、追蹤＝否、目的＝App 功能。若你完全不看那些報告，可答不收集，並在被問到時說明 App 沒有當機 SDK。
@@ -148,8 +148,10 @@ Google 要求一段示範影片。此 repo 無法代拍。影片需顯示：使�
 | 項目 | 結論 |
 | --- | --- |
 | iOS 麥克風 | 保留。會議轉寫需要 |
-| iOS 定位 | 已從 `Info.plist` 移除。依賴裡沒有 CoreLocation／`CLLocationManager`。文件「location」是頁碼／行號 |
-| iOS 相簿、相機、音樂資料庫 | 保留用途說明。App 只呼叫 `FilePicker.getDirectoryPath`，但 iOS 以 Swift Package Manager 連結 `file_picker` 10.3.10，其 `Package.swift` 固定編譯相簿、音樂選擇，並依賴 `DKImagePickerController`／`DKCamera`（`AVCaptureDevice` 的影片裝置）。Apple 的 ITMS-90683 會掃到這些符號。CocoaPods 的 `Pod::PICKER_MEDIA = false` 對這份 SPM 工程無效。營養標籤仍不要勾相片或相機：App 沒有收集這些資料 |
+| iOS 定位 | 保留 `NSLocationWhenInUseUsageDescription`。App 不要求也不使用定位，App 隱私營養標籤的「位置」仍答不要。觸發掃描的是 `file_picker` 連進來的 `DKCameraLocationManager`（`CLLocationManager.requestWhenInUseAuthorization()`）以及 `DKAsset.location`（照片上的 `CLLocation`）。沒有 `requestAlwaysAuthorization`，不加「總是」定位說明。文件裡的 location 是頁碼／行號 |
+| iOS 相簿、相機、音樂資料庫 | 保留用途說明。App 只呼叫 `FilePicker.getDirectoryPath`，但 iOS 以 Swift Package Manager 連結 `file_picker` 10.3.10，其 `Package.swift` 固定編譯相簿、音樂選擇，並依賴 `DKImagePickerController`／`DKCamera`（`AVCaptureDevice` 的影片裝置）。CocoaPods 的 `Pod::PICKER_MEDIA = false` 對這份工程無效。營養標籤仍不要勾相片或相機 |
+| iOS 寫入相簿 | 保留 `NSPhotoLibraryAddUsageDescription`。`DKImagePickerController` 呼叫 `PHAssetChangeRequest.creationRequestForAsset`，`DKPhotoGallery` 呼叫 `PHAssetCreationRequest` 與 `UIImageWriteToSavedPhotosAlbum`。App 不會把檔案存進相簿 |
+| iOS 通訊錄、藍牙、語音辨識 | 不加。上述套件與 `DKImagePickerController`／`DKCamera`／`DKPhotoGallery` 沒有 `CNContactStore`、`CBCentralManager` 或 `SFSpeechRecognizer` |
 | iOS 背景音訊 | 保留。只為了進行中的會議在鎖屏時繼續收音 |
 | iOS 檔案分享 | 保留。錄音與資料庫在 App 文件目錄，使用者可從「檔案」App 取出 |
 | iOS 出口合規 | `ITSAppUsesNonExemptEncryption` 為 false。只有 HTTPS／WSS，沒有自訂加密。上傳時若仍問出口合規，答使用標準加密 |
