@@ -1,0 +1,87 @@
+name: Mobile Store Metadata
+
+# Manual listing upload only. Does not build an IPA or AAB and does not submit
+# for review. The internal release workflow is unchanged.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which store listing to upload
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - android
+          - ios
+      upload_screenshots:
+        description: Also upload screenshots when the fastlane screenshot folders have files. Still does not submit for review.
+        required: false
+        default: false
+        type: boolean
+      ios_app_version:
+        description: Optional App Store version to edit or create, for example 1.0.0. Leave empty to use the current editable version.
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: mobile-store-metadata
+  cancel-in-progress: false
+
+jobs:
+  ios-metadata:
+    if: ${{ inputs.platform == 'both' || inputs.platform == 'ios' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check metadata limits and placeholders
+        run: python3 apps/mobile/tool/check_store_metadata.py --strict
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: apps/mobile/ios
+
+      - name: Upload App Store metadata
+        working-directory: apps/mobile/ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          UPLOAD_SCREENSHOTS: ${{ inputs.upload_screenshots && '1' || '0' }}
+          IOS_APP_VERSION: ${{ inputs.ios_app_version }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: bundle exec fastlane metadata
+
+  android-metadata:
+    if: ${{ inputs.platform == 'both' || inputs.platform == 'android' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check metadata limits and placeholders
+        run: python3 apps/mobile/tool/check_store_metadata.py --strict
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: apps/mobile/android
+
+      - name: Upload Play listing metadata
+        working-directory: apps/mobile/android
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          UPLOAD_SCREENSHOTS: ${{ inputs.upload_screenshots && '1' || '0' }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: bundle exec fastlane metadata

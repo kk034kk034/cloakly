@@ -2,6 +2,8 @@ require "base64"
 require "spaceship"
 require "tempfile"
 
+opt_out_usage
+
 default_platform(:ios)
 
 platform :ios do
@@ -110,6 +112,47 @@ platform :ios do
       skip_waiting_for_build_processing: true
     )
   end
+
+  desc "Upload App Store metadata only. Does not upload an IPA or submit for review."
+  lane :metadata do
+    opt_out_usage
+
+    ios_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
+    metadata_dir = File.join(ios_dir, "fastlane", "metadata")
+    reject_unfilled_store_copy!(metadata_dir)
+
+    key_content = ENV.fetch("ASC_KEY_P8").dup
+    key_content.force_encoding("UTF-8")
+    key_content = key_content.sub(/\A\uFEFF/, "").strip
+    UI.user_error!("ASC_KEY_P8 does not look like a PEM key") unless key_content.include?("BEGIN PRIVATE KEY")
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID").sub(/\A\uFEFF/, "").strip,
+      issuer_id: ENV.fetch("ASC_ISSUER_ID").sub(/\A\uFEFF/, "").strip,
+      key_content: key_content,
+      is_key_content_base64: false,
+      duration: 1200,
+      in_house: false
+    )
+
+    params = {
+      api_key: api_key,
+      app_identifier: "com.cloud52.cloakly",
+      skip_binary_upload: true,
+      skip_screenshots: ENV["UPLOAD_SCREENSHOTS"] != "1",
+      skip_metadata: false,
+      submit_for_review: false,
+      automatic_release: false,
+      force: true,
+      run_precheck_before_submit: false,
+      precheck_include_in_app_purchases: false,
+      overwrite_screenshots: false,
+      languages: ["en-US", "zh-Hant"]
+    }
+    version = ENV["IOS_APP_VERSION"].to_s.strip
+    params[:app_version] = version unless version.empty?
+    deliver(params)
+  end
 end
 
 def revoke_ios_distribution_certificates(api_key)
@@ -176,4 +219,18 @@ def install_distribution_certificate!(api_key:, keychain_path:, ios_dir:)
     Base64.strict_encode64(File.binread(p12_path))
   )
   UI.important("Exported dist-ci.p12 — set APPLE_CERT_P12_BASE64 + APPLE_CERT_PASSWORD=cloakly-ci-cert for stable CI")
+end
+
+def reject_unfilled_store_copy!(root)
+  hits = []
+  Dir.glob(File.join(root, "**", "*")).each do |path|
+    next unless File.file?(path)
+    text = File.read(path)
+    hits << path if text.include?("REPLACE_ME")
+  end
+  return if hits.empty?
+
+  UI.user_error!(
+    "Store copy still has REPLACE_ME placeholders. Fill them, then upload.\n#{hits.join("\n")}"
+  )
 end

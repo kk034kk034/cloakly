@@ -1,0 +1,1 @@
+transcript,notes,minutes,gantt,kanban,summary,tasks,agenda,recorder,todo,speech,phases,board
