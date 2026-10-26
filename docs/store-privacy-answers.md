@@ -148,7 +148,8 @@ Google 要求一段示範影片。此 repo 無法代拍。影片需顯示：使�
 | 項目 | 結論 |
 | --- | --- |
 | iOS 麥克風 | 保留。會議轉寫需要 |
-| iOS 定位、相機、相簿 | 已從 `Info.plist` 移除。程式只呼叫 `FilePicker.getDirectoryPath` 選資料夾，文件「location」是頁碼／行號，沒有 GPS、相機或相簿 API |
+| iOS 定位 | 已從 `Info.plist` 移除。依賴裡沒有 CoreLocation／`CLLocationManager`。文件「location」是頁碼／行號 |
+| iOS 相簿、相機、音樂資料庫 | 保留用途說明。App 只呼叫 `FilePicker.getDirectoryPath`，但 iOS 以 Swift Package Manager 連結 `file_picker` 10.3.10，其 `Package.swift` 固定編譯相簿、音樂選擇，並依賴 `DKImagePickerController`／`DKCamera`（`AVCaptureDevice` 的影片裝置）。Apple 的 ITMS-90683 會掃到這些符號。CocoaPods 的 `Pod::PICKER_MEDIA = false` 對這份 SPM 工程無效。營養標籤仍不要勾相片或相機：App 沒有收集這些資料 |
 | iOS 背景音訊 | 保留。只為了進行中的會議在鎖屏時繼續收音 |
 | iOS 檔案分享 | 保留。錄音與資料庫在 App 文件目錄，使用者可從「檔案」App 取出 |
 | iOS 出口合規 | `ITSAppUsesNonExemptEncryption` 為 false。只有 HTTPS／WSS，沒有自訂加密。上傳時若仍問出口合規，答使用標準加密 |

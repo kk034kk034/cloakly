@@ -29,7 +29,7 @@ iOS 類別預設是 Productivity，次類別 Business。若 App Store Connect �
 | Play 完整說明 | 4000 |
 | Play 更新說明 `changelogs/default.txt` | 500 |
 
-描述已寫明：這是顯示在畫面上的會議助手、錄音前要取得參與者同意、手機不能抓其他 App 的系統聲音、月繳 USD 19.99（`cloakly_pro_monthly`）、年繳 USD 199.99（`cloakly_pro_yearly`）、權益 `pro`、每一段轉寫 30 分鐘。iOS 描述另含 Apple 標準 EULA 連結。
+描述已寫明：這是顯示在畫面上的會議助手、錄音前要取得參與者同意、手機不能抓其他 App 的系統聲音、月繳 USD 19.99、年繳 USD 199.99、每一段轉寫 30 分鐘。商品 ID 與權益識別碼只留在商店後台，不寫進描述。iOS 描述另含 Apple 標準 EULA 連結。
 
 ## 公開網址與聯絡信箱
 

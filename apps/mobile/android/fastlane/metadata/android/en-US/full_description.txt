@@ -18,10 +18,10 @@ Account and free use
 Sign in with email and password and confirm the email. A free account can transcribe up to 30 minutes total per UTC day, and can use project Q&A and plan suggestions up to 5 times each per UTC day. One phone can use that free allowance on only one account per UTC day. Cloakly Pro removes those daily free caps. Each live transcription session, including Pro, still ends at 30 minutes. Start another session if you need more. Delete the Cloakly account in the app. Deletion does not cancel or refund the Google Play subscription, and it does not erase meetings stored on the device.
 
 Cloakly Pro auto-renewable subscription
-Entitlement id: pro. Prices below are US dollars. Google Play shows your region's price before you pay.
+Prices below are US dollars. Google Play shows your region's price before you pay.
 
-• Monthly — USD 19.99 per month (1 month). Product ID: cloakly_pro_monthly.
-• Yearly — USD 199.99 per year (1 year). Product ID: cloakly_pro_yearly.
+• Monthly — USD 19.99 per month (1 month).
+• Yearly — USD 199.99 per year (1 year).
 
 Google Play bills your Google account when you confirm the purchase. The subscription renews automatically unless you cancel at least 24 hours before the current period ends. Manage or cancel in Google Play > Payments and subscriptions. Deleting your Cloakly account does not cancel the Play subscription and does not refund a charge. If a free trial is offered, any unused portion is forfeited when you subscribe, where Google applies that rule.
 

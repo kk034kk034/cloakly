@@ -38,16 +38,12 @@ REQUIRED_PHRASES = {
     "ios-description": (
         "19.99",
         "199.99",
-        "cloakly_pro_monthly",
-        "cloakly_pro_yearly",
         "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
         "http",
     ),
     "android-description": (
         "19.99",
         "199.99",
-        "cloakly_pro_monthly",
-        "cloakly_pro_yearly",
         "http",
     ),
 }

@@ -10,6 +10,12 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Cloakly 會使用麥克風，把你按下開始的會議轉成即時逐字稿、筆記與回答提示。請先取得其他參與者的同意。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cloakly 只讓你選專案資料夾，不會讀取或上傳照片與影片。內含的檔案選擇元件仍帶有相簿程式，所以系統要求這段說明。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Cloakly 不會開啟相機，也不會拍照或錄影。內含的檔案選擇元件仍帶有相機程式，所以系統要求這段說明。</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Cloakly 不會讀取音樂資料庫。內含的檔案選擇元件仍帶有音樂選擇程式，所以系統要求這段說明。</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>
