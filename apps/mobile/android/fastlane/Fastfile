@@ -13,9 +13,13 @@ platform :android do
     reject_unfilled_store_copy!(File.expand_path("../../../../../docs/legal", metadata_dir))
 
     upload_images = ENV["UPLOAD_SCREENSHOTS"] == "1"
-    # Listing text is global. Changelogs attach to an existing version on the
-    # internal track when one exists. Binaries are skipped, and Play is told
-    # not to send this edit for review.
+    # Listing text is global. This lane uploads no AAB, so supply has no
+    # version code. supply 2.241.1 then calls upload_changelog and fails with
+    # "Cannot find changelog because no version code given". Skip changelogs.
+    # Title, short description, and full description still upload. The internal
+    # track must already have exactly one release (from Mobile Internal
+    # Release); supply looks that release up before writing the listing.
+    # changelogs/default.txt stays in git for a later binary upload.
     upload_to_play_store(
       json_key: play_json_key_path,
       package_name: "com.cloud52.cloakly",
@@ -23,7 +27,7 @@ platform :android do
       skip_upload_apk: true,
       skip_upload_aab: true,
       skip_upload_metadata: false,
-      skip_upload_changelogs: false,
+      skip_upload_changelogs: true,
       skip_upload_images: !upload_images,
       skip_upload_screenshots: !upload_images,
       sync_image_upload: false,

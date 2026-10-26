@@ -130,3 +130,12 @@ Get-Content C:\Kate\sideProject\cloakly\apps\mobile\android\key.properties
 隱私權政策 URL、截圖、描述、訂閱商品、審核測試帳號。本 workflow **不會**自動送審，觸發條件也沒有為了公開上架而改變。
 
 第一次公開上架的文案、法律頁、問卷答案與「只上傳 metadata、不送審」的 **Mobile Store Metadata** workflow，見 [store-listing.md](store-listing.md) 與 [store-privacy-answers.md](store-privacy-answers.md)。法律頁網址與支援信箱 `contact@cloud-52.com` 見 [legal/README.md](legal/README.md)。頁面由 GitHub Pages 提供：Settings → Pages → `main` / `/docs`。
+
+## 只上傳商店文案（Mobile Store Metadata）
+
+Actions → **Mobile Store Metadata** → Run workflow。不建置、不送審。重跑前不必先改 Play Console 或 App Store Connect。
+
+- Android 只上傳標題、簡短說明、完整說明。不上傳 AAB，也不上傳「最新動態」。`changelogs/default.txt` 留在 repo，等之後有版本代碼的二進位上傳再用。內部測試軌道要已經有**一個** release（先跑過 Mobile Internal Release），supply 才寫得進文案。
+- iOS 同樣只上傳文案。第一次若還沒有 App 審核資訊，lane 會用 `contact@cloud-52.com` 和一段不含示範帳密的備註建立那筆紀錄，否則 deliver 在讀取審查附件時會崩潰。姓名與電話可略過。若要在建立當下寫入，可選填 GitHub secrets `ASC_REVIEW_FIRST_NAME`、`ASC_REVIEW_LAST_NAME`、`ASC_REVIEW_PHONE`；沒設就不傳。
+- 紀錄一旦存在，之後的 metadata 上傳不會再改它，避免把後台已填的示範帳號勾選清掉。
+- 示範帳號密碼不要放進 git 或 GitHub secrets。送審之前仍要在 App Store Connect 補上聯絡人姓名、電話、示範帳號與審核備註。那是送審條件，不是重跑這個 workflow 的條件。若 Apple 拒絕只含信箱的建立請求，再補那三個 secret，或在後台手動填一次 App 審核資訊，然後重跑。

@@ -61,11 +61,13 @@ GitHub Actions → **Mobile Store Metadata** → Run workflow。
 | `upload_screenshots` | 預設關閉。打開才會一併上傳截圖，仍然不送審 |
 | `ios_app_version` | 可留空，沿用 App Store Connect 目前可編輯的版本。第一次若還沒有可編輯版本，填 `1.0.0` |
 
-使用既有 secret：`ASC_KEY_ID`、`ASC_ISSUER_ID`、`ASC_KEY_P8`、`PLAY_SERVICE_ACCOUNT_JSON`。沒有新增 secret。
+必填 secret 仍是既有的 `ASC_KEY_ID`、`ASC_ISSUER_ID`、`ASC_KEY_P8`、`PLAY_SERVICE_ACCOUNT_JSON`。重跑不必新增。
+
+iOS 第一次若還沒有 App 審核資訊，lane 會建立一筆只含支援信箱 `contact@cloud-52.com` 與備註的紀錄，不含示範帳號或密碼。姓名與電話可略過。要在建立當下寫入才需要選填 secrets：`ASC_REVIEW_FIRST_NAME`、`ASC_REVIEW_LAST_NAME`、`ASC_REVIEW_PHONE`。紀錄已存在之後，這個 lane 不再修改它。
 
 iOS lane 是 `apps/mobile/ios/fastlane` 的 `metadata`：`deliver` 設 `skip_binary_upload`、預設 `skip_screenshots`、`submit_for_review: false`、`automatic_release: false`。不會上傳 IPA，也不會送審。
 
-Android lane 是 `apps/mobile/android/fastlane` 的 `metadata`：`skip_upload_apk`、`skip_upload_aab`、預設略過圖片，並設 `changes_not_sent_for_review: true`。不會上傳 AAB，也不會把這次編輯送審。更新說明若對得上內部測試軌道已有的版本代碼，會寫到那個版本；不會因此建立正式版發行。
+Android lane 是 `apps/mobile/android/fastlane` 的 `metadata`：`skip_upload_apk`、`skip_upload_aab`、`skip_upload_changelogs`、預設略過圖片，並設 `changes_not_sent_for_review: true`。不會上傳 AAB，也不會上傳「最新動態」，也不會把這次編輯送審。標題、簡短說明、完整說明仍會上傳。`changelogs/default.txt` 留在 repo，等之後有版本代碼的二進位上傳再用。內部測試軌道需要已經有一個 release。
 
 **Mobile Internal Release** 的觸發條件沒有改。推上 `main` 不會跑這個文案 workflow。
 

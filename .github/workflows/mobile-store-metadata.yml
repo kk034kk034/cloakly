@@ -54,6 +54,11 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          # Optional. Used only when App Store Connect has no review detail yet.
+          # Leave unset to skip name and phone. Do not put a demo password here.
+          ASC_REVIEW_FIRST_NAME: ${{ secrets.ASC_REVIEW_FIRST_NAME }}
+          ASC_REVIEW_LAST_NAME: ${{ secrets.ASC_REVIEW_LAST_NAME }}
+          ASC_REVIEW_PHONE: ${{ secrets.ASC_REVIEW_PHONE }}
           UPLOAD_SCREENSHOTS: ${{ inputs.upload_screenshots && '1' || '0' }}
           IOS_APP_VERSION: ${{ inputs.ios_app_version }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
