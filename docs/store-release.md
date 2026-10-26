@@ -127,4 +127,6 @@ Get-Content C:\Kate\sideProject\cloakly\apps\mobile\android\key.properties
 
 ## 送審前另補
 
-隱私權政策 URL、截圖、描述、訂閱商品、審核測試帳號。本 workflow **不會**自動送審。
+隱私權政策 URL、截圖、描述、訂閱商品、審核測試帳號。本 workflow **不會**自動送審，觸發條件也沒有為了公開上架而改變。
+
+第一次公開上架的文案、法律頁、問卷答案與「只上傳 metadata、不送審」的 **Mobile Store Metadata** workflow，見 [store-listing.md](store-listing.md) 與 [store-privacy-answers.md](store-privacy-answers.md)。法律頁網址與支援信箱 `contact@cloud-52.com` 見 [legal/README.md](legal/README.md)。頁面由 GitHub Pages 提供：Settings → Pages → `main` / `/docs`。

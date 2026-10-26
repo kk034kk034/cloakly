@@ -1,0 +1,60 @@
+opt_out_usage
+
+default_platform(:android)
+
+platform :android do
+  desc "Upload Play listing metadata only. Does not upload an AAB or send the edit for review."
+  lane :metadata do
+    opt_out_usage
+
+    android_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
+    metadata_dir = File.join(android_dir, "fastlane", "metadata")
+    reject_unfilled_store_copy!(metadata_dir)
+    reject_unfilled_store_copy!(File.expand_path("../../../../../docs/legal", metadata_dir))
+
+    upload_images = ENV["UPLOAD_SCREENSHOTS"] == "1"
+    # Listing text is global. Changelogs attach to an existing version on the
+    # internal track when one exists. Binaries are skipped, and Play is told
+    # not to send this edit for review.
+    upload_to_play_store(
+      json_key: play_json_key_path,
+      package_name: "com.cloud52.cloakly",
+      track: "internal",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: !upload_images,
+      skip_upload_screenshots: !upload_images,
+      sync_image_upload: false,
+      changes_not_sent_for_review: true
+    )
+  end
+end
+
+def reject_unfilled_store_copy!(root)
+  hits = []
+  Dir.glob(File.join(root, "**", "*")).each do |path|
+    next unless File.file?(path)
+    text = File.read(path)
+    hits << path if text.include?("REPLACE_ME")
+  end
+  return if hits.empty?
+
+  UI.user_error!(
+    "Store copy still has REPLACE_ME placeholders. Fill them, then upload.\n#{hits.join("\n")}"
+  )
+end
+
+def play_json_key_path
+  raw = ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON").dup
+  raw.force_encoding("UTF-8")
+  raw = raw.sub(/\A\uFEFF/, "").strip
+  UI.user_error!("PLAY_SERVICE_ACCOUNT_JSON is empty") if raw.empty?
+  UI.user_error!("PLAY_SERVICE_ACCOUNT_JSON does not look like JSON") unless raw.include?("{")
+
+  path = File.join(Dir.tmpdir, "cloakly-play-service-account.json")
+  File.write(path, raw)
+  File.chmod(0o600, path)
+  path
+end

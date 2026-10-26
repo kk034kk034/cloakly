@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloakly Privacy Policy</title>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: "Iowan Old Style", Georgia, sans-serif; line-height: 1.65; max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; color: #1c1917; }
+  h1 { font-size: 1.7rem; line-height: 1.3; }
+  h2 { font-size: 1.15rem; margin-top: 2rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { border: 1px solid #d6d3d1; padding: 0.45rem 0.55rem; vertical-align: top; text-align: left; }
+  th { background: #f5f5f4; }
+  code { font-family: ui-monospace, monospace; font-size: 0.9em; }
+  a { color: #9a3412; }
+</style>
+</head>
+<body>
+<h1>Cloakly mobile Privacy Policy</h1>
+<p>Effective date: 2026-10-26</p>
+<p>This policy covers the Cloakly mobile apps on the App Store and Google Play (iOS and Android, package id <code>com.cloud52.cloakly</code>). The desktop app, when you supply your own API keys, sends data to the services you choose and is outside this policy.</p>
+<p>Other language: <a href="privacy.zh-TW.html">繁體中文</a>. Terms: <a href="terms.en.html">English</a>. Account deletion: <a href="delete-account.en.html">How to delete an account</a>.</p>
+
+<h2>Who processes your data</h2>
+<p>Operator: Cloud52<br>
+Address: Taiwan<br>
+Email: <a href="mailto:contact@cloud-52.com">contact@cloud-52.com</a></p>
+<p>"We" means Cloud52. The backend is Supabase. Account and usage data are stored with our cloud provider Supabase, in data centers it operates. The project configuration in this repository does not record a region, so this policy does not name one.</p>
+
+<h2>What the product is, and consent to record</h2>
+<p>Cloakly is an on-screen meeting assistant. It is not a hidden window and it is not a tool for cheating on interviews or exams. The microphone is used only after you start a meeting.</p>
+<p>Before you record, you must tell the other participants and get their agreement, and you must follow the law that applies to the conversation. We do not collect that consent for you and we do not check that you have it.</p>
+
+<h2>Data we process</h2>
+<table>
+  <thead>
+    <tr><th>Data</th><th>When</th><th>Where it goes</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Email and password</td>
+      <td>Sign-up, sign-in, and the password check before account deletion</td>
+      <td>Supabase Auth stores the email and session. Cloakly's own tables have no password column. After sign-in the email is also set on the RevenueCat customer.</td>
+      <td>Account, confirmation email, subscription identity</td>
+    </tr>
+    <tr>
+      <td>User ID</td>
+      <td>Created by Supabase at sign-up</td>
+      <td>Supabase. The same UUID is the RevenueCat app user id. When a short-lived transcription key is created, <code>user id:meeting session id</code> is sent to Soniox as <code>client_reference_id</code>.</td>
+      <td>Account, quota, and subscription</td>
+    </tr>
+    <tr>
+      <td>Device ID</td>
+      <td>Free quota and meeting start</td>
+      <td>iOS reads <code>identifierForVendor</code>. Android reads <code>Settings.Secure.ANDROID_ID</code>. The app prefixes <code>ios:</code> or <code>android:</code> and sends that string to our backend. <code>free_device_claims</code> stores the SHA-256 of that string with the user id and UTC date, not the raw value.</td>
+      <td>One phone can spend the free allowance on only one account per UTC day. Not used for ads or cross-app tracking.</td>
+    </tr>
+    <tr>
+      <td>Microphone audio</td>
+      <td>After you start a meeting</td>
+      <td>A recording file stays in the app documents directory. PCM audio is streamed to Soniox at <code>wss://stt-rt.soniox.com/transcribe-websocket</code> (model <code>stt-rt-v5</code>). The mobile app does not upload the audio file into Cloakly's database and does not send audio to OpenAI.</td>
+      <td>Live transcript and speaker labels</td>
+    </tr>
+    <tr>
+      <td>Transcript, notes, answer suggestions, minutes</td>
+      <td>During and after the meeting</td>
+      <td>SQLite on the phone (<code>cloakly.db</code>). When you use answer suggestions, minutes, project Q&amp;A, or plan suggestions, the related text is sent to our backend and then to OpenAI.</td>
+      <td>Show the content and produce the AI result. The backend does not insert transcript text into Postgres.</td>
+    </tr>
+    <tr>
+      <td>Excerpts from project files, glossary terms, project background</td>
+      <td>When you pick a folder or edit those fields</td>
+      <td>The index stays in on-device preferences. Excerpts are sent only for Q&amp;A, planning, suggestions, or minutes. Glossary terms are included in the Soniox context.</td>
+      <td>Keep answers and transcription close to the project. Images and charts are not read.</td>
+    </tr>
+    <tr>
+      <td>Meeting sessions and usage counts</td>
+      <td>Start, finish, and AI calls</td>
+      <td>Supabase <code>meeting_sessions</code>, <code>usage_ledger</code>, and <code>free_ai_usage</code>. These rows store plan, seconds, and counts, not the transcript.</td>
+      <td>Free quota and Pro entitlement</td>
+    </tr>
+    <tr>
+      <td>SHA-256 of the email and that day's free usage</td>
+      <td>Account deletion, or a new sign-up with the same email on the same UTC day</td>
+      <td><code>free_quota_carryovers</code> and <code>free_ai_carryovers</code>. The value is a hash of the trimmed, lowercased email, not the email itself.</td>
+      <td>Stop a same-day delete-and-re-register from resetting the free allowance</td>
+    </tr>
+    <tr>
+      <td>Subscription status</td>
+      <td>Purchase, restore, and store notifications</td>
+      <td>RevenueCat, and our <code>entitlements</code> row (product id, status, expiry). <code>webhook_events</code> may store the RevenueCat event payload. We do not receive card numbers.</td>
+      <td>Decide whether the <code>pro</code> entitlement is active</td>
+    </tr>
+  </tbody>
+</table>
+<p>Cloakly's own code does not read location, contacts, photos, or the camera, and it does not include an advertising identifier, analytics SDK, or crash-reporting SDK. The iOS file-picker package still compiles photo, camera, and music-picker code into the app, so the system requires the matching purpose strings. This app only asks you to choose a folder and does not open those pickers. If a meeting happens to include health or other sensitive topics, that is user content you recorded. There is no separate health feature.</p>
+<p>iOS file sharing is on. After the device is unlocked, the Files app can show the app documents folder, which may contain recordings and <code>cloakly.db</code>. That lets you take your own files out. It is not an upload to us.</p>
+
+<h2>Free allowance as implemented</h2>
+<p>A free account can transcribe up to 1,800 seconds (30 minutes) per UTC day, plus 5 project questions and 5 plan suggestions. Cloakly Pro does not consume those daily caps. Every live transcription session, including Pro, still stops at 30 minutes. There is also a shared daily pool for all free accounts. That is an operations limit, not an advertising setting.</p>
+
+<h2>Third parties</h2>
+<p>These services process data to provide the product. Re-read their current terms before you submit the app, and update this page if they differ.</p>
+<ul>
+  <li><strong>Supabase</strong> hosts auth, the database, and Edge Functions. Functions handle text in memory and return a result. They do not write the transcript into a table. On failure, the code may log the provider error body. Those logs are retained for a limited period. The number of days follows the Supabase plan and settings then in effect, and this policy does not state a specific number. Connection logs may include IP addresses. Our tables have no IP column, and the app does not turn IP addresses into a location.</li>
+  <li><strong>Soniox</strong> (<a href="https://soniox.com/policies/privacy-policy">privacy policy</a>, <a href="https://soniox.com/docs/security-and-privacy">security notes</a>) performs live transcription. The backend exchanges its long-lived key for a single-use key of about 60 seconds at <code>api.soniox.com</code>. The phone then opens the WebSocket. Public Soniox documents read on 2026-10-26 say real-time requests are processed transiently, customer content is not used to train models, and operational logs do not contain raw audio or transcripts, though usage records can include <code>client_reference_id</code>. Cloakly does not call the async API that stores audio files. If Soniox's latest terms differ, those terms win and this page should be updated.</li>
+  <li><strong>OpenAI</strong> is called only when you use answer suggestions, minutes, project Q&amp;A, or plan suggestions. The backend calls <code>https://api.openai.com/v1/chat/completions</code>. The default model is <code>gpt-4o-mini</code>, overridable with the server environment variable <code>OPENAI_CHAT_MODEL</code>. The payload is text, not audio. Cloakly does not send content to any other large language model. OpenAI's public <a href="https://developers.openai.com/api/docs/guides/your-data">API data controls</a> say that data sent to the API is not used to train or improve OpenAI models by default unless the customer explicitly opts in, and that abuse-monitoring logs may include prompts and responses and are retained for up to 30 days for this endpoint, or longer when the law requires it or when that is reasonably necessary to prevent harm. This code does not send a training opt-in and does not request zero data retention. If OpenAI's policy or the project's settings differ, that current policy controls.</li>
+  <li><strong>RevenueCat</strong> (<a href="https://www.revenuecat.com/privacy">privacy policy</a>) handles purchases, restores, and entitlements. We set the app user id and the email. Account deletion tries to delete the RevenueCat subscriber. If the secret is missing or the call fails, the Supabase user is still deleted and the RevenueCat profile may remain.</li>
+  <li><strong>Apple and Google</strong> distribute the app, take payment, manage subscriptions, and may show us crash reports you choose to share. They process the card number. We do not.</li>
+</ul>
+<p>We do not sell personal information and we do not use this data for cross-app advertising.</p>
+
+<h2>Retention and deletion</h2>
+<ul>
+  <li>Meetings, transcripts, notes, the project index, and recordings stay on the phone until you delete the app or clear its storage. In-app account deletion does <strong>not</strong> erase that on-device data.</li>
+  <li>Account deletion asks for your password again and calls <code>delete-account</code>. The function checks the email, tries to delete the RevenueCat subscriber, stores that day's free usage under an email hash, deletes webhook events whose payload contains your user id, then deletes the Supabase user. Account tables cascade from that user.</li>
+  <li><code>free_device_claims</code> has no foreign key to the user. Account deletion does <strong>not</strong> remove those rows. What remains is the SHA-256 of the device id, the UTC date, and the id of the deleted user.</li>
+  <li>Email-hash rows for a past UTC date are deleted the next time any account is deleted or registered. The current day's row stays until a deletion or registration after that date.</li>
+  <li>Deleting the Cloakly account does not cancel or refund the store subscription. Cancel it in the App Store or Google Play.</li>
+  <li>Backups and logs at Soniox, OpenAI, RevenueCat, Supabase, and the stores are not deleted by a switch in this app. Deletion reaches only what the function above does.</li>
+</ul>
+<p>Steps: <a href="delete-account.en.html">Delete an account</a>.</p>
+
+<h2>Security</h2>
+<p>Connections to Supabase, Soniox, OpenAI, and RevenueCat use TLS (HTTPS or WSS). The on-device SQLite database is not encrypted by the app. Use a device passcode. We do not promise that transmission or storage cannot be compromised.</p>
+
+<h2>Children</h2>
+<p>The service is not directed at children. You must be at least 13 years old to create an account. We do not knowingly collect an account from someone under 13.</p>
+
+<h2>International transfers</h2>
+<p>Supabase, Soniox, OpenAI, RevenueCat, Apple, and Google may process data outside Taiwan and outside your country, in data centers those providers operate. This policy does not name a Supabase region, because the project configuration in this repository does not record one. Where the other services keep data follows their current documentation.</p>
+
+<h2>Your requests</h2>
+<p>You can delete the account in the app. For access, correction, or deletion when you cannot sign in, email <a href="mailto:contact@cloud-52.com">contact@cloud-52.com</a> from the account address. There is no transcript archive on the server to export; the transcript is on your phone. There is no separate web portal for privacy requests.</p>
+
+<h2>Changes</h2>
+<p>If the processing changes in a material way, we will update this page and the effective date. Continued use is of the version then published.</p>
+
+<h2>Contact</h2>
+<p>Cloud52<br><a href="mailto:contact@cloud-52.com">contact@cloud-52.com</a><br>Taiwan</p>
+<p>© 2026 Cloud52</p>
+</body>
+</html>

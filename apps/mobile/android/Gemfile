@@ -1,0 +1,4 @@
+# Matches apps/mobile/ios/Gemfile so metadata upload uses the same fastlane line.
+source "https://rubygems.org"
+
+gem "fastlane", "~> 2.226"

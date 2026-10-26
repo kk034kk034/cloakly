@@ -1,0 +1,33 @@
+Cloakly is an on-screen meeting assistant for project work. Transcripts, notes, and suggestions stay visible inside Cloakly. It is not a hidden window, a concealed overlay, or a tool for cheating on interviews or exams.
+
+Record only after everyone in the meeting has agreed. You must tell participants before you record, and you must follow the law that applies to that conversation.
+
+Features
+• Live transcript from the microphone, with speaker labels on the same recording. Labels are model guesses, not verified names.
+• Notes while the meeting is still going.
+• Answer suggestions when a question is detected, after a pause, or when you ask. Suggestions appear in Cloakly and are not typed into other apps.
+• Minutes when you stop: summary, decisions, and action items from the transcript and your notes.
+• Project Q&A. Choose a folder. Answers include the source passage, page or line, and meeting time. Questions about current status prefer recent material.
+• A phase board in a Gantt view and a kanban. Add work yourself or review AI suggestions for title, dates, owner, and status. Archive a phase when it is finished.
+• Token estimates for project Q&A, answer suggestions, minutes, and plan suggestions.
+
+iPhone audio
+Cloakly records the microphone. It cannot take audio from inside Teams, Meet, Zoom, or other apps. Other people are included only when the microphone can hear them, such as on speakerphone.
+
+Account and free use
+Sign in with email and password and confirm the email. A free account can transcribe up to 30 minutes total per UTC day, and can use project Q&A and plan suggestions up to 5 times each per UTC day. One phone can use that free allowance on only one account per UTC day. Cloakly Pro removes those daily free caps. Each live transcription session, including Pro, still ends at 30 minutes. Start another session if you need more. Delete the Cloakly account in the app. Deletion does not cancel or refund the App Store subscription, and it does not erase meetings stored on the device.
+
+Cloakly Pro auto-renewable subscription
+Prices below are US dollars. The App Store shows your region's price before you pay.
+
+• Monthly — USD 19.99 per month (1 month).
+• Yearly — USD 199.99 per year (1 year).
+
+Payment is charged to your Apple ID when you confirm the purchase. The subscription renews automatically unless you turn off auto-renew at least 24 hours before the current period ends. Your account is charged for renewal within 24 hours before the period ends. After purchase, manage or cancel in Settings > Apple ID > Subscriptions. If a free trial is offered, any unused portion is forfeited when you buy a subscription, where Apple applies that rule.
+
+Privacy Policy: https://kk034kk034.github.io/cloakly/legal/privacy.en.html
+Terms of Use (EULA): https://kk034kk034.github.io/cloakly/legal/terms.en.html
+Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Support: https://kk034kk034.github.io/cloakly/legal/index.html
+Support email: contact@cloud-52.com
+Account deletion: https://kk034kk034.github.io/cloakly/legal/delete-account.en.html
