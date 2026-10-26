@@ -101,7 +101,9 @@ App 沒有暴力、性、毒品、賭博、恐怖、粗話素材，也沒有內�
 
 把帳號建在正式 Supabase，信箱要已確認。建議給這個帳號 Cloakly Pro（沙盒或授權測試訂閱），避免審查員撞上每日 30 分鐘或各 5 次的免費上限。
 
-帳號、密碼與審查聯絡人只填在 App Store Connect 的審核資訊，以及 Play Console 的應用程式存取權。這是公開 repo，不要把密碼或示範帳號寫進 git，也不要寫進 fastlane metadata。此文件不預留可 commit 的帳密欄位。
+示範帳號與密碼只填在 App Store Connect 的審核資訊，以及 Play Console 的應用程式存取權。這是公開 repo，不要把密碼或示範帳號寫進 git、GitHub secrets，或 fastlane metadata。此文件不預留可 commit 的帳密欄位。
+
+Metadata workflow 只在 App Store Connect 還沒有審核資訊時，用公開支援信箱 `contact@cloud-52.com` 和一段不含帳密的備註建立那筆紀錄。姓名、電話與示範帳號仍在送審前於後台補上。紀錄已存在之後，workflow 不會覆寫它。
 
 可直接貼上的英文說明（在後台把示範信箱與密碼填在說明上方的專用欄位，不要寫進這段文字）：
 

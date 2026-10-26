@@ -152,6 +152,16 @@ platform :ios do
     }
     version = ENV["IOS_APP_VERSION"].to_s.strip
     params[:app_version] = version unless version.empty?
+    # deliver always fetches the App Store review detail while uploading
+    # metadata. On the first version that record does not exist, and
+    # spaceship raises "No data" from review_attachment_file. Passing
+    # app_review_information makes deliver create the record first.
+    # Once it exists, omit the hash so a later run does not set
+    # demoAccountRequired back to false or replace console notes.
+    if app_store_review_detail_missing?(version)
+      params[:app_review_information] = app_store_review_contact
+      UI.important("Creating App Store review contact with the support email. No demo password is sent.")
+    end
     deliver(params)
   end
 end
@@ -220,6 +230,63 @@ def install_distribution_certificate!(api_key:, keychain_path:, ios_dir:)
     Base64.strict_encode64(File.binread(p12_path))
   )
   UI.important("Exported dist-ci.p12 — set APPLE_CERT_P12_BASE64 + APPLE_CERT_PASSWORD=cloakly-ci-cert for stable CI")
+end
+
+# Contact and notes only. Never include a demo user or password.
+# Name and phone are optional; App Store Connect accepts a review detail
+# without them. They are still required before a human submits the version.
+def app_store_review_contact
+  info = {
+    email_address: "contact@cloud-52.com",
+    notes: <<~NOTES.strip
+      Cloakly is an on-screen meeting assistant. It is not a hidden window.
+      Sign-in is required. Enter the demo account in App Store Connect.
+      The password is not stored in the repository.
+      Support: contact@cloud-52.com.
+    NOTES
+  }
+  {
+    first_name: "ASC_REVIEW_FIRST_NAME",
+    last_name: "ASC_REVIEW_LAST_NAME",
+    phone_number: "ASC_REVIEW_PHONE"
+  }.each do |key, env_name|
+    value = ENV[env_name].to_s.strip
+    info[key] = value unless value.empty?
+  end
+  info
+end
+
+def app_store_review_detail_missing?(version_string)
+  app = Spaceship::ConnectAPI::App.find("com.cloud52.cloakly")
+  UI.user_error!("Could not find App Store app com.cloud52.cloakly") if app.nil?
+
+  version = if version_string.to_s.strip.empty?
+              app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+            else
+              app.get_app_store_versions(
+                filter: {
+                  platform: Spaceship::ConnectAPI::Platform::IOS,
+                  versionString: version_string.strip
+                },
+                includes: nil
+              ).first
+            end
+  return true if version.nil?
+
+  begin
+    version.fetch_app_store_review_detail
+    false
+  rescue StandardError => error
+    message = error.message.to_s
+    missing = ["No data", "NOT_FOUND", "does not exist"].any? { |needle| message.include?(needle) }
+    if missing
+      UI.important("No App Store review detail yet (#{message}).")
+      true
+    else
+      UI.important("Could not check App Store review detail (#{message}). Leaving existing review contact information unchanged.")
+      false
+    end
+  end
 end
 
 def reject_unfilled_store_copy!(root)
