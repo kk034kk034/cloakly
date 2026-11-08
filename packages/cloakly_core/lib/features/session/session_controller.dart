@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cloakly_core/core/constants.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/services/audio/aac_encoder.dart';
 import 'package:cloakly_core/services/audio/audio_capture_service.dart';
@@ -166,10 +167,12 @@ class SessionController extends Notifier<SessionState> {
   Future<void>? _projectContextFuture;
   Completer<void>? _cancelStart;
   final List<Uint8List> _pendingPcm = [];
+  int _pendingPcmBytes = 0;
   bool _forwardMicAudio = false;
   DateTime? _captureStartedAt;
 
   static const _connectBudget = Duration(seconds: 22);
+  static const _pendingPcmCapBytes = pcmBytesPerSecond * 22;
 
   @override
   SessionState build() {
@@ -197,6 +200,7 @@ class SessionController extends Notifier<SessionState> {
     _starting = true;
     _cancelStart = Completer<void>();
     _pendingPcm.clear();
+    _pendingPcmBytes = 0;
     _forwardMicAudio = false;
     _captureStartedAt = null;
     state = state.copyWith(
@@ -457,14 +461,25 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> _confirmMicrophone() async {
+    final permission = _audio.hasPermission().then<Object?>(
+      (allowed) => allowed,
+      onError: (Object error, StackTrace _) => error,
+    );
     final result = await Future.any<Object?>([
-      _audio.hasPermission().then<Object?>((allowed) => allowed),
+      permission,
       if (_cancelStart != null)
         _cancelStart!.future.then<Object?>(
           (_) => const SessionStartCancelled(),
         ),
     ]);
-    if (result is SessionStartCancelled) throw result;
+    if (result is SessionStartCancelled ||
+        (_cancelStart?.isCompleted ?? false)) {
+      unawaited(
+        permission.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+      );
+      throw const SessionStartCancelled();
+    }
+    if (result is Object && result is! bool) throw result;
     if (result != true) throw StateError('沒有麥克風權限');
   }
 
@@ -481,10 +496,19 @@ class SessionController extends Notifier<SessionState> {
       return;
     }
     final winner = await Future.any<Object?>([
-      pending.then<Object?>((_) => null),
+      pending.then<Object?>(
+        (_) => null,
+        onError: (Object error, StackTrace _) => error,
+      ),
       cancel.future.then<Object?>((_) => const SessionStartCancelled()),
     ]);
-    if (winner is SessionStartCancelled) throw winner;
+    if (winner is SessionStartCancelled || cancel.isCompleted) {
+      unawaited(
+        pending.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+      );
+      throw const SessionStartCancelled();
+    }
+    if (winner != null) throw winner;
   }
 
   int _elapsedSinceCapture() {
@@ -499,12 +523,18 @@ class SessionController extends Notifier<SessionState> {
       _micStt?.addAudio(pcm);
       return;
     }
-    _pendingPcm.add(Uint8List.fromList(pcm));
+    final copy = Uint8List.fromList(pcm);
+    _pendingPcm.add(copy);
+    _pendingPcmBytes += copy.length;
+    while (_pendingPcmBytes > _pendingPcmCapBytes && _pendingPcm.isNotEmpty) {
+      _pendingPcmBytes -= _pendingPcm.removeAt(0).length;
+    }
   }
 
   void _flushPendingAudio() {
     final pending = List<Uint8List>.of(_pendingPcm);
     _pendingPcm.clear();
+    _pendingPcmBytes = 0;
     _forwardMicAudio = true;
     final stt = _micStt;
     if (stt == null) return;
@@ -781,6 +811,7 @@ class SessionController extends Notifier<SessionState> {
     _ticker?.cancel();
     _forwardMicAudio = false;
     _pendingPcm.clear();
+    _pendingPcmBytes = 0;
     _captureStartedAt = null;
     await _systemPcmSub?.cancel();
     _systemPcmSub = null;

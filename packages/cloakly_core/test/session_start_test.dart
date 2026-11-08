@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cloakly_core/core/constants.dart';
 import 'package:cloakly_core/data/db/app_database.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
@@ -27,11 +28,12 @@ class _Probe {
 }
 
 class _Audio implements MeetingAudioCapture {
-  _Audio(this.probe, {this.allow = true, this.chunk});
+  _Audio(this.probe, {this.allow = true, this.chunk, this.chunks});
 
   final _Probe probe;
   final bool allow;
   final Uint8List? chunk;
+  final List<Uint8List>? chunks;
 
   @override
   Future<bool> hasPermission() async {
@@ -46,7 +48,13 @@ class _Audio implements MeetingAudioCapture {
     required void Function() onUtteranceEnd,
   }) async {
     probe.log.add('record');
-    if (chunk != null) onPcm(chunk!);
+    if (chunks != null) {
+      for (final piece in chunks!) {
+        onPcm(piece);
+      }
+    } else if (chunk != null) {
+      onPcm(chunk!);
+    }
   }
 
   @override
@@ -197,10 +205,7 @@ Future<ProviderContainer> _container({
   _Ai? ai,
 }) async {
   final database = await AppDatabase.openInMemory();
-  final root = Directory(
-    '/Users/server/src/cloakly-test-tmp/${DateTime.now().microsecondsSinceEpoch}',
-  );
-  root.createSync(recursive: true);
+  final root = Directory.systemTemp.createTempSync('cloakly-session-start');
   bootSettings = AppSettings.defaults().copyWith(captureSystemAudio: false);
   final container = ProviderContainer(
     overrides: [
@@ -310,6 +315,18 @@ void main() {
     await Future.wait([first, second]);
     expect(probe.starts, 1);
     expect(container.read(sessionControllerProvider).phase, SessionPhase.live);
+  });
+
+  test('startup buffer keeps at most the connect budget of audio', () async {
+    final probe = _Probe()..startDelay = const Duration(milliseconds: 20);
+    final huge = Uint8List(pcmBytesPerSecond * 22 + 8);
+    final kept = Uint8List.fromList(const [9, 8, 7, 6]);
+    final container = await _container(
+      probe: probe,
+      audio: _Audio(probe, chunks: [huge, kept]),
+    );
+    await container.read(sessionControllerProvider.notifier).start(title: '');
+    expect(probe.audioBytes, kept.length);
   });
 
   test('project context load does not block the live session', () async {

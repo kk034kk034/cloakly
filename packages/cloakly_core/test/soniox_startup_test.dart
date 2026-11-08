@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/services/stt/soniox_stt.dart';
@@ -20,6 +21,31 @@ void main() {
     final watch = Stopwatch()..start();
     await expectLater(stt.start(), throwsA(isA<StateError>()));
     expect(watch.elapsed, lessThan(const Duration(seconds: 2)));
+  });
+
+  test('stopping a connect stays a cancellation', () async {
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close());
+    server.listen((socket) {});
+    final stt = SonioxStt(
+      settings,
+      lane: SttLane.room,
+      endpoint: 'ws://127.0.0.1:${server.port}',
+      connectTimeout: const Duration(milliseconds: 400),
+    );
+    final pending = stt.start();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await stt.stop();
+    await expectLater(
+      pending,
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          '串流已取消',
+        ),
+      ),
+    );
   });
 
   test('websocket connect failure is bounded', () async {

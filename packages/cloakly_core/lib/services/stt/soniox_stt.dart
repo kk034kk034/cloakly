@@ -45,7 +45,9 @@ class SonioxStt implements SttEngine {
     this.apiKeyProvider,
     this.endpoint = 'wss://stt-rt.soniox.com/transcribe-websocket',
     this.finishTimeout = const Duration(seconds: 30),
-    this.authorizationTimeout = const Duration(seconds: 10),
+    // The hosted coordinator uses 8s per attempt and may retry a 500/502 once.
+    // A 10s cap cancels that retry. The session still stops the whole start at 22s.
+    this.authorizationTimeout = const Duration(seconds: 17),
     this.connectTimeout = const Duration(seconds: 12),
   }) : _transcript = StreamingTranscript(
          lane: lane,
@@ -122,11 +124,13 @@ class SonioxStt implements SttEngine {
       _clock.stop();
       await _socket?.close();
       _socket = null;
+      if (_stopRequested) throw StateError('串流已取消');
       throw StateError('無法連線至 Soniox，請檢查網路與設定。');
     } catch (_) {
       _clock.stop();
       await _socket?.close();
       _socket = null;
+      if (_stopRequested) throw StateError('串流已取消');
       throw StateError('無法連線至 Soniox，請檢查網路與設定。');
     }
   }
