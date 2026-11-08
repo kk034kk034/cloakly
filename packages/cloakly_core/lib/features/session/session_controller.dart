@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:cloakly_core/core/constants.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/services/audio/aac_encoder.dart';
 import 'package:cloakly_core/services/audio/audio_capture_service.dart';
@@ -22,6 +24,22 @@ final sessionControllerProvider =
 
 enum SessionPhase { idle, live, paused, wrappingUp, done }
 
+enum SessionStartupStep { none, preparing, microphone, recording, connecting }
+
+extension SessionStartupStepLabel on SessionStartupStep {
+  String get label => switch (this) {
+    SessionStartupStep.none => '',
+    SessionStartupStep.preparing => '正在準備會議',
+    SessionStartupStep.microphone => '正在確認麥克風',
+    SessionStartupStep.recording => '正在啟動錄音',
+    SessionStartupStep.connecting => '正在連線轉寫',
+  };
+}
+
+class SessionStartCancelled implements Exception {
+  const SessionStartCancelled();
+}
+
 class SessionState {
   const SessionState({
     required this.phase,
@@ -39,6 +57,7 @@ class SessionState {
     this.systemAudioHint,
     this.projectName,
     this.startedAt,
+    this.startupStep = SessionStartupStep.none,
   });
 
   final SessionPhase phase;
@@ -56,6 +75,7 @@ class SessionState {
   final String? systemAudioHint;
   final String? projectName;
   final DateTime? startedAt;
+  final SessionStartupStep startupStep;
 
   Suggestion? get latestSuggestion =>
       suggestions.isEmpty ? null : suggestions.last;
@@ -76,6 +96,7 @@ class SessionState {
     systemAudioHint: null,
     projectName: null,
     startedAt: null,
+    startupStep: SessionStartupStep.none,
   );
 
   SessionState copyWith({
@@ -94,6 +115,7 @@ class SessionState {
     String? systemAudioHint,
     String? projectName,
     DateTime? startedAt,
+    SessionStartupStep? startupStep,
     bool clearError = false,
     bool clearPartial = false,
   }) {
@@ -113,13 +135,14 @@ class SessionState {
       systemAudioHint: systemAudioHint ?? this.systemAudioHint,
       projectName: projectName ?? this.projectName,
       startedAt: startedAt ?? this.startedAt,
+      startupStep: startupStep ?? this.startupStep,
     );
   }
 }
 
 class SessionController extends Notifier<SessionState> {
   final _uuid = const Uuid();
-  final _audio = AudioCaptureService();
+  late MeetingAudioCapture _audio;
   final _systemAudio = SystemAudioCapture();
   final _systemWav = PcmWavWriter();
   final _systemVad = PcmVad();
@@ -141,14 +164,31 @@ class SessionController extends Notifier<SessionState> {
   bool _llmBusy = false;
   bool _starting = false;
   String _projectContext = '';
+  Future<void>? _projectContextFuture;
+  Completer<void>? _cancelStart;
+  final List<Uint8List> _pendingPcm = [];
+  int _pendingPcmBytes = 0;
+  bool _forwardMicAudio = false;
+  DateTime? _captureStartedAt;
+
+  static const _connectBudget = Duration(seconds: 22);
+  static const _pendingPcmCapBytes = pcmBytesPerSecond * 22;
 
   @override
   SessionState build() {
+    _audio = ref.read(meetingAudioCaptureProvider);
     ref.onDispose(() {
       _disposed = true;
       unawaited(_disposeCapture());
     });
     return SessionState.idle();
+  }
+
+  void cancelStart() {
+    final cancel = _cancelStart;
+    if (!_starting || cancel == null || cancel.isCompleted) return;
+    cancel.complete();
+    ref.read(abandonSessionAuthorizationProvider)?.call();
   }
 
   Future<void> start({required String title}) async {
@@ -158,7 +198,16 @@ class SessionController extends Notifier<SessionState> {
       return;
     }
     _starting = true;
-    state = state.copyWith(busyHint: true, clearError: true);
+    _cancelStart = Completer<void>();
+    _pendingPcm.clear();
+    _pendingPcmBytes = 0;
+    _forwardMicAudio = false;
+    _captureStartedAt = null;
+    state = state.copyWith(
+      busyHint: true,
+      clearError: true,
+      startupStep: SessionStartupStep.preparing,
+    );
 
     final project = ref.read(projectsProvider).valueOrNull?.active;
     final settings = ref
@@ -176,45 +225,62 @@ class SessionController extends Notifier<SessionState> {
     if (!isDemo && !hasStt) {
       state = state.copyWith(
         busyHint: false,
+        startupStep: SessionStartupStep.none,
         error: '請先在設定填入 Soniox API 金鑰，才能開始多人串流轉寫。',
       );
       _starting = false;
+      _cancelStart = null;
       return;
     }
 
     String? meetingId;
     try {
+      if (!isDemo) {
+        state = state.copyWith(startupStep: SessionStartupStep.microphone);
+        await _confirmMicrophone();
+      }
+
       final repo = ref.read(meetingRepositoryProvider);
       _projectId = project?.id;
       final background = (project?.personalContext.trim().isNotEmpty ?? false)
           ? project!.personalContext
           : settings.personalContext;
-      _projectContext = await ref
-          .read(projectsProvider.notifier)
-          .contextBlock(projectId: _projectId, personalContext: background);
+      _beginProjectContext(personalContext: background);
       final id = _uuid.v4();
       meetingId = id;
-      final now = DateTime.now();
+      final requestedAt = DateTime.now();
       final meeting = Meeting(
         id: id,
         title: title.trim().isEmpty
-            ? DateFormat('M月d日 HH:mm 會議').format(now)
+            ? DateFormat('M月d日 HH:mm 會議').format(requestedAt)
             : title.trim(),
-        startedAt: now,
+        startedAt: requestedAt,
         status: MeetingStatus.recording,
         projectId: _projectId,
       );
       await repo.upsertMeeting(meeting);
+      _throwIfCancelled();
 
       final audioDir = (await repo.audioDirFor(_projectId)).path;
       _audioPath = p.join(audioDir, '$id.wav');
       _systemAudioPath = p.join(audioDir, '$id-system.tmp.wav');
       _micTempPath = p.join(audioDir, '$id-mic.tmp.wav');
-
-      _startedAt = now;
       _livePartialIds.clear();
-      await WakelockPlus.enable();
 
+      if (!isDemo) {
+        state = state.copyWith(startupStep: SessionStartupStep.recording);
+        await _enableWakelock();
+        await RecordingKeepAlive.start();
+        _captureStartedAt = DateTime.now();
+        await _audio.start(
+          wavPath: _micTempPath!,
+          onPcm: _onMicPcm,
+          onUtteranceEnd: () => unawaited(_micStt?.flush()),
+        );
+        _throwIfCancelled();
+      }
+
+      state = state.copyWith(startupStep: SessionStartupStep.connecting);
       var systemOn = false;
       String? systemHint;
       final wantSystem = settings.captureSystemAudio && !isDemo;
@@ -226,7 +292,7 @@ class SessionController extends Notifier<SessionState> {
             _systemStt = sttFactory(
               settings,
               lane: SttLane.remote,
-              elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
+              elapsedMs: _elapsedSinceCapture,
             );
             _systemSttSub = _systemStt!.events.listen(
               _onTranscript,
@@ -235,7 +301,7 @@ class SessionController extends Notifier<SessionState> {
                 state = state.copyWith(error: error.toString());
               },
             );
-            await _systemStt!.start();
+            await _awaitOrCancel(_systemStt!.start());
             _systemVad.reset();
             await _systemWav.open(_systemAudioPath!);
             _systemPcmSub = _systemAudio.start().listen((pcm) {
@@ -249,6 +315,7 @@ class SessionController extends Notifier<SessionState> {
             });
             systemOn = true;
           } catch (error) {
+            if (error is SessionStartCancelled) rethrow;
             await _systemPcmSub?.cancel();
             _systemPcmSub = null;
             await _systemStt?.stop();
@@ -267,7 +334,7 @@ class SessionController extends Notifier<SessionState> {
       _micStt = sttFactory(
         settings,
         lane: systemOn ? SttLane.self : SttLane.room,
-        elapsedMs: () => DateTime.now().difference(now).inMilliseconds,
+        elapsedMs: _elapsedSinceCapture,
       );
       _micSttSub = _micStt!.events.listen(
         _onTranscript,
@@ -276,26 +343,37 @@ class SessionController extends Notifier<SessionState> {
           state = state.copyWith(error: error.toString());
         },
       );
-      await _micStt!.start();
-
-      if (!isDemo) {
-        final allowed = await _audio.hasPermission();
-        if (!allowed) {
-          throw StateError('沒有麥克風權限');
-        }
-        await RecordingKeepAlive.start();
-        await _audio.start(
-          wavPath: _micTempPath!,
-          onPcm: (pcm) => _micStt?.addAudio(pcm),
-          onUtteranceEnd: () => unawaited(_micStt?.flush()),
+      try {
+        await _awaitOrCancel(
+          _micStt!.start().timeout(
+            _connectBudget,
+            onTimeout: () {
+              ref.read(abandonSessionAuthorizationProvider)?.call();
+              throw TimeoutException('連線轉寫逾時');
+            },
+          ),
         );
+      } on TimeoutException {
+        throw StateError('連線轉寫逾時，請再試一次。');
       }
+      _flushPendingAudio();
 
+      final liveAt = DateTime.now();
+      _startedAt = liveAt;
       _ticker?.cancel();
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (_startedAt == null || state.phase != SessionPhase.live) return;
         state = state.copyWith(elapsed: DateTime.now().difference(_startedAt!));
       });
+      await repo.upsertMeeting(
+        Meeting(
+          id: id,
+          title: meeting.title,
+          startedAt: liveAt,
+          status: MeetingStatus.recording,
+          projectId: _projectId,
+        ),
+      );
 
       // Only mark live after STT + mic are actually ready so the UI cannot
       // navigate into a broken session on a second tap.
@@ -318,28 +396,157 @@ class SessionController extends Notifier<SessionState> {
           fallback: systemHint,
         ),
         projectName: project?.name,
-        startedAt: now,
+        startedAt: liveAt,
+        startupStep: SessionStartupStep.none,
       );
     } catch (error) {
+      ref.read(abandonSessionAuthorizationProvider)?.call();
       await _disposeCapture();
       final reportUsage = ref.read(sessionUsageReporterProvider);
       if (reportUsage != null) {
         try {
-          await reportUsage(durationSeconds: 0);
+          await reportUsage(
+            durationSeconds: 0,
+          ).timeout(const Duration(seconds: 8));
         } catch (_) {
-          // The next reservation also cleans up abandoned sessions.
+          // A known session id is released here. An unknown in-flight
+          // reservation is released by clientRequestId, or by the next
+          // reserve once the server migration is deployed.
         }
       }
-      state = SessionState.idle().copyWith(
-        error: error.toString(),
-        busyHint: false,
-      );
+      if (error is SessionStartCancelled) {
+        state = SessionState.idle();
+      } else {
+        state = SessionState.idle().copyWith(
+          error: error.toString(),
+          busyHint: false,
+        );
+      }
       if (meetingId != null) {
-        // Keep the local meeting row; a failed start may still have audio later.
+        // Keep the local meeting row; a failed start may still have audio.
       }
     } finally {
       _starting = false;
+      _cancelStart = null;
     }
+  }
+
+  void _beginProjectContext({required String personalContext}) {
+    _projectContext = '';
+    final projectId = _projectId;
+    _projectContextFuture = () async {
+      try {
+        _projectContext = await ref
+            .read(projectsProvider.notifier)
+            .contextBlock(
+              projectId: projectId,
+              personalContext: personalContext,
+            );
+      } catch (_) {
+        if (_projectContext.isEmpty) {
+          _projectContext = '（專案資料暫時無法讀取）';
+        }
+      }
+    }();
+  }
+
+  Future<String> _awaitProjectContext() async {
+    final pending = _projectContextFuture;
+    if (pending != null) {
+      try {
+        await pending;
+      } catch (_) {}
+    }
+    return _projectContext;
+  }
+
+  Future<void> _confirmMicrophone() async {
+    final permission = _audio.hasPermission().then<Object?>(
+      (allowed) => allowed,
+      onError: (Object error, StackTrace _) => error,
+    );
+    final result = await Future.any<Object?>([
+      permission,
+      if (_cancelStart != null)
+        _cancelStart!.future.then<Object?>(
+          (_) => const SessionStartCancelled(),
+        ),
+    ]);
+    if (result is SessionStartCancelled ||
+        (_cancelStart?.isCompleted ?? false)) {
+      unawaited(
+        permission.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+      );
+      throw const SessionStartCancelled();
+    }
+    if (result is Object && result is! bool) throw result;
+    if (result != true) throw StateError('沒有麥克風權限');
+  }
+
+  void _throwIfCancelled() {
+    if (_cancelStart?.isCompleted ?? false) {
+      throw const SessionStartCancelled();
+    }
+  }
+
+  Future<void> _awaitOrCancel(Future<void> pending) async {
+    final cancel = _cancelStart;
+    if (cancel == null) {
+      await pending;
+      return;
+    }
+    final winner = await Future.any<Object?>([
+      pending.then<Object?>(
+        (_) => null,
+        onError: (Object error, StackTrace _) => error,
+      ),
+      cancel.future.then<Object?>((_) => const SessionStartCancelled()),
+    ]);
+    if (winner is SessionStartCancelled || cancel.isCompleted) {
+      unawaited(
+        pending.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+      );
+      throw const SessionStartCancelled();
+    }
+    if (winner != null) throw winner;
+  }
+
+  int _elapsedSinceCapture() {
+    final origin = _captureStartedAt ?? _startedAt;
+    if (origin == null) return 0;
+    return DateTime.now().difference(origin).inMilliseconds;
+  }
+
+  void _onMicPcm(Uint8List pcm) {
+    if (pcm.isEmpty) return;
+    if (_forwardMicAudio) {
+      _micStt?.addAudio(pcm);
+      return;
+    }
+    final copy = Uint8List.fromList(pcm);
+    _pendingPcm.add(copy);
+    _pendingPcmBytes += copy.length;
+    while (_pendingPcmBytes > _pendingPcmCapBytes && _pendingPcm.isNotEmpty) {
+      _pendingPcmBytes -= _pendingPcm.removeAt(0).length;
+    }
+  }
+
+  void _flushPendingAudio() {
+    final pending = List<Uint8List>.of(_pendingPcm);
+    _pendingPcm.clear();
+    _pendingPcmBytes = 0;
+    _forwardMicAudio = true;
+    final stt = _micStt;
+    if (stt == null) return;
+    for (final chunk in pending) {
+      stt.addAudio(chunk);
+    }
+  }
+
+  Future<void> _enableWakelock() async {
+    try {
+      await WakelockPlus.enable();
+    } catch (_) {}
   }
 
   String? _speakerHint({
@@ -440,7 +647,7 @@ class SessionController extends Notifier<SessionState> {
     if (existing == null) return state.meetingId;
 
     try {
-      final projectContext = _projectContext;
+      final projectContext = await _awaitProjectContext();
       final result = await llm.generateMinutes(
         meeting: existing,
         lines: state.lines.where((line) => line.isFinal).toList(),
@@ -559,7 +766,7 @@ class SessionController extends Notifier<SessionState> {
     state = state.copyWith(busyHint: true, clearError: true);
     try {
       final llm = ref.read(aiServiceProvider);
-      final projectContext = _projectContext;
+      final projectContext = await _awaitProjectContext();
       final result = await llm.suggestAnswer(
         recent: contextLines,
         trigger: trigger,
@@ -602,6 +809,10 @@ class SessionController extends Notifier<SessionState> {
 
   Future<void> _disposeCapture() async {
     _ticker?.cancel();
+    _forwardMicAudio = false;
+    _pendingPcm.clear();
+    _pendingPcmBytes = 0;
+    _captureStartedAt = null;
     await _systemPcmSub?.cancel();
     _systemPcmSub = null;
     await _systemWav.close();
@@ -651,7 +862,9 @@ class SessionController extends Notifier<SessionState> {
     }
     _micTempPath = null;
     _systemAudioPath = null;
-    await WakelockPlus.disable();
+    try {
+      await WakelockPlus.disable();
+    } catch (_) {}
   }
 
   Future<void> _deleteScratchAudioFiles({

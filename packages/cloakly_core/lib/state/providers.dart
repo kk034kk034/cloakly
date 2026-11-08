@@ -1,4 +1,5 @@
 import 'package:cloakly_core/data/db/app_database.dart';
+import 'package:cloakly_core/services/audio/audio_capture_service.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/repositories/meeting_repository.dart';
 import 'package:cloakly_core/data/repositories/settings_repository.dart';
@@ -34,6 +35,16 @@ final sttEngineFactoryProvider = Provider<SttEngineFactory>(
 final sessionUsageReporterProvider = Provider<SessionUsageReporter?>(
   (ref) => null,
 );
+
+final meetingAudioCaptureProvider = Provider<MeetingAudioCapture>(
+  (ref) => AudioCaptureService(),
+);
+
+/// Drops an in-flight hosted authorization so a timed-out reservation is released.
+typedef SessionAuthorizationControl = void Function();
+
+final abandonSessionAuthorizationProvider =
+    Provider<SessionAuthorizationControl?>((ref) => null);
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   throw StateError('databaseProvider 必須在 main 裡 override');

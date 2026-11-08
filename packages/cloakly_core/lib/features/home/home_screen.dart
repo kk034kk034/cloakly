@@ -42,11 +42,7 @@ class HomeScreen extends ConsumerWidget {
         error: (error, _) => Center(child: Text('讀取失敗：$error')),
         data: (items) {
           if (active == null) {
-            return _UnassignedBody(
-              isDemo: isDemo,
-              items: items,
-              onStartMeeting: () => _startMeeting(context, ref),
-            );
+            return _UnassignedBody(isDemo: isDemo, items: items);
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -93,63 +89,95 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                  child: FilledButton.icon(
-                    onPressed: () => _startMeeting(context, ref),
-                    icon: const Icon(Icons.mic_none),
-                    label: const Text('開始會議'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                    ),
-                  ),
-                ),
-              ),
+              const _StartMeetingBar(),
             ],
           );
         },
       ),
     );
   }
+}
 
-  Future<void> _startMeeting(BuildContext context, WidgetRef ref) async {
-    final before = ref.read(sessionControllerProvider);
-    if (before.busyHint || before.phase == SessionPhase.live) return;
+class _StartMeetingBar extends ConsumerWidget {
+  const _StartMeetingBar();
 
-    await ref.read(sessionControllerProvider.notifier).start(title: '');
-    if (!context.mounted) return;
-    final session = ref.read(sessionControllerProvider);
-    if (session.phase != SessionPhase.live) {
-      final hosted = ref.read(hostedModeProvider);
-      final needsSubscription =
-          hosted && (session.error?.contains('免費會議額度') ?? false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(session.error ?? '無法開始會議，請檢查設定。'),
-          action: SnackBarAction(
-            label: needsSubscription ? '查看訂閱' : '回專案列表',
-            onPressed: () => context.go(needsSubscription ? '/settings' : '/'),
-          ),
-        ),
-      );
-      return;
-    }
-    context.push('/home/session');
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionControllerProvider);
+    final starting = session.busyHint && session.phase == SessionPhase.idle;
+    final label = session.startupStep == SessionStartupStep.none
+        ? SessionStartupStep.preparing.label
+        : session.startupStep.label;
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        child: starting
+            ? Row(
+                key: const Key('start-meeting-progress'),
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(label)),
+                  TextButton(
+                    key: const Key('start-meeting-cancel'),
+                    onPressed: () => ref
+                        .read(sessionControllerProvider.notifier)
+                        .cancelStart(),
+                    child: const Text('取消'),
+                  ),
+                ],
+              )
+            : FilledButton.icon(
+                key: const Key('start-meeting-button'),
+                onPressed: () => _startMeeting(context, ref),
+                icon: const Icon(Icons.mic_none),
+                label: const Text('開始會議'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+              ),
+      ),
+    );
   }
 }
 
+Future<void> _startMeeting(BuildContext context, WidgetRef ref) async {
+  final before = ref.read(sessionControllerProvider);
+  if (before.busyHint || before.phase == SessionPhase.live) return;
+
+  await ref.read(sessionControllerProvider.notifier).start(title: '');
+  if (!context.mounted) return;
+  final session = ref.read(sessionControllerProvider);
+  if (session.phase == SessionPhase.live) {
+    context.push('/home/session');
+    return;
+  }
+  final error = session.error;
+  if (error == null || error.isEmpty) return;
+  final hosted = ref.read(hostedModeProvider);
+  final needsSubscription = hosted && error.contains('免費會議額度');
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(error),
+      action: SnackBarAction(
+        label: needsSubscription ? '查看訂閱' : '回專案列表',
+        onPressed: () => context.go(needsSubscription ? '/settings' : '/'),
+      ),
+    ),
+  );
+}
+
 class _UnassignedBody extends StatelessWidget {
-  const _UnassignedBody({
-    required this.isDemo,
-    required this.items,
-    required this.onStartMeeting,
-  });
+  const _UnassignedBody({required this.isDemo, required this.items});
 
   final bool isDemo;
   final List<Meeting> items;
-  final VoidCallback onStartMeeting;
 
   @override
   Widget build(BuildContext context) {
@@ -193,20 +221,7 @@ class _UnassignedBody extends StatelessWidget {
           ),
         ),
         const Divider(height: 1),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: FilledButton.icon(
-              onPressed: onStartMeeting,
-              icon: const Icon(Icons.mic_none),
-              label: const Text('開始會議'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-              ),
-            ),
-          ),
-        ),
+        const _StartMeetingBar(),
       ],
     );
   }

@@ -23,6 +23,9 @@ Deno.serve(async (req) => {
       throw new HttpError(503, "TRANSCRIPTION_NOT_CONFIGURED");
     }
     const body = await req.json().catch(() => ({}));
+    const clientRequestId = typeof body.clientRequestId === "string"
+      ? body.clientRequestId.trim().slice(0, 80)
+      : "";
     const { data, error } = await userClient.rpc("reserve_meeting_session", {
       p_device_id: deviceIdOf(body),
     });
@@ -47,6 +50,22 @@ Deno.serve(async (req) => {
       if (sessionUpdate.error) console.error("Failed to release meeting session", sessionUpdate.error);
       if (usageDelete.error) console.error("Failed to release usage reservation", usageDelete.error);
     };
+    if (clientRequestId) {
+      const marked = await adminClient
+        .from("meeting_sessions")
+        .update({ client_request_id: clientRequestId })
+        .eq("id", sessionId)
+        .eq("user_id", user.id);
+      if (marked.error) {
+        console.error("Failed to store client_request_id", marked.error);
+        // Same id already belongs to an earlier reservation. Drop this duplicate
+        // instead of holding a second quota row. A missing column stays non-fatal
+        // so this function can ship before the migration.
+        if (marked.error.code === "23505") {
+          throw new HttpError(409, "DUPLICATE_CLIENT_REQUEST");
+        }
+      }
+    }
 
     const sonioxResponse = await fetch(
       "https://api.soniox.com/v1/auth/temporary-api-key",

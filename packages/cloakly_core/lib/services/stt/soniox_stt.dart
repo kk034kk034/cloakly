@@ -45,6 +45,10 @@ class SonioxStt implements SttEngine {
     this.apiKeyProvider,
     this.endpoint = 'wss://stt-rt.soniox.com/transcribe-websocket',
     this.finishTimeout = const Duration(seconds: 30),
+    // The hosted coordinator uses 8s per attempt and may retry a 500/502 once.
+    // A 10s cap cancels that retry. The session still stops the whole start at 22s.
+    this.authorizationTimeout = const Duration(seconds: 17),
+    this.connectTimeout = const Duration(seconds: 12),
   }) : _transcript = StreamingTranscript(
          lane: lane,
          sessionId: '${lane.name}:${DateTime.now().microsecondsSinceEpoch}',
@@ -56,6 +60,8 @@ class SonioxStt implements SttEngine {
   final Future<String> Function()? apiKeyProvider;
   final String endpoint;
   final Duration finishTimeout;
+  final Duration authorizationTimeout;
+  final Duration connectTimeout;
   final StreamingTranscript _transcript;
   final _events = StreamController<TranscriptEvent>.broadcast();
   final _finished = Completer<void>();
@@ -68,25 +74,34 @@ class SonioxStt implements SttEngine {
   int _audioBytes = 0;
   bool _failed = false;
   bool _receivedFinished = false;
+  bool _stopRequested = false;
 
   @override
   Stream<TranscriptEvent> get events => _events.stream;
 
+  Future<String> _readApiKey() async {
+    if (apiKeyProvider == null) return settings.sonioxApiKey.trim();
+    try {
+      return (await apiKeyProvider!().timeout(authorizationTimeout)).trim();
+    } on TimeoutException {
+      throw StateError('取得會議授權逾時，請再試一次。');
+    }
+  }
+
   @override
   Future<void> start() async {
-    final apiKey =
-        (apiKeyProvider == null
-                ? settings.sonioxApiKey
-                : await apiKeyProvider!.call())
-            .trim();
+    final apiKey = await _readApiKey();
     if (apiKey.isEmpty) {
       throw StateError('缺少 Soniox API 金鑰');
     }
     _clock.start();
     try {
-      _socket = await WebSocket.connect(
-        endpoint,
-      ).timeout(const Duration(seconds: 15));
+      _socket = await WebSocket.connect(endpoint).timeout(connectTimeout);
+      if (_stopRequested) {
+        await _socket?.close();
+        _socket = null;
+        throw StateError('串流已取消');
+      }
       _subscription = _socket!.listen(
         _receive,
         onError: (Object _) {
@@ -105,8 +120,17 @@ class SonioxStt implements SttEngine {
           _socket?.add('{"type":"keepalive"}');
         }
       });
+    } on TimeoutException {
+      _clock.stop();
+      await _socket?.close();
+      _socket = null;
+      if (_stopRequested) throw StateError('串流已取消');
+      throw StateError('無法連線至 Soniox，請檢查網路與設定。');
     } catch (_) {
       _clock.stop();
+      await _socket?.close();
+      _socket = null;
+      if (_stopRequested) throw StateError('串流已取消');
       throw StateError('無法連線至 Soniox，請檢查網路與設定。');
     }
   }
@@ -208,7 +232,10 @@ class SonioxStt implements SttEngine {
   Future<void> flush() async {}
 
   @override
-  Future<void> stop() => _stopFuture ??= _stop();
+  Future<void> stop() {
+    _stopRequested = true;
+    return _stopFuture ??= _stop();
+  }
 
   Future<void> _stop() async {
     _keepalive?.cancel();

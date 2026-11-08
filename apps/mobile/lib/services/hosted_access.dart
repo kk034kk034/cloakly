@@ -42,6 +42,7 @@ String hostedQuotaMessage(Object? details, {required String fallback}) {
     'MEETING_ALLOWANCE_REQUIRED' => '請先開始今天的會議，或升級 Pro。',
     'ALLOWANCE_RESERVATION_FAILED' =>
       '無法預約會議額度。若剛才開會中斷，請等幾分鐘再試；持續失敗請回報。',
+    'DUPLICATE_CLIENT_REQUEST' => '這次會議授權已經送出，請稍後再試。',
     'TRANSCRIPTION_NOT_CONFIGURED' => '後端尚未設定轉寫服務。',
     'TRANSCRIPTION_PROVIDER_FAILED' => '轉寫服務暫時無法使用，請稍後再試。',
     'INTERNAL_ERROR' => '伺服器暫時發生錯誤，請稍後再試。',
