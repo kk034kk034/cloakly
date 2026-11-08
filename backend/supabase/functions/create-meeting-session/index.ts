@@ -23,6 +23,9 @@ Deno.serve(async (req) => {
       throw new HttpError(503, "TRANSCRIPTION_NOT_CONFIGURED");
     }
     const body = await req.json().catch(() => ({}));
+    const clientRequestId = typeof body.clientRequestId === "string"
+      ? body.clientRequestId.trim().slice(0, 80)
+      : "";
     const { data, error } = await userClient.rpc("reserve_meeting_session", {
       p_device_id: deviceIdOf(body),
     });
@@ -35,6 +38,14 @@ Deno.serve(async (req) => {
     sessionId = reservation?.session_id;
     const durationLimitSeconds = reservation?.duration_limit_seconds ?? 1800;
     if (!sessionId) throw new HttpError(500, "INVALID_RESERVATION");
+    if (clientRequestId) {
+      const marked = await adminClient
+        .from("meeting_sessions")
+        .update({ client_request_id: clientRequestId })
+        .eq("id", sessionId)
+        .eq("user_id", user.id);
+      if (marked.error) console.error("Failed to store client_request_id", marked.error);
+    }
     cleanupReservation = async () => {
       const sessionUpdate = await adminClient
         .from("meeting_sessions")

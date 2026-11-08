@@ -29,57 +29,78 @@ class AppDatabase {
     final database = await openDatabase(
       path,
       version: 2,
-      onCreate: (db, version) async {
-        await db.execute('''
-            CREATE TABLE meetings (
-              id TEXT PRIMARY KEY,
-              title TEXT NOT NULL,
-              started_at INTEGER NOT NULL,
-              ended_at INTEGER,
-              status TEXT NOT NULL,
-              minutes_markdown TEXT,
-              audio_path TEXT,
-              listen_mode TEXT NOT NULL,
-              project_id TEXT
-            )
-          ''');
-        await db.execute('''
-            CREATE TABLE transcript_lines (
-              id TEXT PRIMARY KEY,
-              meeting_id TEXT NOT NULL,
-              speaker TEXT NOT NULL,
-              speaker_index INTEGER NOT NULL,
-              text TEXT NOT NULL,
-              is_final INTEGER NOT NULL,
-              start_ms INTEGER NOT NULL,
-              end_ms INTEGER NOT NULL
-            )
-          ''');
-        await db.execute('''
-            CREATE TABLE notes (
-              id TEXT PRIMARY KEY,
-              meeting_id TEXT NOT NULL,
-              text TEXT NOT NULL,
-              created_at INTEGER NOT NULL
-            )
-          ''');
-        await db.execute('''
-            CREATE TABLE suggestions (
-              id TEXT PRIMARY KEY,
-              meeting_id TEXT NOT NULL,
-              trigger_text TEXT NOT NULL,
-              answer TEXT NOT NULL,
-              created_at INTEGER NOT NULL
-            )
-          ''');
-      },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('ALTER TABLE meetings ADD COLUMN project_id TEXT');
-        }
-      },
+      onCreate: _create,
+      onUpgrade: _upgrade,
     );
 
     return AppDatabase(database);
+  }
+
+  /// In-memory database for tests. Does not use the mobile sqflite plugin.
+  static Future<AppDatabase> openInMemory() async {
+    ffi.sqfliteFfiInit();
+    databaseFactory = ffi.databaseFactoryFfi;
+    final database = await openDatabase(
+      ffi.inMemoryDatabasePath,
+      version: 2,
+      onCreate: _create,
+      onUpgrade: _upgrade,
+    );
+    return AppDatabase(database);
+  }
+
+  static Future<void> _create(Database db, int version) async {
+    await db.execute('''
+        CREATE TABLE meetings (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          started_at INTEGER NOT NULL,
+          ended_at INTEGER,
+          status TEXT NOT NULL,
+          minutes_markdown TEXT,
+          audio_path TEXT,
+          listen_mode TEXT NOT NULL,
+          project_id TEXT
+        )
+      ''');
+    await db.execute('''
+        CREATE TABLE transcript_lines (
+          id TEXT PRIMARY KEY,
+          meeting_id TEXT NOT NULL,
+          speaker TEXT NOT NULL,
+          speaker_index INTEGER NOT NULL,
+          text TEXT NOT NULL,
+          is_final INTEGER NOT NULL,
+          start_ms INTEGER NOT NULL,
+          end_ms INTEGER NOT NULL
+        )
+      ''');
+    await db.execute('''
+        CREATE TABLE notes (
+          id TEXT PRIMARY KEY,
+          meeting_id TEXT NOT NULL,
+          text TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )
+      ''');
+    await db.execute('''
+        CREATE TABLE suggestions (
+          id TEXT PRIMARY KEY,
+          meeting_id TEXT NOT NULL,
+          trigger_text TEXT NOT NULL,
+          answer TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )
+      ''');
+  }
+
+  static Future<void> _upgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE meetings ADD COLUMN project_id TEXT');
+    }
   }
 }

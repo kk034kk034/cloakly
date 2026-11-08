@@ -6,7 +6,25 @@ import 'package:cloakly_core/services/audio/pcm_wav_writer.dart';
 import 'package:cloakly_core/services/audio/pcm_vad.dart';
 import 'package:record/record.dart';
 
-class AudioCaptureService {
+/// Microphone capture used by a meeting. Tests substitute a fake so startup
+/// order can be measured without the platform recorder.
+abstract class MeetingAudioCapture {
+  Future<bool> hasPermission();
+
+  Future<void> start({
+    required String wavPath,
+    required void Function(Uint8List pcm) onPcm,
+    required void Function() onUtteranceEnd,
+  });
+
+  Future<void> pause();
+
+  Future<void> resume();
+
+  Future<void> stop();
+}
+
+class AudioCaptureService implements MeetingAudioCapture {
   AudioCaptureService();
 
   final AudioRecorder _recorder = AudioRecorder();
@@ -16,8 +34,10 @@ class AudioCaptureService {
 
   bool get isRecording => _sub != null;
 
+  @override
   Future<bool> hasPermission() => _recorder.hasPermission();
 
+  @override
   Future<void> start({
     required String wavPath,
     required void Function(Uint8List pcm) onPcm,
@@ -63,14 +83,17 @@ class AudioCaptureService {
     });
   }
 
+  @override
   Future<void> pause() async {
     await _recorder.pause();
   }
 
+  @override
   Future<void> resume() async {
     await _recorder.resume();
   }
 
+  @override
   Future<void> stop() async {
     await _sub?.cancel();
     _sub = null;

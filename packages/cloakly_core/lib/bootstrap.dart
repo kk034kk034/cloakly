@@ -12,6 +12,7 @@ Future<void> runCloaklyApp({
   AiServiceFactory? aiServiceFactory,
   SttEngineFactory? sttEngineFactory,
   SessionUsageReporter? sessionUsageReporter,
+  SessionAuthorizationControl? abandonSessionAuthorization,
   bool hostedMode = false,
   WidgetBuilder? settingsBuilder,
   Widget Function(Widget child)? appShellBuilder,
@@ -38,6 +39,10 @@ Future<void> runCloaklyApp({
           sttEngineFactoryProvider.overrideWithValue(sttEngineFactory),
         if (sessionUsageReporter != null)
           sessionUsageReporterProvider.overrideWithValue(sessionUsageReporter),
+        if (abandonSessionAuthorization != null)
+          abandonSessionAuthorizationProvider.overrideWithValue(
+            abandonSessionAuthorization,
+          ),
       ],
       child: appShellBuilder?.call(app) ?? app,
     ),

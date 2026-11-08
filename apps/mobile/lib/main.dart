@@ -6,7 +6,6 @@ import 'package:cloakly_mobile/features/hosted_account_screen.dart';
 import 'package:cloakly_mobile/services/hosted_ai_service.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:cloakly_mobile/services/hosted_stt_factory.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -51,6 +50,7 @@ Future<void> _start() async {
       usage: usageCoordinator,
     ),
     sessionUsageReporter: usageCoordinator.finish,
+    abandonSessionAuthorization: usageCoordinator.abandonPendingAuthorization,
     appShellBuilder: (child) => HostedAuthGate(billing: billing, child: child),
     settingsBuilder: (_) => HostedAccountScreen(billing: billing),
   );
