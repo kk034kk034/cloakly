@@ -36,6 +36,13 @@ void main() {
       hostedQuotaMessage('{"error":"FREE_PLAN_LIMIT_REACHED"}', fallback: 'fallback'),
       '今天的免費計畫建議已使用 5 次。',
     );
-    expect(hostedQuotaMessage({'error': 'OTHER'}, fallback: 'fallback'), 'fallback');
+    // Unknown backend codes stay visible. Commit 25eabaa intentionally appends
+    // the code so a new server error is not swallowed by the generic fallback.
+    expect(
+      hostedQuotaMessage({'error': 'OTHER'}, fallback: 'fallback'),
+      'fallback（OTHER）',
+    );
+    expect(hostedQuotaMessage(null, fallback: 'fallback'), 'fallback');
+    expect(hostedQuotaMessage({'error': ''}, fallback: 'fallback'), 'fallback');
   });
 }

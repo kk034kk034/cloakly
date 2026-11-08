@@ -15,6 +15,7 @@ import 'package:path/path.dart' as p;
 import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'pdfium_test_library.dart';
 import 'project_question_test.dart' as fixtures;
 
 Future<File> zipFile(String path, Map<String, String> entries) async {
@@ -156,6 +157,7 @@ void main() {
   test(
     'PDF extracts a real text layer and warns for pages with no text',
     () async {
+      Pdfrx.pdfiumModulePath = await ensureTestPdfiumLibrary();
       Pdfrx.cacheDirectoryPath = root.path;
       final file = await File(
         p.join(root.path, 'progress.pdf'),
