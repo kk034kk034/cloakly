@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cloakly_core/app.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
@@ -16,13 +19,11 @@ import 'package:cloakly_mobile/features/hosted_account_screen.dart';
 import 'package:cloakly_mobile/features/hosted_subscription_screen.dart';
 import 'package:cloakly_mobile/services/hosted_plan.dart';
 import 'package:cloakly_mobile/auth/hosted_auth_gate.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 
 /// Writes docs/screenshots when CLOAKLY_SCREENSHOTS=1.
 void main() {
@@ -41,87 +42,8 @@ void main() {
         await Directory('${root.path}/en').create(recursive: true);
       });
 
-      await _shoot(
-        tester,
-        'zh-Hant/01-login.png',
-        _shell(home: const HostedLoginScreen()),
-      );
-      await tester.enterText(find.byType(TextField).at(0), 'demo@example.com');
-      await tester.enterText(find.byType(TextField).at(1), 'demo-pass');
-      await _frames(tester);
-      await _save(tester, 'zh-Hant/01-login.png');
-
-      await tester.tap(find.text('沒有帳號？註冊'));
-      await _frames(tester);
-      await _save(tester, 'zh-Hant/02-sign-up.png');
-
-      await _shoot(
-        tester,
-        'zh-Hant/03-configuration.png',
-        ConfigurationErrorApp(theme: _theme()),
-      );
-      await _shoot(
-        tester,
-        'zh-Hant/04-startup-error.png',
-        StartupErrorApp(message: '示範：設定檔無法讀取。', theme: _theme()),
-      );
-
-      await _shootRoute(tester, 'zh-Hant/05-projects.png', '/');
-      await _shootRoute(tester, 'zh-Hant/06-home.png', '/home');
-      await _shootRoute(tester, 'zh-Hant/07-meetings.png', '/home/meetings');
-      await _shootRoute(tester, 'zh-Hant/08-meeting.png', '/home/meeting/m1');
-      await _shootRoute(
-        tester,
-        'zh-Hant/09-questions.png',
-        '/home/project/p1/questions',
-      );
-      await _shootRoute(tester, 'zh-Hant/10-plan.png', '/home/project/p1/plan');
-      await tester.ensureVisible(find.text('看板'));
-      await tester.tap(find.text('看板'));
-      await _frames(tester);
-      await _save(tester, 'zh-Hant/11-plan-board.png');
-      await _shootRoute(tester, 'zh-Hant/12-project.png', '/home/project');
-      await _shootRoute(
-        tester,
-        'zh-Hant/13-session.png',
-        '/home/session',
-        session: _liveSession,
-      );
-
-      await _shoot(
-        tester,
-        'zh-Hant/14-account.png',
-        _shell(
-          home: HostedAccountScreen(
-            accountEmail: 'demo@example.com',
-            planLoader: () async => _freePlan,
-          ),
-        ),
-      );
-      await _shoot(
-        tester,
-        'zh-Hant/15-subscription.png',
-        _shell(home: _subscriptionPreview(english: false)),
-      );
-      await _shoot(
-        tester,
-        'en/14-account.png',
-        _shell(
-          locale: const Locale('en'),
-          home: HostedAccountScreen(
-            accountEmail: 'demo@example.com',
-            planLoader: () async => _freePlan,
-          ),
-        ),
-      );
-      await _shoot(
-        tester,
-        'en/15-subscription.png',
-        _shell(
-          locale: const Locale('en'),
-          home: _subscriptionPreview(english: true),
-        ),
-      );
+      await _captureLocale(tester, 'zh-Hant', cloaklyZhHant);
+      await _captureLocale(tester, 'en', cloaklyEn);
     },
     skip: !enabled,
     timeout: const Timeout(Duration(minutes: 3)),
@@ -129,6 +51,107 @@ void main() {
 }
 
 const _freePlan = HostedPlanSnapshot(isPro: false, remainingFreeSeconds: 900);
+
+Future<void> _captureLocale(
+  WidgetTester tester,
+  String folder,
+  Locale locale,
+) async {
+  final zh = locale.languageCode == 'zh';
+  await _shoot(
+    tester,
+    '$folder/01-login.png',
+    _shell(locale: locale, home: const HostedLoginScreen()),
+  );
+  await tester.enterText(find.byType(TextField).at(0), 'demo@example.com');
+  await tester.enterText(find.byType(TextField).at(1), 'demo-pass');
+  await _frames(tester);
+  await _save(tester, '$folder/01-login.png');
+
+  await tester.tap(
+    find.text(zh ? '沒有帳號？註冊' : 'No account yet? Sign up'),
+  );
+  await _frames(tester);
+  await _save(tester, '$folder/02-sign-up.png');
+
+  await _shoot(
+    tester,
+    '$folder/03-configuration.png',
+    ConfigurationErrorApp(theme: _theme(), locale: locale),
+  );
+  await _shoot(
+    tester,
+    '$folder/04-startup-error.png',
+    StartupErrorApp(
+      message: zh
+          ? '示範：設定檔無法讀取。'
+          : 'Demo: the config file could not be read.',
+      theme: _theme(),
+      locale: locale,
+    ),
+  );
+
+  await _shootRoute(tester, '$folder/05-projects.png', '/', locale: locale);
+  await _shootRoute(tester, '$folder/06-home.png', '/home', locale: locale);
+  await _shootRoute(
+    tester,
+    '$folder/07-meetings.png',
+    '/home/meetings',
+    locale: locale,
+  );
+  await _shootRoute(
+    tester,
+    '$folder/08-meeting.png',
+    '/home/meeting/m1',
+    locale: locale,
+  );
+  await _shootRoute(
+    tester,
+    '$folder/09-questions.png',
+    '/home/project/p1/questions',
+    locale: locale,
+  );
+  await _shootRoute(
+    tester,
+    '$folder/10-plan.png',
+    '/home/project/p1/plan',
+    locale: locale,
+  );
+  final board = zh ? '看板' : 'Board';
+  await tester.ensureVisible(find.text(board));
+  await tester.tap(find.text(board));
+  await _frames(tester);
+  await _save(tester, '$folder/11-plan-board.png');
+  await _shootRoute(
+    tester,
+    '$folder/12-project.png',
+    '/home/project',
+    locale: locale,
+  );
+  await _shootRoute(
+    tester,
+    '$folder/13-session.png',
+    '/home/session',
+    locale: locale,
+    session: _liveSession,
+  );
+  await _shoot(
+    tester,
+    '$folder/14-account.png',
+    _shell(
+      locale: locale,
+      home: HostedAccountScreen(
+        accountEmail: 'demo@example.com',
+        planLoader: () async => _freePlan,
+      ),
+    ),
+  );
+  await _shoot(
+    tester,
+    '$folder/15-subscription.png',
+    _shell(locale: locale, home: _subscriptionPreview(english: !zh)),
+  );
+}
 
 Future<void> _loadFonts() async {
   Future<void> load(String family, String path) async {
@@ -173,12 +196,13 @@ Widget _shell({
       debugShowCheckedModeBanner: false,
       theme: _theme(),
       locale: locale,
-      supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
-      localizationsDelegates: const [
-        _AnyMaterialDelegate(),
-        _AnyWidgetsDelegate(),
-        _AnyCupertinoDelegate(),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: [
+        HostedLocalizations.delegate,
+        ...AppLocalizations.localizationsDelegates,
       ],
+      localeResolutionCallback: resolveCloaklyLocale,
+      builder: cloaklyLocaleBuilder,
       home: home,
     ),
   );
@@ -197,6 +221,7 @@ Future<void> _shootRoute(
   String name,
   String location, {
   SessionState? session,
+  Locale locale = cloaklyZhHant,
 }) async {
   final router = createAppRouter(
     initialLocation: location,
@@ -214,13 +239,14 @@ Future<void> _shootRoute(
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         theme: _theme(),
-        locale: const Locale('zh', 'TW'),
-        supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
-        localizationsDelegates: const [
-          _AnyMaterialDelegate(),
-          _AnyWidgetsDelegate(),
-          _AnyCupertinoDelegate(),
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: [
+          HostedLocalizations.delegate,
+          ...AppLocalizations.localizationsDelegates,
         ],
+        localeResolutionCallback: resolveCloaklyLocale,
+        builder: cloaklyLocaleBuilder,
         routerConfig: router,
       ),
     ),
@@ -414,7 +440,7 @@ final _liveSession = SessionState(
 );
 
 Widget _subscriptionPreview({required bool english}) {
-  final copy = english ? const AccountCopy.en() : const AccountCopy.zh();
+  final copy = english ? AccountCopy.en() : AccountCopy.zh();
   return Scaffold(
     appBar: AppBar(title: Text(copy.currentPlan)),
     body: ListView(
@@ -447,63 +473,6 @@ Widget _subscriptionPreview({required bool english}) {
       ],
     ),
   );
-}
-
-class _AnyMaterialDelegate
-    extends LocalizationsDelegate<MaterialLocalizations> {
-  const _AnyMaterialDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<MaterialLocalizations> load(Locale locale) {
-    return DefaultMaterialLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(
-    covariant LocalizationsDelegate<MaterialLocalizations> old,
-  ) {
-    return false;
-  }
-}
-
-class _AnyWidgetsDelegate extends LocalizationsDelegate<WidgetsLocalizations> {
-  const _AnyWidgetsDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<WidgetsLocalizations> load(Locale locale) {
-    return DefaultWidgetsLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<WidgetsLocalizations> old) {
-    return false;
-  }
-}
-
-class _AnyCupertinoDelegate
-    extends LocalizationsDelegate<CupertinoLocalizations> {
-  const _AnyCupertinoDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<CupertinoLocalizations> load(Locale locale) {
-    return DefaultCupertinoLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(
-    covariant LocalizationsDelegate<CupertinoLocalizations> old,
-  ) {
-    return false;
-  }
 }
 
 Uint8List _encodePng(Uint8List rgba, int width, int height) {

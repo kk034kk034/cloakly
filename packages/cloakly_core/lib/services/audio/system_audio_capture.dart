@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -23,15 +24,15 @@ class SystemAudioCapture {
       !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
   Future<SystemAudioSupport> probe() async {
+    final l10n = CloaklyLocale.strings;
     if (kIsWeb) {
-      return const SystemAudioSupport(supported: false, hint: '瀏覽器無法擷取系統聲音。');
+      return SystemAudioSupport(
+        supported: false,
+        hint: l10n.browserNoSystemAudio,
+      );
     }
     if (Platform.isAndroid || Platform.isIOS) {
-      return const SystemAudioSupport(
-        supported: false,
-        hint:
-            '手機無法穩定擷取 Teams / Meet / Zoom 的對方聲音。請用 Windows / macOS / Linux 電腦版，戴耳機也能聽客戶。',
-      );
+      return SystemAudioSupport(supported: false, hint: l10n.mobileNoCallAudio);
     }
     try {
       final supported =
@@ -39,12 +40,15 @@ class SystemAudioCapture {
       final hint = await _methods.invokeMethod<String>('platformHint') ?? '';
       return SystemAudioSupport(supported: supported, hint: hint);
     } on MissingPluginException {
-      return const SystemAudioSupport(
+      return SystemAudioSupport(
         supported: false,
-        hint: '這個平台還沒接上系統聲音擷取。',
+        hint: l10n.systemAudioNotWired,
       );
     } catch (error) {
-      return SystemAudioSupport(supported: false, hint: '系統聲音無法使用：$error');
+      return SystemAudioSupport(
+        supported: false,
+        hint: l10n.systemAudioUnavailable('$error'),
+      );
     }
   }
 

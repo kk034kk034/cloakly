@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloakly_core/data/db/app_database.dart';
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -88,7 +89,7 @@ class MeetingRepository {
   Future<MeetingBundle> loadBundle(String id) async {
     final meeting = await getById(id);
     if (meeting == null) {
-      throw StateError('找不到會議 $id');
+      throw StateError(CloaklyLocale.strings.meetingNotFound(id));
     }
     final lines = await listLines(id);
     final notes = await listNotes(id);

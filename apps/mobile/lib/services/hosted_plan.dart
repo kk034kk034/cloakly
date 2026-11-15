@@ -1,3 +1,6 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
+
 const hostedFreeDailyLimitSeconds = 1800;
 
 class HostedPlanSnapshot {
@@ -29,17 +32,13 @@ int remainingFreeSecondsFromReservations(Iterable<int> reservedSeconds) {
 }
 
 String formatRemainingFreeTime(int seconds, {bool english = false}) {
+  final l10n = lookupHostedLocalizations(english ? cloaklyEn : cloaklyZhHant);
   final safe = seconds.clamp(0, hostedFreeDailyLimitSeconds);
   final minutes = safe ~/ 60;
   final remainder = safe % 60;
-  if (english) {
-    if (minutes == 0) return '$remainder seconds of free time left today';
-    if (remainder == 0) return '$minutes minutes of free time left today';
-    return '$minutes min $remainder sec of free time left today';
-  }
-  if (minutes == 0) return '今日免費額度剩餘 $remainder 秒';
-  if (remainder == 0) return '今日免費額度剩餘 $minutes 分鐘';
-  return '今日免費額度剩餘 $minutes 分 $remainder 秒';
+  if (minutes == 0) return l10n.allowanceSeconds(remainder);
+  if (remainder == 0) return l10n.allowanceMinutes(minutes);
+  return l10n.allowanceMinutesSeconds(minutes, remainder);
 }
 
 /// Play 在商品尚未審核時，會把套件名稱與 unreviewed 接在標題後面。

@@ -15,7 +15,7 @@ What it is
 Cloakly keeps AI meeting notes on screen: live transcription, summaries, action items, and a project Gantt and kanban. It is not a hidden window, a concealed overlay, or a tool for cheating on interviews or exams.
 
 Phone audio
-Cloakly records the microphone. It cannot take audio from inside Teams, Meet, Zoom, or other apps. Other people are included only when the microphone can hear them, such as on speakerphone. While a meeting you started is recording, Android shows the notification "Cloakly 正在錄音" and keeps the microphone on if the screen turns off. Stopping the meeting stops that service.
+Cloakly records the microphone. It cannot take audio from inside Teams, Meet, Zoom, or other apps. Other people are included only when the microphone can hear them, such as on speakerphone. While a meeting you started is recording, Android shows the notification "Cloakly is recording" and keeps the microphone on if the screen turns off. Stopping the meeting stops that service.
 
 Account and free use
 Sign in with email and password and confirm the email. A free account can transcribe up to 30 minutes total per UTC day, and can use project Q&A and plan suggestions up to 5 times each per UTC day. One phone can use that free allowance on only one account per UTC day. Cloakly Pro removes those daily free caps. Each live transcription session, including Pro, still ends at 30 minutes. Start another session if you need more. Delete the Cloakly account in the app. Deletion does not cancel or refund the Google Play subscription, and it does not erase meetings stored on the device.

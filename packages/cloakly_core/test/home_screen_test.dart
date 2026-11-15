@@ -1,4 +1,6 @@
 import 'package:cloakly_core/app.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/state/project_provider.dart';
@@ -49,6 +51,11 @@ void main() {
         ],
         child: MaterialApp.router(
           theme: ThemeData.dark(),
+          locale: cloaklyZhHant,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localeResolutionCallback: resolveCloaklyLocale,
+          builder: cloaklyLocaleBuilder,
           routerConfig: router,
         ),
       ),

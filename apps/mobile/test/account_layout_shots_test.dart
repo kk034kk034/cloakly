@@ -6,11 +6,13 @@ import 'dart:ui' as ui;
 
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_mobile/features/account_copy.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/features/hosted_account_screen.dart';
 import 'package:cloakly_mobile/features/hosted_subscription_screen.dart';
 import 'package:cloakly_mobile/services/hosted_plan.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -128,72 +130,16 @@ Widget _frame(Widget child, {Locale locale = const Locale('zh', 'TW')}) {
         ),
       ),
       locale: locale,
-      supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
-      localizationsDelegates: const [
-        _AnyMaterialDelegate(),
-        _AnyWidgetsDelegate(),
-        _AnyCupertinoDelegate(),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: [
+        HostedLocalizations.delegate,
+        ...AppLocalizations.localizationsDelegates,
       ],
+      localeResolutionCallback: resolveCloaklyLocale,
+      builder: cloaklyLocaleBuilder,
       home: RepaintBoundary(key: const Key('shot'), child: child),
     ),
   );
-}
-
-class _AnyMaterialDelegate
-    extends LocalizationsDelegate<MaterialLocalizations> {
-  const _AnyMaterialDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<MaterialLocalizations> load(Locale locale) {
-    return DefaultMaterialLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(
-    covariant LocalizationsDelegate<MaterialLocalizations> old,
-  ) {
-    return false;
-  }
-}
-
-class _AnyCupertinoDelegate
-    extends LocalizationsDelegate<CupertinoLocalizations> {
-  const _AnyCupertinoDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<CupertinoLocalizations> load(Locale locale) {
-    return DefaultCupertinoLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(
-    covariant LocalizationsDelegate<CupertinoLocalizations> old,
-  ) {
-    return false;
-  }
-}
-
-class _AnyWidgetsDelegate extends LocalizationsDelegate<WidgetsLocalizations> {
-  const _AnyWidgetsDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<WidgetsLocalizations> load(Locale locale) {
-    return DefaultWidgetsLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<WidgetsLocalizations> old) {
-    return false;
-  }
 }
 
 Uint8List _encodePng(Uint8List rgba, int width, int height) {
@@ -378,7 +324,7 @@ class _PlanPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final copy = english ? const AccountCopy.en() : const AccountCopy.zh();
+    final copy = english ? AccountCopy.en() : AccountCopy.zh();
     return Scaffold(
       appBar: AppBar(title: Text(copy.currentPlan)),
       body: ListView(

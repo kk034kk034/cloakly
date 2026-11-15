@@ -1,4 +1,6 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/services/hosted_plan.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -12,15 +14,16 @@ String packagePeriodLabel(Package package, {bool english = false}) {
 }
 
 String periodLabelForType(PackageType type, {bool english = false}) {
+  final l10n = lookupHostedLocalizations(english ? cloaklyEn : cloaklyZhHant);
   return switch (type) {
-    PackageType.annual => english ? 'Yearly' : '年繳',
-    PackageType.sixMonth => english ? '6 months' : '半年繳',
-    PackageType.threeMonth => english ? '3 months' : '季繳',
-    PackageType.twoMonth => english ? '2 months' : '兩個月',
-    PackageType.monthly => english ? 'Monthly' : '月繳',
-    PackageType.weekly => english ? 'Weekly' : '週繳',
-    PackageType.lifetime => english ? 'Lifetime' : '永久',
-    _ => english ? 'Subscription' : '訂閱',
+    PackageType.annual => l10n.periodAnnual,
+    PackageType.sixMonth => l10n.periodSixMonth,
+    PackageType.threeMonth => l10n.periodThreeMonth,
+    PackageType.twoMonth => l10n.periodTwoMonth,
+    PackageType.monthly => l10n.periodMonthly,
+    PackageType.weekly => l10n.periodWeekly,
+    PackageType.lifetime => l10n.periodLifetime,
+    _ => l10n.periodSubscription,
   };
 }
 

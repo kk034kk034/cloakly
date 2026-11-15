@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/features/project/project_question_screen.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
 import 'package:cloakly_core/services/project/project_retrieval.dart';
@@ -111,7 +113,14 @@ void main() {
           projectRetrievalProvider.overrideWithValue(retrieval),
           aiServiceProvider.overrideWithValue(ai),
         ],
-        child: const MaterialApp(home: ProjectQuestionScreen(projectId: 'p1')),
+        child: MaterialApp(
+          locale: cloaklyZhHant,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          localeResolutionCallback: resolveCloaklyLocale,
+          builder: cloaklyLocaleBuilder,
+          home: const ProjectQuestionScreen(projectId: 'p1'),
+        ),
       ),
     );
     await tester.pumpAndSettle();

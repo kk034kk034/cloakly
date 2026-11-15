@@ -1,3 +1,5 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+
 import 'stt_engine.dart';
 
 /// Reconciles immutable final tokens and replaceable speculative tokens.
@@ -101,6 +103,7 @@ class StreamingTranscript {
     }
     final index = _speakers[rawSpeaker];
     final known = lane == SttLane.self || index != null;
+    final l10n = CloaklyLocale.strings;
     return TranscriptEvent(
       utteranceId: '$sessionId:$sequence',
       text: tokens.map((t) => t['text'] as String).join().trim(),
@@ -111,10 +114,10 @@ class StreamingTranscript {
           ? SpeakerId.index(lane: lane, diarized: index!)
           : -1,
       speakerLabel: lane == SttLane.self
-          ? '我'
+          ? l10n.speakerMe
           : known
           ? SpeakerId.label(lane: lane, diarized: index!)
-          : '發言人待確認',
+          : l10n.speakerUnconfirmed,
       speakerVerified: finalText && known,
       startMs: (tokens.first['start_ms'] as num?)?.round(),
       endMs: (tokens.last['end_ms'] as num?)?.round(),

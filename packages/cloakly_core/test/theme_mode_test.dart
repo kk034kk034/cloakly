@@ -1,4 +1,6 @@
 import 'package:cloakly_core/core/theme/app_theme.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +65,11 @@ class _Harness extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
+      locale: cloaklyZhHant,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localeResolutionCallback: resolveCloaklyLocale,
+      builder: cloaklyLocaleBuilder,
       home: const Scaffold(body: ThemeModeSetting()),
     );
   }

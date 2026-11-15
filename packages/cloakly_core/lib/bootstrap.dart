@@ -5,7 +5,7 @@ import 'package:cloakly_core/data/repositories/meeting_repository.dart';
 import 'package:cloakly_core/data/repositories/project_repository.dart';
 import 'package:cloakly_core/data/repositories/settings_repository.dart';
 import 'package:cloakly_core/state/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> runCloaklyApp({
@@ -16,6 +16,7 @@ Future<void> runCloaklyApp({
   bool hostedMode = false,
   WidgetBuilder? settingsBuilder,
   Widget Function(Widget child)? appShellBuilder,
+  List<LocalizationsDelegate<dynamic>> localizationsDelegates = const [],
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = await AppDatabase.open();
@@ -27,7 +28,10 @@ Future<void> runCloaklyApp({
       database,
     ).assignUnassignedTo(migrated.migratedProjectId!);
   }
-  final app = CloaklyApp(settingsBuilder: settingsBuilder);
+  final app = CloaklyApp(
+    settingsBuilder: settingsBuilder,
+    localizationsDelegates: localizationsDelegates,
+  );
   runApp(
     ProviderScope(
       overrides: [

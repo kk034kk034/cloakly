@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/project/project_document_reader.dart';
 import 'package:path/path.dart' as p;
 
@@ -51,7 +52,7 @@ class ProjectIndexer {
   Future<ProjectPack> index(String folderPath, {String? id}) async {
     final root = Directory(folderPath);
     if (!await root.exists()) {
-      throw StateError('找不到資料夾：$folderPath');
+      throw StateError(CloaklyLocale.strings.folderMissing(folderPath));
     }
 
     final found = <KnowledgeDoc>[];
