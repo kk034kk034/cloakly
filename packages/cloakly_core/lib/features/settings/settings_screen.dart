@@ -1,4 +1,5 @@
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,29 +37,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('設定'),
-        actions: [TextButton(onPressed: _save, child: const Text('儲存'))],
+        title: Text(l10n.settings),
+        actions: [TextButton(onPressed: _save, child: Text(l10n.save))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           const ThemeModeSetting(),
           const SizedBox(height: 24),
-          Text('多人即時逐字稿', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.streamingTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _sonioxKey,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Soniox API 金鑰',
-              helperText: '持續串流辨識。文字與發言人會先暫定，再隨音訊更新。',
+            decoration: InputDecoration(
+              labelText: l10n.sonioxKey,
+              helperText: l10n.sonioxHelp,
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: Text('自動辨識發言語言。各專案的背景與詞彙請到該專案右上角設定。'),
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(l10n.projectLanguageHint),
           ),
           const SizedBox(height: 24),
           Text('OpenAI', style: Theme.of(context).textTheme.titleMedium),
@@ -66,28 +71,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextField(
             controller: _openaiKey,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'OpenAI API 金鑰',
+            decoration: InputDecoration(
+              labelText: l10n.openaiKey,
               hintText: 'sk-...',
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _chatModel,
-            decoration: const InputDecoration(
-              labelText: '對話模型',
-              helperText: '用於回答建議與會議紀錄；即時轉寫使用上方的 Soniox 金鑰。',
+            decoration: InputDecoration(
+              labelText: l10n.chatModel,
+              helperText: l10n.chatModelHelp,
             ),
           ),
           const SizedBox(height: 24),
-          Text('系統聲音', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.systemAudio,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('擷取電腦正在播放的聲音'),
-            subtitle: const Text(
-              '戴耳機開線上會議時，麥克風是「我」，系統聲音由模型區分其他人。多人共用同一支麥克風時請關閉此項。',
-            ),
+            title: Text(l10n.captureSystemAudio),
+            subtitle: Text(l10n.captureSystemAudioHelp),
             value: _captureSystemAudio,
             onChanged: (value) => setState(() => _captureSystemAudio = value),
           ),
@@ -111,6 +117,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('已儲存')));
+    ).showSnackBar(SnackBar(content: Text(context.l10n.saved)));
   }
 }

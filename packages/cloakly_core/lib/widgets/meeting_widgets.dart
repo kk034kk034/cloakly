@@ -1,5 +1,6 @@
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -7,13 +8,13 @@ class TranscriptList extends StatefulWidget {
   const TranscriptList({
     super.key,
     required this.lines,
-    this.emptyLabel = '開始後，發言會即時出現在這裡。',
+    this.emptyLabel,
     this.followLatest = false,
     this.selectedIds = const {},
     this.onToggle,
   });
   final List<TranscriptLine> lines;
-  final String emptyLabel;
+  final String? emptyLabel;
   final bool followLatest;
   final Set<String> selectedIds;
   final ValueChanged<String>? onToggle;
@@ -44,7 +45,11 @@ class _TranscriptListState extends State<TranscriptList> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.lines.isEmpty) return Center(child: Text(widget.emptyLabel));
+    if (widget.lines.isEmpty) {
+      return Center(
+        child: Text(widget.emptyLabel ?? context.l10n.transcriptEmpty),
+      );
+    }
     return Stack(
       children: [
         NotificationListener<ScrollNotification>(
@@ -112,7 +117,7 @@ class _TranscriptListState extends State<TranscriptList> {
                           SizedBox(
                             width: 78,
                             child: Text(
-                              '${line.speaker}${line.isFinal ? '' : '（暫定）'}',
+                              '${line.speaker}${line.isFinal ? '' : context.l10n.tentativeSuffix}',
                               style: TextStyle(
                                 color: speakerColor(
                                   line.speakerIndex,
@@ -158,7 +163,7 @@ class _TranscriptListState extends State<TranscriptList> {
                 _scroll.jumpTo(0);
               },
               icon: const Icon(Icons.arrow_downward),
-              label: const Text('回到最新'),
+              label: Text(context.l10n.backToLatest),
             ),
           ),
       ],
@@ -181,6 +186,7 @@ class SuggestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -204,7 +210,7 @@ class SuggestionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '回答提示',
+                    l10n.answerPrompts,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -219,13 +225,13 @@ class SuggestionCard extends StatelessWidget {
             const SizedBox(height: 12),
             if (suggestion == null)
               Text(
-                busy ? '正在根據剛才的對話草擬提示…' : '選取一段或多段發言，再按「建議回覆」。',
+                busy ? l10n.draftingPrompt : l10n.selectThenSuggest,
                 style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
               )
             else ...[
               if (suggestion!.triggerText.isNotEmpty) ...[
                 Text(
-                  '針對：${suggestion!.triggerText}',
+                  l10n.regarding(suggestion!.triggerText),
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     fontSize: 12,
