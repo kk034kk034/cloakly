@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
 import 'package:cloakly_core/l10n/app_localizations.dart';
 import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
@@ -101,19 +102,22 @@ class _AuthApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ThemeModeBuilder(
-      builder: (context, mode) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        themeMode: mode,
-        localizationsDelegates: const [
-          HostedLocalizations.delegate,
-          ...AppLocalizations.localizationsDelegates,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        localeResolutionCallback: resolveCloaklyLocale,
-        builder: cloaklyLocaleBuilder,
-        home: HostedLoginScreen(notice: notice),
+      builder: (context, mode) => AppLocaleBuilder(
+        builder: (context, locale) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: mode,
+          locale: locale,
+          localizationsDelegates: const [
+            HostedLocalizations.delegate,
+            ...AppLocalizations.localizationsDelegates,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          localeResolutionCallback: resolveCloaklyLocale,
+          builder: cloaklyLocaleBuilder,
+          home: HostedLoginScreen(notice: notice),
+        ),
       ),
     );
   }

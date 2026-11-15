@@ -180,6 +180,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get switchToDark => '切換為深色模式';
 
   @override
+  String get language => '語言';
+
+  @override
+  String get languageSystem => '跟隨系統';
+
+  @override
+  String get languageZhHant => '繁體中文';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get triggerQuestions => '偵測到問題';
 
   @override
@@ -1694,6 +1706,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get switchToDark => '切換為深色模式';
+
+  @override
+  String get language => '語言';
+
+  @override
+  String get languageSystem => '跟隨系統';
+
+  @override
+  String get languageZhHant => '繁體中文';
+
+  @override
+  String get languageEnglish => 'English';
 
   @override
   String get triggerQuestions => '偵測到問題';

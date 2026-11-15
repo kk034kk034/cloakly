@@ -9,7 +9,10 @@ const cloaklyZhHant = Locale.fromSubtags(
 );
 
 /// zh* (any Chinese language, script, or region) uses Traditional Chinese.
-/// Every other device language uses English.
+/// Every other locale uses English.
+///
+/// Pass the device locale to follow the system. Pass [cloaklyZhHant] or
+/// [cloaklyEn] when an in-app choice overrides the device.
 Locale resolveCloaklyLocale(Locale? locale, Iterable<Locale> supported) {
   if (locale != null && locale.languageCode.toLowerCase() == 'zh') {
     for (final item in supported) {

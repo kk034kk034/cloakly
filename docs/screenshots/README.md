@@ -15,7 +15,7 @@
 - [`11-plan-board.png`](zh-Hant/11-plan-board.png) — 時程的看板。
 - [`12-project.png`](zh-Hant/12-project.png) — 專案設定、背景與詞彙。
 - [`13-session.png`](zh-Hant/13-session.png) — 進行中的會議與逐字稿。
-- [`14-account.png`](zh-Hant/14-account.png) — 帳號與訂閱，含目前方案。
+- [`14-account.png`](zh-Hant/14-account.png) — 帳號與訂閱，含語言、外觀與目前方案。
 - [`15-subscription.png`](zh-Hant/15-subscription.png) — 方案、購買、恢復購買與管理訂閱。
 
 ## en
@@ -33,5 +33,5 @@
 - [`11-plan-board.png`](en/11-plan-board.png) — Schedule board.
 - [`12-project.png`](en/12-project.png) — Project settings, background, and vocabulary.
 - [`13-session.png`](en/13-session.png) — A meeting in progress and its transcript.
-- [`14-account.png`](en/14-account.png) — Account and subscription, with the current plan.
+- [`14-account.png`](en/14-account.png) — Account and subscription, with language, appearance, and the current plan.
 - [`15-subscription.png`](en/15-subscription.png) — Plan, purchase, restore, and manage subscription.

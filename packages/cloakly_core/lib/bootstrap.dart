@@ -1,5 +1,6 @@
 import 'package:cloakly_core/app.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
 import 'package:cloakly_core/data/db/app_database.dart';
 import 'package:cloakly_core/data/repositories/meeting_repository.dart';
 import 'package:cloakly_core/data/repositories/project_repository.dart';
@@ -22,6 +23,7 @@ Future<void> runCloaklyApp({
   final database = await AppDatabase.open();
   bootSettings = await SettingsRepository().load();
   bootThemeMode = await loadThemeMode();
+  bootAppLanguage = await loadAppLanguage();
   final migrated = await ProjectRepository().loadLibrary();
   if (migrated.migratedProjectId != null) {
     await MeetingRepository(

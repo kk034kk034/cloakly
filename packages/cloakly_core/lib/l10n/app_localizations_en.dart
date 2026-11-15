@@ -188,6 +188,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get switchToDark => 'Switch to dark mode';
 
   @override
+  String get language => 'Language';
+
+  @override
+  String get languageSystem => 'Follow system';
+
+  @override
+  String get languageZhHant => '繁體中文';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
   String get triggerQuestions => 'When a question is detected';
 
   @override

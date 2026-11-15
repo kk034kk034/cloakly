@@ -405,6 +405,30 @@ abstract class AppLocalizations {
   /// **'切換為深色模式'**
   String get switchToDark;
 
+  /// No description provided for @language.
+  ///
+  /// In zh_Hant, this message translates to:
+  /// **'語言'**
+  String get language;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In zh_Hant, this message translates to:
+  /// **'跟隨系統'**
+  String get languageSystem;
+
+  /// No description provided for @languageZhHant.
+  ///
+  /// In zh_Hant, this message translates to:
+  /// **'繁體中文'**
+  String get languageZhHant;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In zh_Hant, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
   /// No description provided for @triggerQuestions.
   ///
   /// In zh_Hant, this message translates to:

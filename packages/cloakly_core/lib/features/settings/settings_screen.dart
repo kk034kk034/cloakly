@@ -1,3 +1,4 @@
+import 'package:cloakly_core/features/settings/language_setting.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/state/providers.dart';
@@ -47,6 +48,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           const ThemeModeSetting(),
+          const SizedBox(height: 16),
+          const LanguageSetting(),
           const SizedBox(height: 24),
           Text(
             l10n.streamingTitle,

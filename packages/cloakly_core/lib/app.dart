@@ -1,5 +1,6 @@
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
 import 'package:cloakly_core/l10n/app_localizations.dart';
 import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/features/home/home_screen.dart';
@@ -99,6 +100,7 @@ class _CloaklyAppState extends ConsumerState<CloaklyApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
+      locale: localeOverrideFor(ref.watch(appLanguageProvider)),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [
         ...widget.localizationsDelegates,

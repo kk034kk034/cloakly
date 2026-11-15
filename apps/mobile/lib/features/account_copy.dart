@@ -7,7 +7,8 @@ import 'package:intl/intl.dart';
 
 enum PlanRowPhase { loading, ready, failed, unavailable }
 
-/// zh-Hant is the product default. English follows the resolved locale:
+/// zh-Hant is the product default. English follows the resolved app locale
+/// (an in-app choice, or the device when that choice is follow-system):
 /// any zh* locale stays Chinese, and every other language uses English.
 class AccountCopy {
   AccountCopy.zh()

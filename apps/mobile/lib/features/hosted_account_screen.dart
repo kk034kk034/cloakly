@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloakly_core/features/settings/language_setting.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
 import 'package:cloakly_mobile/features/account_copy.dart';
@@ -291,6 +292,8 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
           ),
           const SizedBox(height: 8),
           const ThemeModeSetting(),
+          const SizedBox(height: 16),
+          const LanguageSetting(),
           const SizedBox(height: 8),
           CurrentPlanRow(
             title: copy.currentPlan,

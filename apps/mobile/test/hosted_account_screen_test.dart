@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:cloakly_core/features/settings/language_setting.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
 import 'package:cloakly_core/l10n/app_localizations.dart';
 import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_mobile/features/account_copy.dart';
@@ -12,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -233,6 +236,70 @@ void main() {
     },
   );
 
+  testWidgets('language switch keeps logout in place on a phone width', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    bootAppLanguage = AppLanguageChoice.system;
+    addTearDown(() => bootAppLanguage = AppLanguageChoice.system);
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: Consumer(
+          builder: (context, ref, _) {
+            return MaterialApp(
+              locale:
+                  localeOverrideFor(ref.watch(appLanguageProvider)) ??
+                  const Locale('zh', 'TW'),
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: [
+                HostedLocalizations.delegate,
+                ...AppLocalizations.localizationsDelegates,
+              ],
+              localeResolutionCallback: resolveCloaklyLocale,
+              builder: cloaklyLocaleBuilder,
+              home: HostedAccountScreen(
+                accountEmail: 'member@example.com',
+                planLoader: () async => const HostedPlanSnapshot(
+                  isPro: false,
+                  remainingFreeSeconds: 1800,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('語言'), findsOneWidget);
+    expect(find.text('跟隨系統'), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(SegmentedButton<AppLanguageChoice>)).height,
+      LanguageSetting.controlHeight,
+    );
+    final logoutDy = tester.getTopLeft(find.text('登出')).dy;
+    final deleteDy = tester.getTopLeft(find.text('刪除帳號')).dy;
+
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    expect(find.text('Language'), findsOneWidget);
+    expect(find.text('Log out'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Log out')).dy, logoutDy);
+    expect(tester.getTopLeft(find.text('Delete account')).dy, deleteDy);
+
+    await tester.tap(find.text('繁體中文'));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.text('登出')).dy, logoutDy);
+    expect(tester.getTopLeft(find.text('刪除帳號')).dy, deleteDy);
+    expect(tester.takeException(), isNull);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(appLanguagePreferenceKey), 'zh_Hant');
+  });
+
   testWidgets(
     'tapping the plan row opens purchases without moving account actions',
     (tester) async {
@@ -245,10 +312,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('目前方案'), findsWidgets);
-      expect(
-        find.text(AccountCopy.zh().billingUnavailable),
-        findsOneWidget,
-      );
+      expect(find.text(AccountCopy.zh().billingUnavailable), findsOneWidget);
       expect(find.text('恢復購買'), findsNothing);
       expect(find.text('管理商店訂閱'), findsNothing);
       expect(find.textContaining('自動續訂'), findsOneWidget);

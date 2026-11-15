@@ -24,7 +24,8 @@ extension AutoTriggerX on AutoTrigger {
   }
 }
 
-String suggestionSystemPrompt() => '''
+String suggestionSystemPrompt() =>
+    '''
 ${llmOutputLanguageRule()}
 你是會議即時助理。根據「專案資料」與「現場逐字稿」草擬使用者可以立刻說出口的回答。
 規則：
@@ -36,7 +37,8 @@ ${llmOutputLanguageRule()}
 - 語氣清楚、不硬撐、不替他人承諾
 ''';
 
-/// Prompt instruction only. Not an ARB string. Output follows the app locale.
+/// Prompt instruction only. Not an ARB string. Output follows
+/// [CloaklyLocale.current], the effective in-app locale.
 String llmOutputLanguageRule() {
   if (CloaklyLocale.current.languageCode == 'zh') {
     return '請使用繁體中文撰寫所有給使用者看的文字。標題與小標也用繁體中文。';
