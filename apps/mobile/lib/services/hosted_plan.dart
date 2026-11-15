@@ -28,10 +28,15 @@ int remainingFreeSecondsFromReservations(Iterable<int> reservedSeconds) {
   );
 }
 
-String formatRemainingFreeTime(int seconds) {
+String formatRemainingFreeTime(int seconds, {bool english = false}) {
   final safe = seconds.clamp(0, hostedFreeDailyLimitSeconds);
   final minutes = safe ~/ 60;
   final remainder = safe % 60;
+  if (english) {
+    if (minutes == 0) return '$remainder seconds of free time left today';
+    if (remainder == 0) return '$minutes minutes of free time left today';
+    return '$minutes min $remainder sec of free time left today';
+  }
   if (minutes == 0) return '今日免費額度剩餘 $remainder 秒';
   if (remainder == 0) return '今日免費額度剩餘 $minutes 分鐘';
   return '今日免費額度剩餘 $minutes 分 $remainder 秒';

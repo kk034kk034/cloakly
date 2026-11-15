@@ -2,14 +2,17 @@ import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class ConfigurationErrorApp extends StatelessWidget {
-  const ConfigurationErrorApp({super.key});
+  const ConfigurationErrorApp({this.theme, super.key});
+
+  final ThemeData? theme;
 
   @override
   Widget build(BuildContext context) {
+    final resolved = theme ?? AppTheme.dark();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
+      theme: resolved,
+      darkTheme: resolved,
       home: Scaffold(
         body: SafeArea(
           child: Padding(
@@ -47,16 +50,18 @@ class ConfigurationErrorApp extends StatelessWidget {
 }
 
 class StartupErrorApp extends StatelessWidget {
-  const StartupErrorApp({required this.message, super.key});
+  const StartupErrorApp({required this.message, this.theme, super.key});
 
   final String message;
+  final ThemeData? theme;
 
   @override
   Widget build(BuildContext context) {
+    final resolved = theme ?? AppTheme.dark();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
+      theme: resolved,
+      darkTheme: resolved,
       home: Scaffold(
         body: SafeArea(
           child: Padding(

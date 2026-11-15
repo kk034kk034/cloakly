@@ -7,17 +7,28 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 export 'package:cloakly_mobile/services/hosted_plan.dart';
 
-String packagePeriodLabel(Package package) {
-  return switch (package.packageType) {
-    PackageType.annual => '年繳',
-    PackageType.sixMonth => '半年繳',
-    PackageType.threeMonth => '季繳',
-    PackageType.twoMonth => '兩個月',
-    PackageType.monthly => '月繳',
-    PackageType.weekly => '週繳',
-    PackageType.lifetime => '永久',
-    _ => '訂閱',
+String packagePeriodLabel(Package package, {bool english = false}) {
+  return periodLabelForType(package.packageType, english: english);
+}
+
+String periodLabelForType(PackageType type, {bool english = false}) {
+  return switch (type) {
+    PackageType.annual => english ? 'Yearly' : '年繳',
+    PackageType.sixMonth => english ? '6 months' : '半年繳',
+    PackageType.threeMonth => english ? '3 months' : '季繳',
+    PackageType.twoMonth => english ? '2 months' : '兩個月',
+    PackageType.monthly => english ? 'Monthly' : '月繳',
+    PackageType.weekly => english ? 'Weekly' : '週繳',
+    PackageType.lifetime => english ? 'Lifetime' : '永久',
+    _ => english ? 'Subscription' : '訂閱',
   };
+}
+
+String packageSubtitle(Package package, {bool english = false}) {
+  final period = packagePeriodLabel(package, english: english);
+  final description = package.storeProduct.description.trim();
+  if (description.isEmpty) return period;
+  return '$period · $description';
 }
 
 bool isPurchaseCancelled(Object error) {
@@ -102,8 +113,10 @@ class HostedBilling {
     return info;
   }
 
+  Future<CustomerInfo> loadCustomerInfo() => Purchases.getCustomerInfo();
+
   Future<(CustomerInfo, List<Package>)> loadStore() async {
-    final info = await Purchases.getCustomerInfo();
+    final info = await loadCustomerInfo();
     try {
       final offerings = await Purchases.getOfferings();
       return (info, offerings.current?.availablePackages ?? const <Package>[]);

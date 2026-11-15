@@ -13,6 +13,18 @@ void main() {
     expect(formatRemainingFreeTime(1800), '今日免費額度剩餘 30 分鐘');
     expect(formatRemainingFreeTime(90), '今日免費額度剩餘 1 分 30 秒');
     expect(formatRemainingFreeTime(45), '今日免費額度剩餘 45 秒');
+    expect(
+      formatRemainingFreeTime(1800, english: true),
+      '30 minutes of free time left today',
+    );
+    expect(
+      formatRemainingFreeTime(90, english: true),
+      '1 min 30 sec of free time left today',
+    );
+    expect(
+      formatRemainingFreeTime(45, english: true),
+      '45 seconds of free time left today',
+    );
   });
 
   test('used free seconds match the daily cap', () {
