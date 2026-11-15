@@ -9,17 +9,17 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Cloakly 會使用麥克風，把你按下開始的會議轉成即時逐字稿、筆記與回答提示。請先取得其他參與者的同意。</string>
+	<string>Cloakly uses the microphone to turn meetings you start into a live transcript, notes, and answer prompts. Get the other participants&apos; agreement first.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Cloakly 只讓你選專案資料夾，不會讀取或上傳照片與影片。內含的檔案選擇元件仍帶有相簿程式，所以系統要求這段說明。</string>
+	<string>Cloakly only lets you choose a project folder. It does not read or upload photos or videos. The built-in file picker still includes a photo library component, so the system requires this description.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Cloakly 不會開啟相機，也不會拍照或錄影。內含的檔案選擇元件仍帶有相機程式，所以系統要求這段說明。</string>
+	<string>Cloakly does not open the camera or take photos or video. The built-in file picker still includes a camera component, so the system requires this description.</string>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>Cloakly 不會讀取音樂資料庫。內含的檔案選擇元件仍帶有音樂選擇程式，所以系統要求這段說明。</string>
+	<string>Cloakly does not read your music library. The built-in file picker still includes a music picker, so the system requires this description.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Cloakly 不會要求或使用你的位置。內含的檔案選擇元件含有可讀取照片位置資訊的程式，所以系統要求這段說明。</string>
+	<string>Cloakly does not request or use your location. The built-in file picker includes code that can read photo location, so the system requires this description.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Cloakly 不會把檔案存進你的相簿。內含的檔案選擇元件仍帶有寫入相簿的程式，所以系統要求這段說明。</string>
+	<string>Cloakly does not save files to your photo library. The built-in file picker still includes a component that can write to the photo library, so the system requires this description.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>

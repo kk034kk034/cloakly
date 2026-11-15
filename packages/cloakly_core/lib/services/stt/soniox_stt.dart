@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:cloakly_core/core/constants.dart';
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'stt_engine.dart';
 import 'streaming_transcript.dart';
 
@@ -84,7 +85,7 @@ class SonioxStt implements SttEngine {
     try {
       return (await apiKeyProvider!().timeout(authorizationTimeout)).trim();
     } on TimeoutException {
-      throw StateError('取得會議授權逾時，請再試一次。');
+      throw StateError(CloaklyLocale.strings.authTimeout);
     }
   }
 
@@ -92,7 +93,7 @@ class SonioxStt implements SttEngine {
   Future<void> start() async {
     final apiKey = await _readApiKey();
     if (apiKey.isEmpty) {
-      throw StateError('缺少 Soniox API 金鑰');
+      throw StateError(CloaklyLocale.strings.missingSonioxKeyShort);
     }
     _clock.start();
     try {
@@ -100,15 +101,17 @@ class SonioxStt implements SttEngine {
       if (_stopRequested) {
         await _socket?.close();
         _socket = null;
-        throw StateError('串流已取消');
+        throw StateError(CloaklyLocale.strings.streamCancelled);
       }
       _subscription = _socket!.listen(
         _receive,
         onError: (Object _) {
-          _fail('串流連線中斷；請結束會議並保留錄音供重跑。');
+          _fail(CloaklyLocale.strings.streamDropped);
         },
         onDone: () {
-          if (!_receivedFinished && !_failed) _fail('串流提前結束，尚未定稿的文字未完成辨識。');
+          if (!_receivedFinished && !_failed) {
+            _fail(CloaklyLocale.strings.streamEndedEarly);
+          }
           if (!_finished.isCompleted) _finished.complete();
         },
       );
@@ -124,14 +127,18 @@ class SonioxStt implements SttEngine {
       _clock.stop();
       await _socket?.close();
       _socket = null;
-      if (_stopRequested) throw StateError('串流已取消');
-      throw StateError('無法連線至 Soniox，請檢查網路與設定。');
+      if (_stopRequested) {
+        throw StateError(CloaklyLocale.strings.streamCancelled);
+      }
+      throw StateError(CloaklyLocale.strings.sonioxUnreachable);
     } catch (_) {
       _clock.stop();
       await _socket?.close();
       _socket = null;
-      if (_stopRequested) throw StateError('串流已取消');
-      throw StateError('無法連線至 Soniox，請檢查網路與設定。');
+      if (_stopRequested) {
+        throw StateError(CloaklyLocale.strings.streamCancelled);
+      }
+      throw StateError(CloaklyLocale.strings.sonioxUnreachable);
     }
   }
 
@@ -139,7 +146,11 @@ class SonioxStt implements SttEngine {
     try {
       final message = jsonDecode(raw as String) as Map<String, dynamic>;
       if (message['error_code'] != null) {
-        _fail('Soniox 辨識失敗（${message['error_code']}）；請檢查金鑰、額度或音訊設定。');
+        _fail(
+          CloaklyLocale.strings.sonioxRecognizeFailed(
+            '${message['error_code']}',
+          ),
+        );
         return;
       }
       // Map provider audio time to meeting time before sentence grouping so a
@@ -186,7 +197,7 @@ class SonioxStt implements SttEngine {
         if (!_finished.isCompleted) _finished.complete();
       }
     } catch (_) {
-      _fail('無法解析串流辨識結果，原始錄音仍會保留。');
+      _fail(CloaklyLocale.strings.streamParseFailed);
     }
   }
 
@@ -214,7 +225,9 @@ class SonioxStt implements SttEngine {
   @override
   void addAudio(List<int> pcm) {
     if (_stopFuture != null || _failed || pcm.isEmpty) return;
-    if (_socket == null) throw StateError('串流尚未啟動');
+    if (_socket == null) {
+      throw StateError(CloaklyLocale.strings.streamNotStarted);
+    }
     final audioMs = _audioBytes * 1000 ~/ pcmBytesPerSecond;
     final wallMs =
         ((elapsedMs?.call() ?? _clock.elapsedMilliseconds) -
@@ -245,7 +258,7 @@ class SonioxStt implements SttEngine {
         await _finished.future.timeout(finishTimeout);
       }
     } on TimeoutException {
-      _fail('等待串流尾句逾時；未完成的文字保留為暫定，請用原始錄音重跑。');
+      _fail(CloaklyLocale.strings.streamTailTimeout);
     } finally {
       await _subscription?.cancel();
       await _socket?.close();

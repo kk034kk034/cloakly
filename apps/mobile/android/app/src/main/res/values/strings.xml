@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_channel_name">Meeting recording</string>
+    <string name="recording_channel_description">Keeps recording while a meeting is in progress, even if the screen is off</string>
+    <string name="recording_notification_title">Cloakly is recording</string>
+    <string name="recording_notification_text">Recording continues when the screen is off</string>
+</resources>

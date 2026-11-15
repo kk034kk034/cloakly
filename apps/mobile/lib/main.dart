@@ -1,5 +1,6 @@
 import 'package:cloakly_core/bootstrap.dart';
 import 'package:cloakly_mobile/auth/hosted_auth_gate.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
 import 'package:cloakly_mobile/features/configuration_error_app.dart';
 import 'package:cloakly_mobile/features/hosted_account_screen.dart';
@@ -53,5 +54,6 @@ Future<void> _start() async {
     abandonSessionAuthorization: usageCoordinator.abandonPendingAuthorization,
     appShellBuilder: (child) => HostedAuthGate(billing: billing, child: child),
     settingsBuilder: (_) => HostedAccountScreen(billing: billing),
+    localizationsDelegates: [HostedLocalizations.delegate],
   );
 }

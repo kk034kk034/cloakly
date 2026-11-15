@@ -51,7 +51,9 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Flutter 3.50.0 errors below Gradle 9.3.1. Pin the SDK so stable
+          # does not move the Android toolchain again.
+          flutter-version: "3.50.0"
           cache: true
 
       - name: Pub get
@@ -158,7 +160,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Same pin as the Android job. See the Gradle 9.5 / AGP 9.3.1 note there.
+          flutter-version: "3.50.0"
           cache: true
 
       - name: Pub get

@@ -1,0 +1,242 @@
+{
+  "@@locale": "en",
+  "accountTitle": "Account & Subscription",
+  "currentPlan": "Current plan",
+  "refresh": "Refresh",
+  "emailMissing": "Email not provided",
+  "signOut": "Log out",
+  "deleteAccount": "Delete account",
+  "free": "Free",
+  "planLoadFailed": "Couldn't load",
+  "planNotConfigured": "Not set up",
+  "billingUnavailable": "The RevenueCat public SDK key is not set, so subscriptions cannot be shown or purchased.",
+  "proActiveHint": "Pro is already active. If you change devices, tap Restore Purchases below.",
+  "freePlanSummary": "Free plan: 30 minutes of meetings per day in total; 5 project questions and 5 plan suggestions. One phone can use only one account's free allowance per day.",
+  "noOfferings": "No plans are available to purchase yet. In RevenueCat, add {store} products to the Current Offering.",
+  "@noOfferings": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "restorePurchases": "Restore Purchases",
+  "manageSubscription": "Manage Subscription",
+  "restoreSuccess": "Pro purchases restored.",
+  "restoreEmpty": "No Pro purchase was found to restore.",
+  "purchaseFailed": "Purchase did not finish: {error}",
+  "@purchaseFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreFailed": "Could not restore purchases: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "manageFailed": "Could not open the store subscription page. Cancel it in Google Play or the App Store under payments and subscriptions.",
+  "linkFailed": "Could not open the link.",
+  "privacyLabel": "Privacy Policy",
+  "termsLabel": "Terms of Use (EULA)",
+  "autoRenewDisclosure": "Cloakly Pro is an auto-renewable subscription. Monthly: USD 19.99 per month, length 1 month. Yearly: USD 199.99 per year, length 1 year. The price and length on each plan are the subscription you are buying. Prices in US dollars are listed here; before you confirm, the store shows your region's price, tax, and currency. The subscription renews unless you cancel at least 24 hours before the end of the current period, and the renewal is charged within 24 hours before the period ends. On iOS, manage or cancel in Settings > Apple ID > Subscriptions. On Android, use Google Play > Payments and subscriptions. If the store offers a free trial, buying a paid subscription forfeits the unused trial where that store's rule applies. Deleting the Cloakly account, signing out, or uninstalling does not cancel the subscription and does not refund a charge.",
+  "planTitlePro": "Current plan: Pro",
+  "planTitleFree": "Current plan: Free",
+  "validUntil": "Valid until {when}",
+  "@validUntil": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "lifetimePro": "Lifetime Pro access",
+  "productLine": "Product: {productId}",
+  "@productLine": {
+    "placeholders": {
+      "productId": {
+        "type": "String"
+      }
+    }
+  },
+  "proValidUntil": "Pro · Valid until {when}",
+  "@proValidUntil": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "proLifetime": "Pro · Lifetime",
+  "freeSecondsLeft": "Free · {seconds} sec left today",
+  "@freeSecondsLeft": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "freeMinutesLeft": "Free · {minutes} min left today",
+  "@freeMinutesLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "freeMinutesSecondsLeft": "Free · {minutes} min {seconds} sec left today",
+  "@freeMinutesSecondsLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "allowanceSeconds": "{seconds} seconds of free time left today",
+  "@allowanceSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "allowanceMinutes": "{minutes} minutes of free time left today",
+  "@allowanceMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "allowanceMinutesSeconds": "{minutes} min {seconds} sec of free time left today",
+  "@allowanceMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteNeedsEmail": "This account has no email, so it can't be deleted here.",
+  "deleteIntro": "This cannot be undone. The cloud account and subscription entitlement records are deleted. Free time this email already used today stays until the end of today, and a new sign-up continues from that usage. Meetings, transcripts, and projects on this phone stay on the device.",
+  "deleteStoreWarning": "Cancel the Google Play or App Store subscription in the store. After the Cloakly account is deleted, the store can still renew the next period, and it does not refund the charge.",
+  "deleteAcknowledge": "I understand I must cancel the subscription in the store separately",
+  "deletePasswordLabel": "Enter password to confirm",
+  "wrongPassword": "Wrong password. The account was not deleted.",
+  "deleteFailed": "Could not delete the account: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteConfirmationMismatch": "Confirmation did not match. The account was not deleted.",
+  "deleteAuthExpired": "Your session expired. Sign in again, then delete the account.",
+  "deleteIncomplete": "Deletion did not finish. Try again. The account may still be there.",
+  "deleteNotDeployed": "Account deletion is not deployed yet. The account was not deleted.",
+  "deleteFailedStatus": "Could not delete the account ({status}). The account was not deleted.",
+  "@deleteFailedStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "periodAnnual": "Yearly",
+  "periodSixMonth": "6 months",
+  "periodThreeMonth": "3 months",
+  "periodTwoMonth": "2 months",
+  "periodMonthly": "Monthly",
+  "periodWeekly": "Weekly",
+  "periodLifetime": "Lifetime",
+  "periodSubscription": "Subscription",
+  "signUpTitle": "Create a Cloakly account",
+  "signInTitle": "Sign in to Cloakly",
+  "password": "Password",
+  "hidePassword": "Hide password",
+  "showPassword": "Show password",
+  "working": "Working…",
+  "signUp": "Sign up",
+  "signIn": "Sign in",
+  "switchToSignIn": "Already have an account? Sign in",
+  "switchToSignUp": "No account yet? Sign up",
+  "credentialsHint": "Enter an email. The password must be at least 8 characters.",
+  "connectionFailed": "Couldn't connect: {error}",
+  "@connectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "emailNotConfirmed": "Open the confirmation email and confirm it before you sign in.",
+  "hostedNotConfigured": "The hosted phone build is not configured",
+  "hostedConfigHelp": "Pass SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY with --dart-define. The RevenueCat key can be added after the store is set up.",
+  "startupFailed": "Couldn't start",
+  "freePoolExhausted": "Today's free meeting slots are full. Try again tomorrow, or upgrade to Pro.",
+  "freeDailyLimit": "Today's free meeting allowance is used up. You can upgrade to Pro on the account and subscription page.",
+  "freeQuestionLimit": "Today's 5 free project questions are used up.",
+  "freePlanLimit": "Today's 5 free plan suggestions are used up.",
+  "deviceFreeAccountInUse": "This phone already used another account's free allowance today.",
+  "deviceRequired": "This phone could not be confirmed. Update the app and try again.",
+  "meetingAllowanceRequired": "Start today's meeting first, or upgrade to Pro.",
+  "allowanceReservationFailed": "Couldn't reserve meeting time. If a meeting was just interrupted, wait a few minutes and try again. If it keeps failing, report it.",
+  "duplicateClientRequest": "This meeting authorization was already sent. Try again shortly.",
+  "transcriptionNotConfigured": "Transcription is not configured on the server yet.",
+  "transcriptionProviderFailed": "Transcription is temporarily unavailable. Try again shortly.",
+  "serverError": "The server hit a temporary error. Try again shortly.",
+  "hostedFallback": "{fallback} ({code})",
+  "@hostedFallback": {
+    "placeholders": {
+      "fallback": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "hostedNoAnswer": "Hosted AI did not return a project answer",
+  "hostedNoSuggestion": "Hosted AI did not return an answer suggestion",
+  "hostedNoPlan": "Hosted AI did not return a plan",
+  "hostedFeatureFailed": "This AI feature could not finish ({status}).",
+  "@hostedFeatureFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "hostedBadPayload": "The hosted API response could not be read",
+  "deviceIdUnreadable": "This phone's identifier could not be read.",
+  "meetingAuthTimeout": "Getting meeting access timed out",
+  "meetingAuthCancelled": "Meeting access was cancelled",
+  "meetingAuthFailed": "Couldn't get meeting access.",
+  "noTemporaryKey": "The server did not return a short-lived Soniox key",
+  "sessionNotDeployed": "The phone backend does not have create-meeting-session deployed yet.",
+  "sessionSignedOut": "Your session expired. Log out and sign in again.",
+  "freeAllowanceBlocked": "This free allowance cannot be used.",
+  "sonioxKeyRejected": "The Soniox key is invalid, not permitted, or transcription is temporarily unavailable.",
+  "sonioxKeyMissingServer": "The server does not have a Soniox API key yet.",
+  "meetingAuthStatus": "Couldn't get meeting access ({status}).",
+  "@meetingAuthStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "meetingAuthUnreadable": "The meeting authorization could not be read",
+  "coordinatorNeedsClient": "HostedSessionCoordinator needs Supabase or a test invoker"
+}

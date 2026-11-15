@@ -1,5 +1,6 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/utils/task_date_filter.dart';
 import 'package:cloakly_core/widgets/project_task_board.dart';
@@ -15,6 +16,7 @@ class ProjectPickerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projects = ref.watch(projectsProvider);
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -22,7 +24,7 @@ class ProjectPickerScreen extends ConsumerWidget {
         actions: [
           const ThemeModeToggleButton(),
           IconButton(
-            tooltip: '全域設定',
+            tooltip: l10n.globalSettings,
             onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.settings_outlined),
           ),
@@ -31,7 +33,7 @@ class ProjectPickerScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addProject(context, ref),
         icon: const Icon(Icons.create_new_folder_outlined),
-        label: const Text('新增專案'),
+        label: Text(l10n.addProject),
       ),
       body: projects.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -41,11 +43,11 @@ class ProjectPickerScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('讀取失敗：$error', textAlign: TextAlign.center),
+                Text(l10n.loadFailed('$error'), textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () => _addProject(context, ref),
-                  child: const Text('新增專案資料夾'),
+                  child: Text(l10n.addProjectFolder),
                 ),
               ],
             ),
@@ -141,6 +143,7 @@ class _ProjectList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final projects = library.projects;
     final allActiveItems = <BoardTaskItem>[
       for (final project in projects)
@@ -148,8 +151,11 @@ class _ProjectList extends StatelessWidget {
           BoardTaskItem(
             task: task,
             projectId: project.id,
-            projectName:
-                '${project.name} · ${project.withNormalizedPhases().activePhase?.name ?? '階段'}',
+            projectName: l10n.projectPhaseLine(
+              project.name,
+              project.withNormalizedPhases().activePhase?.name ??
+                  l10n.phaseWord,
+            ),
           ),
     ];
     final todayRange = todayDateRange();
@@ -167,10 +173,10 @@ class _ProjectList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
         if (projects.isNotEmpty) ...[
-          Text('全部專案看板', style: theme.textTheme.headlineSmall),
+          Text(l10n.allProjectBoards, style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
           Text(
-            '顯示今天進行中、逾期，以及無日期的進行中／阻塞項目（僅現行未封存階段）。',
+            l10n.boardFilterHelp,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.45,
@@ -178,17 +184,17 @@ class _ProjectList extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (allActiveItems.isEmpty)
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('各專案現行階段尚無工作。進入專案時程可新增或請 AI 建議。'),
+                padding: const EdgeInsets.all(16),
+                child: Text(l10n.noTasksOnBoards),
               ),
             )
           else if (boardItems.isEmpty)
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('今天沒有符合條件的工作。進入專案時程可查看全部項目。'),
+                padding: const EdgeInsets.all(16),
+                child: Text(l10n.nothingDueToday),
               ),
             )
           else
@@ -200,10 +206,10 @@ class _ProjectList extends StatelessWidget {
             ),
           const SizedBox(height: 28),
         ],
-        Text('選擇專案', style: theme.textTheme.headlineSmall),
+        Text(l10n.chooseProject, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 6),
         Text(
-          '每個資料夾是一個專案。選進去後可開始會議，提示會讀該專案的文件。',
+          l10n.chooseProjectHelp,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             height: 1.45,
@@ -223,17 +229,17 @@ class _ProjectList extends StatelessWidget {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(height: 12),
-                  Text('還沒有專案', style: theme.textTheme.titleLarge),
+                  Text(l10n.noProjects, style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
                   Text(
-                    '選定一個本機資料夾當專案，裡面放規格、時程、Issue 等文件。',
+                    l10n.noProjectsHelp,
                     style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
                   ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: onAdd,
                     icon: const Icon(Icons.create_new_folder_outlined),
-                    label: const Text('選定資料夾'),
+                    label: Text(l10n.chooseFolder),
                   ),
                 ],
               ),
@@ -269,6 +275,7 @@ class _ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final indexed = DateFormat('yyyy/MM/dd HH:mm').format(project.indexedAt);
     final normalized = project.withNormalizedPhases();
     final activePhase = normalized.activePhase;
@@ -303,7 +310,7 @@ class _ProjectCard extends StatelessWidget {
                         ),
                         if (selected)
                           Text(
-                            '上次',
+                            l10n.lastIndexed,
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.primary,
                             ),
@@ -322,11 +329,12 @@ class _ProjectCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       [
-                        '納入 ${project.includedCount} 份文件',
+                        l10n.includedDocs(project.includedCount),
                         if (activePhase != null)
-                          '現行 ${activePhase.name} · $activeCount 項',
-                        if (archivedCount > 0) '已封存 $archivedCount 階段',
-                        '索引 $indexed',
+                          l10n.activePhaseCount(activePhase.name, activeCount),
+                        if (archivedCount > 0)
+                          l10n.archivedPhaseCount(archivedCount),
+                        l10n.indexedAt(indexed),
                       ].join(' · '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
@@ -356,6 +364,7 @@ class _UnassignedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Card(
       child: ListTile(
         onTap: onTap,
@@ -364,8 +373,8 @@ class _UnassignedCard extends StatelessWidget {
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
           child: const Icon(Icons.inbox_outlined),
         ),
-        title: const Text('未分類'),
-        subtitle: const Text('沒有綁定專案的會議'),
+        title: Text(l10n.unassigned),
+        subtitle: Text(l10n.unassignedSubtitle),
         trailing: Icon(
           Icons.chevron_right,
           color: theme.colorScheme.onSurfaceVariant,

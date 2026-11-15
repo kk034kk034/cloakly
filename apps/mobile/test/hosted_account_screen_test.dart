@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_mobile/features/account_copy.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/features/current_plan_row.dart';
 import 'package:cloakly_mobile/features/hosted_account_screen.dart';
 import 'package:cloakly_mobile/features/hosted_subscription_screen.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,8 +19,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('plan copy stays stable in zh-Hant and en', () {
-    const zh = AccountCopy.zh();
-    const en = AccountCopy.en();
+    final zh = AccountCopy.zh();
+    final en = AccountCopy.en();
     expect(zh.accountTitle, '帳號與訂閱');
     expect(zh.currentPlan, '目前方案');
     expect(zh.restorePurchases, '恢復購買');
@@ -87,7 +89,7 @@ void main() {
   });
 
   test('delete-account errors keep the zh-Hant outcome', () {
-    const zh = AccountCopy.zh();
+    final zh = AccountCopy.zh();
     expect(
       deleteAccountErrorMessage(
         const FunctionException(
@@ -119,7 +121,7 @@ void main() {
     expect(
       deleteAccountErrorMessage(
         const FunctionException(status: 500),
-        const AccountCopy.en(),
+        AccountCopy.en(),
       ),
       'Could not delete the account (500). The account was not deleted.',
     );
@@ -244,7 +246,7 @@ void main() {
 
       expect(find.text('目前方案'), findsWidgets);
       expect(
-        find.text(const AccountCopy.zh().billingUnavailable),
+        find.text(AccountCopy.zh().billingUnavailable),
         findsOneWidget,
       );
       expect(find.text('恢復購買'), findsNothing);
@@ -254,7 +256,7 @@ void main() {
       expect(find.text('使用條款（EULA）'), findsOneWidget);
       expect(find.text('登出'), findsNothing);
 
-      await tester.pageBack();
+      await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.text('登出'), findsOneWidget);
       expect(find.text('刪除帳號'), findsOneWidget);
@@ -290,7 +292,7 @@ void main() {
     var restored = 0;
     var managed = 0;
     final links = <String>[];
-    const zh = AccountCopy.zh();
+    final zh = AccountCopy.zh();
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('zh', 'TW'),
@@ -365,7 +367,7 @@ void main() {
   testWidgets('an active pro plan still offers restore and manage', (
     tester,
   ) async {
-    const en = AccountCopy.en();
+    final en = AccountCopy.en();
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
@@ -428,12 +430,13 @@ Future<void> _pumpAccount(
     ProviderScope(
       child: MaterialApp(
         locale: locale,
-        supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
-        localizationsDelegates: const [
-          _AnyMaterialDelegate(),
-          _AnyWidgetsDelegate(),
-          _AnyCupertinoDelegate(),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: [
+          HostedLocalizations.delegate,
+          ...AppLocalizations.localizationsDelegates,
         ],
+        localeResolutionCallback: resolveCloaklyLocale,
+        builder: cloaklyLocaleBuilder,
         home: HostedAccountScreen(
           key: key,
           accountEmail: 'member@example.com',
@@ -442,61 +445,4 @@ Future<void> _pumpAccount(
       ),
     ),
   );
-}
-
-class _AnyMaterialDelegate
-    extends LocalizationsDelegate<MaterialLocalizations> {
-  const _AnyMaterialDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<MaterialLocalizations> load(Locale locale) {
-    return DefaultMaterialLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(
-    covariant LocalizationsDelegate<MaterialLocalizations> old,
-  ) {
-    return false;
-  }
-}
-
-class _AnyCupertinoDelegate
-    extends LocalizationsDelegate<CupertinoLocalizations> {
-  const _AnyCupertinoDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<CupertinoLocalizations> load(Locale locale) {
-    return DefaultCupertinoLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(
-    covariant LocalizationsDelegate<CupertinoLocalizations> old,
-  ) {
-    return false;
-  }
-}
-
-class _AnyWidgetsDelegate extends LocalizationsDelegate<WidgetsLocalizations> {
-  const _AnyWidgetsDelegate();
-
-  @override
-  bool isSupported(Locale locale) => true;
-
-  @override
-  Future<WidgetsLocalizations> load(Locale locale) {
-    return DefaultWidgetsLocalizations.load(locale);
-  }
-
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<WidgetsLocalizations> old) {
-    return false;
-  }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recording_channel_name">會議錄音</string>
+    <string name="recording_channel_description">會議進行中時，關閉畫面仍繼續錄音</string>
+    <string name="recording_notification_title">Cloakly 正在錄音</string>
+    <string name="recording_notification_text">關閉畫面後仍會繼續擷取會議音訊</string>
+</resources>

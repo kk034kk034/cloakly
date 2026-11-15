@@ -1,4 +1,5 @@
 import 'package:cloakly_core/data/db/app_database.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/audio/audio_capture_service.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/repositories/meeting_repository.dart';
@@ -47,7 +48,7 @@ final abandonSessionAuthorizationProvider =
     Provider<SessionAuthorizationControl?>((ref) => null);
 
 final databaseProvider = Provider<AppDatabase>((ref) {
-  throw StateError('databaseProvider 必須在 main 裡 override');
+  throw StateError(CloaklyLocale.strings.databaseNotReady);
 });
 
 final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {

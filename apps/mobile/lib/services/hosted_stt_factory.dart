@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/stt/soniox_stt.dart';
 import 'package:cloakly_core/services/stt/stt_engine.dart';
 import 'package:cloakly_core/state/providers.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/services/hosted_access.dart';
 import 'package:cloakly_mobile/services/hosted_device.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -84,7 +86,9 @@ class HostedSessionCoordinator {
   static MeetingFunctionInvoker _supabaseInvoke(SupabaseClient? supabase) {
     final client = supabase;
     if (client == null) {
-      throw ArgumentError('HostedSessionCoordinator 需要 Supabase 或測試用 invoker');
+      throw ArgumentError(
+        lookupHostedLocalizations(CloaklyLocale.current).coordinatorNeedsClient,
+      );
     }
     return (name, {required body}) async {
       try {
@@ -115,22 +119,34 @@ class HostedSessionCoordinator {
           fetchTimeout,
           onTimeout: () {
             ticket.abandoned = true;
-            throw TimeoutException('取得會議授權逾時');
+            throw TimeoutException(
+              lookupHostedLocalizations(
+                CloaklyLocale.current,
+              ).meetingAuthTimeout,
+            );
           },
         );
       } on TimeoutException {
         // Do not retry: the server may already have activated this reservation.
         unawaited(_releaseUnknown(ticket.clientRequestId));
-        throw StateError('取得會議授權逾時，請再試一次。');
+        throw StateError(CloaklyLocale.strings.authTimeout);
       } on _RetryableAuthorization catch (error) {
         if (attempt == 1 || generation != _generation || ticket.abandoned) {
           throw StateError(error.message);
         }
         await Future<void>.delayed(retryDelay);
-        if (generation != _generation) throw StateError('已取消會議授權');
+        if (generation != _generation) {
+          throw StateError(
+            lookupHostedLocalizations(
+              CloaklyLocale.current,
+            ).meetingAuthCancelled,
+          );
+        }
       }
     }
-    throw StateError('無法取得會議授權。');
+    throw StateError(
+      lookupHostedLocalizations(CloaklyLocale.current).meetingAuthFailed,
+    );
   }
 
   Future<String> _fetchTemporaryKey(
@@ -154,7 +170,7 @@ class HostedSessionCoordinator {
         }
       }
       unawaited(_releaseUnknown(ticket.clientRequestId));
-      throw StateError('取得會議授權逾時，請再試一次。');
+      throw StateError(CloaklyLocale.strings.authTimeout);
     }
     if (!result.ok) {
       final message = _messageFor(result.status, result.details);
@@ -172,7 +188,7 @@ class HostedSessionCoordinator {
       } else {
         unawaited(_releaseUnknown(ticket.clientRequestId));
       }
-      throw StateError('取得會議授權逾時，請再試一次。');
+      throw StateError(CloaklyLocale.strings.authTimeout);
     }
     if (sessionId != null &&
         sessionId.isNotEmpty &&
@@ -180,21 +196,25 @@ class HostedSessionCoordinator {
       _sessionIds.add(sessionId);
     }
     if (key == null || key.trim().isEmpty) {
-      throw StateError(data['error'] as String? ?? '後端沒有回傳 Soniox 短效金鑰');
+      throw StateError(
+        data['error'] as String? ??
+            lookupHostedLocalizations(CloaklyLocale.current).noTemporaryKey,
+      );
     }
     return key.trim();
   }
 
   String _messageFor(int status, Object? details) {
+    final l10n = lookupHostedLocalizations(CloaklyLocale.current);
     return hostedQuotaMessage(
       details,
       fallback: switch (status) {
-        404 => '手機版後端尚未部署 create-meeting-session。',
-        401 => '登入已失效，請登出後重新登入。',
-        403 => '這次免費額度無法使用。',
-        502 => 'Soniox 金鑰無效、權限不足，或轉寫服務暫時無法使用。',
-        503 => '後端尚未設定 Soniox API 金鑰。',
-        _ => '無法取得會議授權（$status）。',
+        404 => l10n.sessionNotDeployed,
+        401 => l10n.sessionSignedOut,
+        403 => l10n.freeAllowanceBlocked,
+        502 => l10n.sonioxKeyRejected,
+        503 => l10n.sonioxKeyMissingServer,
+        _ => l10n.meetingAuthStatus(status),
       },
     );
   }
@@ -253,7 +273,9 @@ class HostedSessionCoordinator {
       Map<String, dynamic>() => raw,
       Map() => Map<String, dynamic>.from(raw),
       String() => Map<String, dynamic>.from(jsonDecode(raw) as Map),
-      _ => throw StateError('無法解析會議授權'),
+      _ => throw StateError(
+        lookupHostedLocalizations(CloaklyLocale.current).meetingAuthUnreadable,
+      ),
     };
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cloakly_core/core/constants.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/audio/pcm_wav_writer.dart';
 import 'package:cloakly_core/services/audio/pcm_vad.dart';
 import 'package:record/record.dart';
@@ -47,7 +48,7 @@ class AudioCaptureService implements MeetingAudioCapture {
     await stop();
     final allowed = await _recorder.hasPermission();
     if (!allowed) {
-      throw StateError('沒有麥克風權限');
+      throw StateError(CloaklyLocale.strings.noMicrophonePermission);
     }
 
     await _wav.open(wavPath);

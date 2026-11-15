@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
 import 'package:cloakly_core/services/project/project_retrieval.dart';
 import 'package:cloakly_core/state/project_provider.dart';
@@ -46,8 +47,9 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       if (project.id == widget.projectId) pack = project;
     }
     if (pack == null) {
-      return const Scaffold(body: Center(child: Text('找不到此專案。')));
+      return Scaffold(body: Center(child: Text(context.l10n.projectMissing)));
     }
+    final l10n = context.l10n;
     final project = pack.withNormalizedPhases();
     final configured = ref.watch(aiServiceProvider).isConfigured;
     ProjectPhase? viewingPhase;
@@ -65,10 +67,12 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${project.name} · 時程'),
+        title: Text(l10n.scheduleTitle(project.name)),
         actions: [
           IconButton(
-            tooltip: configured ? 'AI 建議時程' : '先設定 AI 才能建議時程',
+            tooltip: configured
+                ? l10n.aiSuggestSchedule
+                : l10n.aiSuggestNeedsSetup,
             onPressed: _suggesting || !configured || peekingArchive
                 ? (configured || peekingArchive
                       ? null
@@ -89,28 +93,26 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           : FloatingActionButton.extended(
               onPressed: () => _editTask(project, phaseId: viewingPhase?.id),
               icon: const Icon(Icons.add),
-              label: const Text('新增大項目'),
+              label: Text(l10n.addMainItem),
             ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
         children: [
-          const Text(
-            '以階段（phase）拆看板：每個階段建議維持少數可完成項目；全部移到「完成」後可封存，再開下一階段，避免完成欄過長。',
-          ),
+          Text(l10n.phaseBoardHelp),
           if (!configured)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('設定 AI 服務後，即可依文件與會議建議分階段時程。'),
+              title: Text(l10n.setupAiForSchedule),
               trailing: TextButton(
                 onPressed: () => context.push('/settings'),
-                child: const Text('設定'),
+                child: Text(l10n.settings),
               ),
             ),
           if (_lastSuggestUsage != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                '上次 AI 建議用量：${_lastSuggestUsage!.display}',
+                l10n.lastSuggestUsage(_lastSuggestUsage!.display),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -153,12 +155,12 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('尚未建立階段。先新增一個階段，再放工作項目。'),
+                    Text(l10n.noPhaseCreateFirst),
                     const SizedBox(height: 12),
                     FilledButton.icon(
                       onPressed: () => _addPhase(project),
                       icon: const Icon(Icons.add),
-                      label: const Text('新增階段'),
+                      label: Text(l10n.addPhase),
                     ),
                   ],
                 ),
@@ -185,6 +187,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     required bool peekingArchive,
   }) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final filteredBoardTasks = _filteredBoardTasks(boardTasks);
     return [
       if (peekingArchive)
@@ -192,11 +195,11 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           color: theme.colorScheme.surfaceContainerHighest,
           child: ListTile(
             leading: const Icon(Icons.inventory_2_outlined),
-            title: Text('正在檢視已封存的「${phase.name}」'),
-            subtitle: const Text('不佔用現行看板版面'),
+            title: Text(l10n.viewingArchived(phase.name)),
+            subtitle: Text(l10n.archivedNotOnBoard),
             trailing: TextButton(
               onPressed: () => setState(() => _peekArchivedPhaseId = null),
-              child: const Text('回到現行階段'),
+              child: Text(l10n.backToCurrentPhase),
             ),
           ),
         ),
@@ -205,26 +208,26 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           color: theme.colorScheme.secondaryContainer,
           child: ListTile(
             leading: const Icon(Icons.inventory_2_outlined),
-            title: const Text('此階段工作已全部完成'),
-            subtitle: const Text('封存後完成欄會收合，可安心開下一階段。'),
+            title: Text(l10n.phaseAllDone),
+            subtitle: Text(l10n.archivePhaseHint),
             trailing: FilledButton(
               onPressed: () => _archivePhase(project, phase.id, confirm: false),
-              child: const Text('封存階段'),
+              child: Text(l10n.archivePhase),
             ),
           ),
         ),
       const SizedBox(height: 8),
       SegmentedButton<_PlanView>(
-        segments: const [
+        segments: [
           ButtonSegment(
             value: _PlanView.gantt,
-            label: Text('甘特圖'),
-            icon: Icon(Icons.view_timeline_outlined),
+            label: Text(l10n.gantt),
+            icon: const Icon(Icons.view_timeline_outlined),
           ),
           ButtonSegment(
             value: _PlanView.board,
-            label: Text('看板'),
-            icon: Icon(Icons.view_kanban_outlined),
+            label: Text(l10n.kanban),
+            icon: const Icon(Icons.view_kanban_outlined),
           ),
         ],
         selected: {_planView},
@@ -240,13 +243,13 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('這個階段還沒有工作。可新增大項目，或用 AI 建議時程。'),
+                Text(l10n.phaseEmptyAdd),
                 if (!peekingArchive) ...[
                   const SizedBox(height: 12),
                   FilledButton.icon(
                     onPressed: () => _editTask(project, phaseId: phase.id),
                     icon: const Icon(Icons.add),
-                    label: const Text('新增第一個大項目'),
+                    label: Text(l10n.addFirstMainItem),
                   ),
                 ],
               ],
@@ -255,7 +258,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         )
       else if (_planView == _PlanView.gantt) ...[
         Text(
-          '${phase.name} · 進度總覽',
+          l10n.progressOverview(phase.name),
           style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
@@ -264,19 +267,13 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
           tasks: boardTasks,
           readOnly: peekingArchive,
           onEdit: (task) => _editTask(project, task: task),
-          onAddChild: (parent) => _editTask(
-            project,
-            phaseId: phase.id,
-            parentId: parent.id,
-          ),
+          onAddChild: (parent) =>
+              _editTask(project, phaseId: phase.id, parentId: parent.id),
           onDelete: (task) => _deleteTask(project, task),
           onMove: (task, delta) => _moveTask(project, task, delta),
         ),
       ] else ...[
-        Text(
-          '${phase.name} · 工作看板',
-          style: theme.textTheme.titleMedium,
-        ),
+        Text(l10n.workBoard(phase.name), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _BoardDateFilterBar(
           filter: _boardDateFilter,
@@ -291,8 +288,8 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 _boardDateFilter == _BoardDateFilter.all
-                    ? '這個階段還沒有工作。'
-                    : '目前篩選條件下沒有符合的工作。可改為「全部」或調整日期區間。',
+                    ? l10n.phaseEmptyShort
+                    : l10n.filterEmpty,
               ),
             ),
           )
@@ -343,7 +340,11 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         _customBoardRange ??
         DateTimeRange(
           start: DateTime(now.year, now.month, now.day),
-          end: DateTime(now.year, now.month, now.day).add(const Duration(days: 6)),
+          end: DateTime(
+            now.year,
+            now.month,
+            now.day,
+          ).add(const Duration(days: 6)),
         );
     final picked = await showDateRangePicker(
       context: context,
@@ -381,20 +382,23 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     if (!updated.isPhaseComplete(phaseId)) return;
     final archive = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('階段已全部完成'),
-        content: const Text('要封存這個階段嗎？封存後不會佔用看板版面，之後仍可從「已封存」檢視。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('稍後'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('封存'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = context.l10n;
+        return AlertDialog(
+          title: Text(l10n.phaseCompleteTitle),
+          content: Text(l10n.archiveNowBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.later),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.archive),
+            ),
+          ],
+        );
+      },
     );
     if (archive == true && mounted) {
       await _archivePhase(updated, phaseId, confirm: false);
@@ -405,27 +409,30 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     final nameController = TextEditingController(text: pack.nextPhaseName());
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('新增階段'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: '階段名稱',
-            hintText: '例如：MVP、上線準備',
+      builder: (context) {
+        final l10n = context.l10n;
+        return AlertDialog(
+          title: Text(l10n.addPhase),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              labelText: l10n.phaseName,
+              hintText: l10n.phaseNameHint,
+            ),
+            autofocus: true,
           ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('建立'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.create),
+            ),
+          ],
+        );
+      },
     );
     if (ok != true || !mounted) return;
     final name = nameController.text.trim();
@@ -451,24 +458,27 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     final nameController = TextEditingController(text: phase.name);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('重新命名階段'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(labelText: '階段名稱'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+      builder: (context) {
+        final l10n = context.l10n;
+        return AlertDialog(
+          title: Text(l10n.renamePhase),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(labelText: l10n.phaseName),
+            autofocus: true,
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('儲存'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
     );
     if (ok != true || !mounted) return;
     final name = nameController.text.trim();
@@ -492,20 +502,23 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     if (confirm) {
       final ok = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('封存此階段？'),
-          content: const Text('封存後看板只顯示其他未封存階段，已完成項目不會再佔版面。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('封存'),
-            ),
-          ],
-        ),
+        builder: (context) {
+          final l10n = context.l10n;
+          return AlertDialog(
+            title: Text(l10n.archiveThisPhaseTitle),
+            content: Text(l10n.archiveThisPhaseBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.archive),
+              ),
+            ],
+          );
+        },
       );
       if (ok != true || !mounted) return;
     }
@@ -535,7 +548,13 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     if (mounted) {
       setState(() => _peekArchivedPhaseId = null);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(remaining.isEmpty ? '已封存並開啟下一階段。' : '階段已封存。')),
+        SnackBar(
+          content: Text(
+            remaining.isEmpty
+                ? context.l10n.archivedAndOpenedNext
+                : context.l10n.phaseArchived,
+          ),
+        ),
       );
     }
   }
@@ -560,7 +579,8 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     if (_suggesting) return;
     final ai = ref.read(aiServiceProvider);
     final retrieval = ref.read(projectRetrievalProvider);
-    const question = '請依專案文件與會議資料整理可追蹤的工作、時程、期限與負責人，並拆成可陸續完成的階段。';
+    final l10n = context.l10n;
+    final question = l10n.planQuestion;
     setState(() {
       _suggesting = true;
       _suggestError = null;
@@ -573,9 +593,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       );
       if (!mounted) return;
       if (evidence.sources.isEmpty) {
-        setState(
-          () => _suggestError = '目前沒有足夠的文件或會議資料可供建議。請先把時程、規格或會議紀錄放進專案資料夾。',
-        );
+        setState(() => _suggestError = l10n.notEnoughPlanEvidence);
         return;
       }
       final result = await ai.generateProjectPlan(
@@ -584,7 +602,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       if (!mounted) return;
       setState(() => _lastSuggestUsage = result.usage);
       if (result.tasks.isEmpty) {
-        setState(() => _suggestError = 'AI 沒有從現有資料找出可追蹤工作。');
+        setState(() => _suggestError = l10n.noTrackableWork);
         return;
       }
       final existingTitles = {
@@ -601,11 +619,11 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       await _applySuggestions(pack, selected);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已加入 ${selected.length} 項建議工作，請再確認日期與狀態。')),
+        SnackBar(content: Text(l10n.addedSuggestions(selected.length))),
       );
     } catch (error) {
       if (mounted) {
-        setState(() => _suggestError = '無法產生時程建議：$error');
+        setState(() => _suggestError = l10n.planSuggestFailed('$error'));
       }
     } finally {
       if (mounted) setState(() => _suggesting = false);
@@ -722,6 +740,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final l10n = context.l10n;
             final selectedCount = candidates
                 .where((item) => item.selected)
                 .length;
@@ -737,12 +756,12 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'AI 建議的分階段時程',
+                      l10n.suggestedPlanTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '工作會依階段名稱分組；完成一個階段後可封存再開下一階段。勾選要加入的項目。',
+                      l10n.suggestedPlanHelp,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     if (usage != null) ...[
@@ -790,9 +809,9 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                                 projectTaskStatusFromName(draft.status).label,
                                 if (draft.owner.isNotEmpty) draft.owner,
                                 date,
-                                if (item.duplicate) '（同名工作已存在）',
+                                if (item.duplicate) l10n.duplicateTask,
                                 if (item.sourceLabels.isNotEmpty)
-                                  item.sourceLabels.join('、'),
+                                  item.sourceLabels.join(', '),
                               ].join(' · '),
                             ),
                             controlAffinity: ListTileControlAffinity.leading,
@@ -805,7 +824,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('取消'),
+                          child: Text(l10n.cancel),
                         ),
                         const Spacer(),
                         FilledButton(
@@ -821,7 +840,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                                         ),
                                   ]);
                                 },
-                          child: Text('加入所選（$selectedCount）'),
+                          child: Text(l10n.addSelected(selectedCount)),
                         ),
                       ],
                     ),
@@ -845,28 +864,31 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     final descendantCount = pack.descendantsOf(task.id).length;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('刪除工作？'),
-        content: Text(
-          descendantCount > 0
-              ? '「${task.title}」含 $descendantCount 項下層內容，將一併刪除。'
-              : '確定刪除「${task.title}」？',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+      builder: (context) {
+        final l10n = context.l10n;
+        return AlertDialog(
+          title: Text(l10n.deleteTaskTitle),
+          content: Text(
+            descendantCount > 0
+                ? l10n.deleteTaskWithChildren(task.title, descendantCount)
+                : l10n.deleteTaskConfirm(task.title),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('刪除'),
-          ),
-        ],
-      ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
     );
     if (ok != true || !mounted) return;
     final removeIds = {
@@ -917,6 +939,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         final media = MediaQuery.sizeOf(context);
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final l10n = context.l10n;
             void applyStatus(ProjectTaskStatus next) {
               setDialogState(() {
                 status = next;
@@ -938,7 +961,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
             }
 
             String rangeLabel() {
-              if (start == null && end == null) return '點一下選取開始～結束日期';
+              if (start == null && end == null) return l10n.pickDateRange;
               final from = start == null
                   ? '?'
                   : DateFormat('yyyy/MM/dd').format(start!);
@@ -949,7 +972,9 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
             }
 
             return AlertDialog(
-              title: Text(isNew ? '新增$roleLabel' : '編輯$roleLabel'),
+              title: Text(
+                isNew ? l10n.addRole(roleLabel) : l10n.editRole(roleLabel),
+              ),
               constraints: BoxConstraints(
                 minWidth: math.min(560, media.width * 0.92),
                 maxWidth: math.min(720, media.width * 0.94),
@@ -964,22 +989,24 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                     children: [
                       TextField(
                         controller: title,
-                        decoration: InputDecoration(labelText: '$roleLabel名稱'),
+                        decoration: InputDecoration(
+                          labelText: l10n.roleName(roleLabel),
+                        ),
                         autofocus: isNew,
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: owner,
-                        decoration: const InputDecoration(
-                          labelText: '負責人（選填）',
+                        decoration: InputDecoration(
+                          labelText: l10n.ownerOptional,
                         ),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: notes,
-                        decoration: const InputDecoration(
-                          labelText: '備註',
-                          hintText: '可寫進度細節、重做原因、會議結論…',
+                        decoration: InputDecoration(
+                          labelText: l10n.notesLabel,
+                          hintText: l10n.notesHint,
                           alignLabelWithHint: true,
                         ),
                         minLines: 4,
@@ -996,7 +1023,9 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                                   )
                               ? selectedPhaseId
                               : openPhases.first.id,
-                          decoration: const InputDecoration(labelText: '所屬階段'),
+                          decoration: InputDecoration(
+                            labelText: l10n.belongsToPhase,
+                          ),
                           items: [
                             for (final phase in openPhases)
                               DropdownMenuItem(
@@ -1012,7 +1041,9 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                       DropdownButtonFormField<ProjectTaskStatus>(
                         key: ValueKey(status),
                         initialValue: status,
-                        decoration: const InputDecoration(labelText: '狀態'),
+                        decoration: InputDecoration(
+                          labelText: l10n.statusLabel,
+                        ),
                         items: [
                           for (final value in ProjectTaskStatus.values)
                             DropdownMenuItem(
@@ -1027,15 +1058,15 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                       if (computedParentProgress != null)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('完成進度'),
+                          title: Text(l10n.progress),
                           subtitle: Text(
-                            '由子任務計算 · $computedParentProgress%',
+                            l10n.progressFromChildren(computedParentProgress),
                           ),
                         )
                       else
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text('完成進度 · $progress%'),
+                          title: Text(l10n.progressValue(progress)),
                           subtitle: Slider(
                             value: progress.toDouble(),
                             min: 0,
@@ -1048,11 +1079,11 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.date_range),
-                        title: const Text('日期區間'),
+                        title: Text(l10n.dateRange),
                         subtitle: Text(rangeLabel()),
                         trailing: start != null || end != null
                             ? IconButton(
-                                tooltip: '清除日期',
+                                tooltip: l10n.clearDates,
                                 onPressed: () => setDialogState(() {
                                   start = null;
                                   end = null;
@@ -1068,8 +1099,8 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                             initialDateRange: start != null && end != null
                                 ? DateTimeRange(start: start!, end: end!)
                                 : null,
-                            helpText: '選取開始與結束日期',
-                            saveText: '完成',
+                            helpText: l10n.pickStartEnd,
+                            saveText: l10n.donePicking,
                           );
                           if (picked != null) {
                             setDialogState(() {
@@ -1081,7 +1112,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                       ),
                       if (task?.sources.isNotEmpty ?? false)
                         ExpansionTile(
-                          title: const Text('資料依據'),
+                          title: Text(l10n.sourcesTitle),
                           children: [
                             for (final source in task!.sources)
                               ListTile(dense: true, title: Text(source)),
@@ -1101,15 +1132,15 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
                       Navigator.pop(context, false);
                       await _deleteTask(pack, task);
                     },
-                    child: const Text('刪除'),
+                    child: Text(l10n.delete),
                   ),
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('取消'),
+                  child: Text(l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('儲存並確認'),
+                  child: Text(l10n.saveAndConfirm),
                 ),
               ],
             );
@@ -1141,8 +1172,7 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
     if (title.text.trim().isNotEmpty) {
       var syncedStatus = status;
       final leafProgress = progress.clamp(0, 100);
-      var syncedProgress =
-          hasChildren ? storedParentProgress : leafProgress;
+      var syncedProgress = hasChildren ? storedParentProgress : leafProgress;
       if (!hasChildren) {
         if (syncedStatus == ProjectTaskStatus.done) {
           syncedProgress = 100;
@@ -1159,7 +1189,8 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         phaseId: selectedPhaseId,
         parentId: resolvedParentId,
         progress: syncedProgress,
-        sortOrder: task?.sortOrder ??
+        sortOrder:
+            task?.sortOrder ??
             pack.nextSortOrder(
               parentId: resolvedParentId,
               phaseId: selectedPhaseId,
@@ -1195,20 +1226,23 @@ class _ProjectPlanScreenState extends ConsumerState<ProjectPlanScreen> {
         mounted) {
       final archive = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('階段已全部完成'),
-          content: const Text('要封存這個階段嗎？封存後不會佔用看板版面。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('稍後'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('封存'),
-            ),
-          ],
-        ),
+        builder: (context) {
+          final l10n = context.l10n;
+          return AlertDialog(
+            title: Text(l10n.phaseCompleteTitle),
+            content: Text(l10n.archiveShortBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.later),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.archive),
+              ),
+            ],
+          );
+        },
       );
       if (archive == true && mounted) {
         await _archivePhase(
@@ -1265,20 +1299,19 @@ class _PhaseBar extends StatelessWidget {
     final open = project.openPhases;
     final archived = project.archivedPhases;
     final viewing = _viewingPhase;
-    final count = viewing == null
-        ? 0
-        : project.tasksInPhase(viewing.id).length;
+    final l10n = context.l10n;
+    final count = viewing == null ? 0 : project.tasksInPhase(viewing.id).length;
     final title = viewing == null
-        ? '尚未建立階段'
+        ? l10n.noPhaseYet
         : peekingArchive
-        ? '${viewing.name}（已封存）'
-        : viewing.name;
+        ? l10n.viewingArchived(viewing.name)
+        : l10n.phaseMenuTitle(viewing.name, count);
 
     return Row(
       children: [
         Flexible(
           child: PopupMenuButton<String>(
-            tooltip: '切換階段',
+            tooltip: l10n.switchPhase,
             offset: const Offset(0, 40),
             onSelected: (value) {
               if (value == '__add__') {
@@ -1293,13 +1326,13 @@ class _PhaseBar extends StatelessWidget {
             },
             itemBuilder: (context) => [
               if (peekingArchive)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: '__exit_peek__',
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.undo, size: 20),
-                    title: Text('回到現行階段'),
+                    leading: const Icon(Icons.undo, size: 20),
+                    title: Text(l10n.backToCurrentPhase),
                   ),
                 ),
               if (peekingArchive && open.isNotEmpty) const PopupMenuDivider(),
@@ -1310,7 +1343,9 @@ class _PhaseBar extends StatelessWidget {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     title: Text(phase.name),
-                    subtitle: Text('${project.tasksInPhase(phase.id).length} 項'),
+                    subtitle: Text(
+                      l10n.itemCount(project.tasksInPhase(phase.id).length),
+                    ),
                     trailing: !peekingArchive && phase.id == viewingPhaseId
                         ? Icon(
                             Icons.check,
@@ -1321,13 +1356,13 @@ class _PhaseBar extends StatelessWidget {
                   ),
                 ),
               if (open.isNotEmpty) const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: '__add__',
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.add, size: 20),
-                  title: Text('新增階段'),
+                  leading: const Icon(Icons.add, size: 20),
+                  title: Text(l10n.addPhaseMenu),
                 ),
               ),
             ],
@@ -1338,7 +1373,7 @@ class _PhaseBar extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      viewing == null ? title : '$title · $count 項',
+                      title,
                       style: theme.textTheme.titleMedium,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1356,12 +1391,12 @@ class _PhaseBar extends StatelessWidget {
         if (archived.isNotEmpty)
           TextButton(
             onPressed: () => _showArchivedDialog(context, archived),
-            child: Text('已封存 ${archived.length}'),
+            child: Text(l10n.archivedCount(archived.length)),
           ),
         if (!peekingArchive &&
             (onRenamePhase != null || onArchivePhase != null))
           PopupMenuButton<_PhaseAction>(
-            tooltip: '階段選項',
+            tooltip: l10n.phaseOptions,
             onSelected: (action) {
               switch (action) {
                 case _PhaseAction.rename:
@@ -1372,23 +1407,23 @@ class _PhaseBar extends StatelessWidget {
             },
             itemBuilder: (context) => [
               if (onRenamePhase != null)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: _PhaseAction.rename,
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.edit_outlined, size: 20),
-                    title: Text('重新命名'),
+                    leading: const Icon(Icons.edit_outlined, size: 20),
+                    title: Text(l10n.rename),
                   ),
                 ),
               if (onArchivePhase != null)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: _PhaseAction.archive,
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.inventory_2_outlined, size: 20),
-                    title: Text('封存此階段'),
+                    leading: const Icon(Icons.inventory_2_outlined, size: 20),
+                    title: Text(l10n.archiveThisPhase),
                   ),
                 ),
             ],
@@ -1404,56 +1439,61 @@ class _PhaseBar extends StatelessWidget {
   ) async {
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('已封存階段 · ${archived.length}'),
-        content: SizedBox(
-          width: 420,
-          child: ListView.separated(
-            shrinkWrap: true,
-            itemCount: archived.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final phase = archived[index];
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(phase.name),
-                subtitle: Text(
-                  [
-                    '${project.tasksInPhase(phase.id).length} 項工作',
-                    if (phase.archivedAt != null)
-                      '封存於 ${DateFormat('yyyy/MM/dd').format(phase.archivedAt!)}',
-                  ].join(' · '),
-                ),
-                trailing: Wrap(
-                  spacing: 4,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-                        onPeekArchived(phase.id);
-                      },
-                      child: const Text('檢視'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-                        onUnarchive(phase);
-                      },
-                      child: const Text('解除封存'),
-                    ),
-                  ],
-                ),
-              );
-            },
+      builder: (dialogContext) {
+        final l10n = dialogContext.l10n;
+        return AlertDialog(
+          title: Text(l10n.archivedPhasesTitle(archived.length)),
+          content: SizedBox(
+            width: 420,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: archived.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final phase = archived[index];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(phase.name),
+                  subtitle: Text(
+                    [
+                      l10n.taskCount(project.tasksInPhase(phase.id).length),
+                      if (phase.archivedAt != null)
+                        l10n.archivedOn(
+                          DateFormat('yyyy/MM/dd').format(phase.archivedAt!),
+                        ),
+                    ].join(' · '),
+                  ),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          onPeekArchived(phase.id);
+                        },
+                        child: Text(l10n.view),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          onUnarchive(phase);
+                        },
+                        child: Text(l10n.unarchive),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('關閉'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.close),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1476,9 +1516,10 @@ class _BoardDateFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final format = DateFormat('MM/dd');
     final customLabel = customRange == null
-        ? '自訂區間'
+        ? l10n.customRange
         : '${format.format(customRange!.start)}–${format.format(customRange!.end)}';
 
     return Wrap(
@@ -1488,13 +1529,10 @@ class _BoardDateFilterBar extends StatelessWidget {
       children: [
         SegmentedButton<_BoardDateFilter>(
           segments: [
-            const ButtonSegment(
-              value: _BoardDateFilter.all,
-              label: Text('全部'),
-            ),
-            const ButtonSegment(
+            ButtonSegment(value: _BoardDateFilter.all, label: Text(l10n.all)),
+            ButtonSegment(
               value: _BoardDateFilter.today,
-              label: Text('今天'),
+              label: Text(l10n.today),
             ),
             ButtonSegment(
               value: _BoardDateFilter.custom,
@@ -1515,10 +1553,7 @@ class _BoardDateFilterBar extends StatelessWidget {
           TextButton.icon(
             onPressed: onPickCustomRange,
             icon: const Icon(Icons.date_range, size: 18),
-            label: Text(
-              '調整日期',
-              style: theme.textTheme.labelLarge,
-            ),
+            label: Text(l10n.adjustDates, style: theme.textTheme.labelLarge),
           ),
       ],
     );
@@ -1615,8 +1650,8 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       initialDateRange: _focusRange,
-      helpText: '只展開落在此區間的項目',
-      saveText: '套用',
+      helpText: context.l10n.rangeHelp,
+      saveText: context.l10n.apply,
     );
     if (picked == null || !mounted) return;
     final collapse = <String>{};
@@ -1696,9 +1731,7 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
     ];
     if (expanded) {
       for (final child in kids) {
-        rows.addAll(
-          _buildBranch(child, depth: depth + 1, siblings: kids),
-        );
+        rows.addAll(_buildBranch(child, depth: depth + 1, siblings: kids));
       }
     }
     return rows;
@@ -1718,9 +1751,10 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
             for (final root in roots)
               if (_subtreeTouchesRange(root, _focusRange!)) root,
           ];
+    final l10n = context.l10n;
     final rangeLabel = _focusRange == null
         ? null
-        : '${DateFormat('MM/dd').format(_focusRange!.start)}～${DateFormat('MM/dd').format(_focusRange!.end)}';
+        : '${DateFormat('MM/dd').format(_focusRange!.start)}–${DateFormat('MM/dd').format(_focusRange!.end)}';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1735,23 +1769,23 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
-                  '顯示',
+                  l10n.showLabel,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
                 FilterChip(
-                  label: const Text('大項目'),
+                  label: Text(l10n.filterMainItems),
                   selected: _focusRange == null && _viewDepth == 0,
                   onSelected: (_) => _applyViewDepth(0),
                 ),
                 FilterChip(
-                  label: const Text('＋子類別'),
+                  label: Text(l10n.filterSubcategories),
                   selected: _focusRange == null && _viewDepth == 1,
                   onSelected: (_) => _applyViewDepth(1),
                 ),
                 FilterChip(
-                  label: const Text('全部'),
+                  label: Text(l10n.filterAll),
                   selected: _focusRange == null && _viewDepth == 2,
                   onSelected: (_) => _expandAll(),
                 ),
@@ -1763,14 +1797,18 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
                         ? scheme.onSecondaryContainer
                         : scheme.onSurfaceVariant,
                   ),
-                  label: Text(rangeLabel == null ? '依日期' : '日期 $rangeLabel'),
+                  label: Text(
+                    rangeLabel == null
+                        ? l10n.byDate
+                        : l10n.dateFilter(rangeLabel),
+                  ),
                   selected: _focusRange != null,
                   onSelected: (_) => _focusByDateRange(),
                 ),
                 if (_focusRange != null)
                   ActionChip(
                     avatar: const Icon(Icons.clear, size: 16),
-                    label: const Text('清除日期'),
+                    label: Text(l10n.clearDateFilter),
                     onPressed: _clearDateFocus,
                   ),
               ],
@@ -1780,20 +1818,18 @@ class _ProgressOverviewState extends State<_ProgressOverview> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               _focusRange == null
-                  ? '大項目 → 子類別 → 紀錄 · 可用 ↑↓ 調整同層順序'
-                  : '只顯示與 $rangeLabel 有交集的項目（無日期者不顯示）',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+                  ? l10n.hierarchyHelp
+                  : l10n.rangeIntersectionHelp(rangeLabel!),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
           if (visibleRoots.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Text(
-                _focusRange == null
-                    ? '尚無項目'
-                    : '這個日期區間沒有對應項目。',
+                _focusRange == null ? l10n.noItems : l10n.noItemsInRange,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -1854,6 +1890,7 @@ class _ProgressRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final role = projectTaskRoleLabel(depth);
     final isRecord = depth >= 2;
     final missingDate = task.startDate == null && task.endDate == null;
@@ -1869,7 +1906,12 @@ class _ProgressRow extends StatelessWidget {
       child: InkWell(
         onTap: onEdit,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(indent, isRecord ? 8 : 10, 8, isRecord ? 8 : 10),
+          padding: EdgeInsets.fromLTRB(
+            indent,
+            isRecord ? 8 : 10,
+            8,
+            isRecord ? 8 : 10,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1886,7 +1928,7 @@ class _ProgressRow extends StatelessWidget {
                               minWidth: 32,
                               minHeight: 32,
                             ),
-                            tooltip: expanded ? '收起' : '展開',
+                            tooltip: expanded ? l10n.collapse : l10n.expand,
                             onPressed: onToggle,
                             icon: Icon(
                               expanded
@@ -1945,24 +1987,25 @@ class _ProgressRow extends StatelessWidget {
                                       task.title,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: (isRecord
-                                              ? Theme.of(
-                                                  context,
-                                                ).textTheme.bodyMedium
-                                              : Theme.of(
-                                                  context,
-                                                ).textTheme.titleSmall)
-                                          ?.copyWith(
-                                            fontWeight: depth == 0
-                                                ? FontWeight.w600
-                                                : FontWeight.w500,
-                                          ),
+                                      style:
+                                          (isRecord
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).textTheme.bodyMedium
+                                                  : Theme.of(
+                                                      context,
+                                                    ).textTheme.titleSmall)
+                                              ?.copyWith(
+                                                fontWeight: depth == 0
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w500,
+                                              ),
                                     ),
                                   ),
                                   if (missingDate) ...[
                                     const SizedBox(width: 6),
                                     Tooltip(
-                                      message: '尚未設定日期',
+                                      message: l10n.dateNotSetShort,
                                       child: Icon(
                                         Icons.error_outline,
                                         size: 16,
@@ -2003,26 +2046,28 @@ class _ProgressRow extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          tooltip: '上移',
+                          tooltip: l10n.moveUp,
                           visualDensity: VisualDensity.compact,
                           onPressed: canMoveUp ? onMoveUp : null,
                           icon: const Icon(Icons.keyboard_arrow_up, size: 20),
                         ),
                         IconButton(
-                          tooltip: '下移',
+                          tooltip: l10n.moveDown,
                           visualDensity: VisualDensity.compact,
                           onPressed: canMoveDown ? onMoveDown : null,
                           icon: const Icon(Icons.keyboard_arrow_down, size: 20),
                         ),
                         if (onAddChild != null)
                           IconButton(
-                            tooltip: '新增${projectTaskRoleLabel(depth + 1)}',
+                            tooltip: l10n.addChildRole(
+                              projectTaskRoleLabel(depth + 1),
+                            ),
                             visualDensity: VisualDensity.compact,
                             onPressed: onAddChild,
                             icon: const Icon(Icons.add, size: 20),
                           ),
                         IconButton(
-                          tooltip: '刪除',
+                          tooltip: l10n.delete,
                           visualDensity: VisualDensity.compact,
                           onPressed: onDelete,
                           icon: Icon(

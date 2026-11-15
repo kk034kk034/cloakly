@@ -1,4 +1,5 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/widgets/project_question_panel.dart';
 import 'package:flutter/material.dart';
@@ -11,20 +12,23 @@ class ProjectQuestionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(projectsProvider);
+    final l10n = context.l10n;
     ProjectPack? pack;
     for (final item in library.valueOrNull?.projects ?? <ProjectPack>[]) {
       if (item.id == projectId) pack = item;
     }
     if (pack == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('專案問答')),
+        appBar: AppBar(title: Text(l10n.projectQa)),
         body: Center(
-          child: Text(library.isLoading ? '載入專案中…' : '找不到此專案，請回到專案列表。'),
+          child: Text(
+            library.isLoading ? l10n.loadingProject : l10n.projectMissingBack,
+          ),
         ),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text('${pack.name} · 專案問答')),
+      appBar: AppBar(title: Text(l10n.projectQaTitle(pack.name))),
       body: SafeArea(child: ProjectQuestionPanel(project: pack)),
     );
   }

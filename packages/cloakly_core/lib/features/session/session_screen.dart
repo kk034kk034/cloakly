@@ -1,4 +1,5 @@
 import 'package:cloakly_core/features/session/session_controller.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/widgets/meeting_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -39,6 +40,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     final wrapping = session.phase == SessionPhase.wrappingUp;
     final wide = MediaQuery.sizeOf(context).width >= 980;
     final projectName = session.projectName;
+    final l10n = context.l10n;
 
     return PopScope(
       canPop: !wrapping && session.phase != SessionPhase.live,
@@ -46,20 +48,23 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         if (didPop || wrapping) return;
         final leave = await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('結束這場會議？'),
-            content: const Text('結束後會依逐字稿與筆記產生會議紀錄。'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('繼續'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('結束並整理'),
-              ),
-            ],
-          ),
+          builder: (context) {
+            final l10n = context.l10n;
+            return AlertDialog(
+              title: Text(l10n.endMeetingTitle),
+              content: Text(l10n.endMeetingBody),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.keepGoing),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.endAndSummarize),
+                ),
+              ],
+            );
+          },
         );
         if (leave == true && context.mounted) {
           await _finish();
@@ -72,7 +77,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(session.title.isEmpty ? '即時會議' : session.title),
+                  Text(
+                    session.title.isEmpty ? l10n.liveMeeting : session.title,
+                  ),
                   Text(
                     '${formatDuration(session.elapsed)}'
                     '${projectName == null ? '' : ' · $projectName'}',
@@ -82,21 +89,21 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
               ),
               actions: [
                 _PaneToggle(
-                  tooltip: '逐字稿',
+                  tooltip: l10n.transcript,
                   icon: Icons.subtitles_outlined,
                   selectedIcon: Icons.subtitles,
                   selected: _showTranscript,
                   onPressed: () => _toggle(_Pane.transcript),
                 ),
                 _PaneToggle(
-                  tooltip: '提示',
+                  tooltip: l10n.hints,
                   icon: Icons.lightbulb_outline,
                   selectedIcon: Icons.lightbulb,
                   selected: _showHints,
                   onPressed: () => _toggle(_Pane.hints),
                 ),
                 _PaneToggle(
-                  tooltip: '筆記',
+                  tooltip: l10n.notes,
                   icon: Icons.edit_note,
                   selectedIcon: Icons.edit_note,
                   selected: _showNotes,
@@ -104,20 +111,20 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 ),
                 if (session.phase == SessionPhase.paused)
                   IconButton(
-                    tooltip: '繼續',
+                    tooltip: l10n.keepGoing,
                     onPressed: controller.resume,
                     icon: const Icon(Icons.play_arrow),
                   )
                 else
                   IconButton(
-                    tooltip: '暫停',
+                    tooltip: l10n.pause,
                     onPressed: session.phase == SessionPhase.live
                         ? controller.pause
                         : null,
                     icon: const Icon(Icons.pause),
                   ),
                 IconButton(
-                  tooltip: '結束',
+                  tooltip: l10n.finish,
                   onPressed: wrapping ? null : _finish,
                   icon: const Icon(Icons.stop_circle_outlined),
                 ),
@@ -131,17 +138,15 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                     actions: const [SizedBox.shrink()],
                   ),
                 if (session.isDemo)
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('示範模式：正在播放模擬對話，不必對著麥克風說話。'),
+                      child: Text(l10n.demoPlaying),
                     ),
                   ),
                 Expanded(
-                  child: wide
-                      ? _wideLayout(session)
-                      : _narrowLayout(session),
+                  child: wide ? _wideLayout(session) : _narrowLayout(session),
                 ),
               ],
             ),
@@ -149,16 +154,16 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           if (wrapping)
             const ModalBarrier(dismissible: false, color: Colors.black54),
           if (wrapping)
-            const Center(
+            Center(
               child: Card(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('正在整理會議紀錄與發言人…'),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(l10n.wrappingUp),
                     ],
                   ),
                 ),
@@ -186,7 +191,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                   Expanded(
                     child: _HintPane(
                       session: session,
-                      title: _showNotes ? '提示' : null,
+                      title: _showNotes ? context.l10n.hints : null,
                     ),
                   ),
                 if (_showHints && _showNotes) const Divider(height: 1),
@@ -196,7 +201,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                       session: session,
                       controller: _noteController,
                       onSubmit: _submitNote,
-                      title: _showHints ? '筆記' : null,
+                      title: _showHints ? context.l10n.notes : null,
                     ),
                   ),
               ],
@@ -234,14 +239,16 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                           ),
                         ),
                         child: Text(
-                          panes[i].label,
+                          _paneLabel(context, panes[i]),
                           style: TextStyle(
                             fontWeight: i == index
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                             color: i == index
                                 ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -303,8 +310,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
             children: [
               Text(
                 ids.isEmpty
-                    ? '點選發言，可多選後取得回覆建議。灰字與人物標籤仍可能更新。'
-                    : '已選取 ${ids.length} 段發言',
+                    ? context.l10n.selectForReply
+                    : context.l10n.selectedLines(ids.length),
               ),
               FilledButton.icon(
                 onPressed:
@@ -327,12 +334,12 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                         });
                       },
                 icon: const Icon(Icons.auto_awesome),
-                label: const Text('建議回覆'),
+                label: Text(context.l10n.suggestReply),
               ),
               if (ids.isNotEmpty)
                 TextButton(
                   onPressed: () => setState(_selectedIds.clear),
-                  child: const Text('清除選取'),
+                  child: Text(context.l10n.clearSelection),
                 ),
             ],
           ),
@@ -367,13 +374,15 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
   }
 }
 
-enum _Pane {
-  transcript('逐字稿'),
-  hints('提示'),
-  notes('筆記');
+enum _Pane { transcript, hints, notes }
 
-  const _Pane(this.label);
-  final String label;
+String _paneLabel(BuildContext context, _Pane pane) {
+  final l10n = context.l10n;
+  return switch (pane) {
+    _Pane.transcript => l10n.transcript,
+    _Pane.hints => l10n.hints,
+    _Pane.notes => l10n.notes,
+  };
 }
 
 class _PaneToggle extends StatelessWidget {
@@ -395,7 +404,9 @@ class _PaneToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return IconButton(
-      tooltip: selected ? '隱藏$tooltip' : '顯示$tooltip',
+      tooltip: selected
+          ? context.l10n.hidePane(tooltip)
+          : context.l10n.showPane(tooltip),
       isSelected: selected,
       onPressed: onPressed,
       icon: Icon(icon, color: scheme.onSurfaceVariant),
@@ -421,13 +432,12 @@ class _NotesPane extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (title != null)
-          _PaneHeader(title: title!),
+        if (title != null) _PaneHeader(title: title!),
         Expanded(
           child: session.notes.isEmpty
               ? Center(
                   child: Text(
-                    '邊聽邊記重點，結束後會一併寫進會議紀錄。',
+                    context.l10n.notesIntro,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -443,10 +453,7 @@ class _NotesPane extends StatelessWidget {
                       leading: SizedBox(
                         width: 48,
                         child: Text(
-                          formatElapsedSince(
-                            note.createdAt,
-                            session.startedAt,
-                          ),
+                          formatElapsedSince(note.createdAt, session.startedAt),
                           style: elapsedTimeStyle(context),
                         ),
                       ),
@@ -482,9 +489,9 @@ class _NotesPane extends StatelessWidget {
                     maxLines: 4,
                     keyboardType: TextInputType.text,
                     textInputAction: TextInputAction.send,
-                    decoration: const InputDecoration(
-                      hintText: '寫下現場筆記',
-                      helperText: 'Enter 送出 · Shift+Enter 換行',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.noteHint,
+                      helperText: context.l10n.enterToSend,
                     ),
                     onSubmitted: (_) => onSubmit(),
                   ),
@@ -538,7 +545,10 @@ class _HintPane extends StatelessWidget {
               ),
               if (session.suggestions.length > 1) ...[
                 const SizedBox(height: 16),
-                Text('稍早的提示', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  context.l10n.earlierPrompts,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 8),
                 ...session.suggestions.reversed
                     .skip(1)

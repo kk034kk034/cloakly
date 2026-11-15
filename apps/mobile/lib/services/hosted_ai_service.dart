@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/services/hosted_access.dart';
 import 'package:cloakly_mobile/services/hosted_device.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,7 +33,9 @@ class HostedAiService implements AiService {
     final data = _jsonMap(response.data);
     final answer = data['answer'] as String?;
     if (answer == null || answer.trim().isEmpty) {
-      throw StateError('Hosted AI 沒有回傳專案回答');
+      throw StateError(
+        lookupHostedLocalizations(CloaklyLocale.current).hostedNoAnswer,
+      );
     }
     return AiTextResult(answer.trim(), usage: _usage(data));
   }
@@ -62,7 +66,9 @@ class HostedAiService implements AiService {
     final data = _jsonMap(response.data);
     final answer = data['answer'] as String?;
     if (answer == null || answer.trim().isEmpty) {
-      throw StateError('Hosted AI 沒有回傳回答建議');
+      throw StateError(
+        lookupHostedLocalizations(CloaklyLocale.current).hostedNoSuggestion,
+      );
     }
     return AiTextResult(answer.trim(), usage: _usage(data));
   }
@@ -112,14 +118,15 @@ class HostedAiService implements AiService {
     final response = await _invoke(
       'project-plan',
       timeout: const Duration(seconds: 60),
-      body: {
-        'evidence': evidence,
-        'deviceId': await HostedDeviceId.current(),
-      },
+      body: {'evidence': evidence, 'deviceId': await HostedDeviceId.current()},
     );
     final data = _jsonMap(response.data);
     final tasks = data['tasks'];
-    if (tasks is! List) throw StateError('Hosted AI 沒有回傳 WBS');
+    if (tasks is! List) {
+      throw StateError(
+        lookupHostedLocalizations(CloaklyLocale.current).hostedNoPlan,
+      );
+    }
     return ProjectPlanResult(
       tasks: [
         for (final raw in tasks.take(40))
@@ -159,7 +166,9 @@ class HostedAiService implements AiService {
       throw StateError(
         hostedQuotaMessage(
           error.details,
-          fallback: '無法完成這個 AI 功能（${error.status}）。',
+          fallback: lookupHostedLocalizations(
+            CloaklyLocale.current,
+          ).hostedFeatureFailed(error.status),
         ),
       );
     }
@@ -177,6 +186,8 @@ class HostedAiService implements AiService {
       final decoded = jsonDecode(raw);
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
-    throw StateError('Hosted API 回傳格式無法解析');
+    throw StateError(
+      lookupHostedLocalizations(CloaklyLocale.current).hostedBadPayload,
+    );
   }
 }

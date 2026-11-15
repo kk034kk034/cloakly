@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/audio/recording_export.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
 import 'package:cloakly_core/state/project_provider.dart';
@@ -22,6 +23,7 @@ class MeetingDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bundle = ref.watch(meetingBundleProvider(meetingId));
+    final l10n = context.l10n;
     return bundle.when(
       loading: () => Scaffold(
         appBar: AppBar(leading: BackButton(onPressed: () => _goHome(context))),
@@ -29,7 +31,7 @@ class MeetingDetailScreen extends ConsumerWidget {
       ),
       error: (error, _) => Scaffold(
         appBar: AppBar(leading: BackButton(onPressed: () => _goHome(context))),
-        body: Center(child: Text('讀取失敗：$error')),
+        body: Center(child: Text(l10n.loadFailed('$error'))),
       ),
       data: (data) => DefaultTabController(
         length: 4,
@@ -39,25 +41,28 @@ class MeetingDetailScreen extends ConsumerWidget {
             title: Text(data.meeting.title),
             actions: [
               IconButton(
-                tooltip: '分享',
+                tooltip: l10n.share,
                 onPressed: () => _showShareOptions(context, ref, data),
                 icon: const Icon(Icons.ios_share),
               ),
             ],
-            bottom: const TabBar(
+            bottom: TabBar(
               isScrollable: true,
               tabs: [
-                Tab(text: '會議紀錄'),
-                Tab(text: '逐字稿'),
-                Tab(text: '筆記'),
-                Tab(text: '提示'),
+                Tab(text: l10n.meetingsTitle),
+                Tab(text: l10n.transcript),
+                Tab(text: l10n.notes),
+                Tab(text: l10n.hints),
               ],
             ),
           ),
           body: TabBarView(
             children: [
               _MinutesTab(meeting: data.meeting),
-              TranscriptList(lines: data.lines, emptyLabel: '這場會議沒有逐字稿。'),
+              TranscriptList(
+                lines: data.lines,
+                emptyLabel: l10n.meetingNoTranscript,
+              ),
               _NotesTab(notes: data.notes, startedAt: data.meeting.startedAt),
               _HintsTab(
                 suggestions: data.suggestions,
@@ -88,14 +93,15 @@ class MeetingDetailScreen extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       builder: (sheetContext) {
+        final l10n = sheetContext.l10n;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.notes_outlined),
-                title: const Text('分享會議紀錄'),
-                subtitle: const Text('文字，可貼到訊息或文件'),
+                title: Text(l10n.shareMinutes),
+                subtitle: Text(l10n.shareMinutesSubtitle),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _shareText(context, data);
@@ -103,9 +109,11 @@ class MeetingDetailScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.folder_outlined),
-                title: const Text('儲存錄音到檔案'),
+                title: Text(l10n.saveRecording),
                 subtitle: Text(
-                  projectFolder == null ? '沒有專案時會存到下載資料夾' : '存到專案資料夾裡的「錄音」',
+                  projectFolder == null
+                      ? l10n.saveRecordingNoProject
+                      : l10n.saveRecordingInProject,
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -114,8 +122,8 @@ class MeetingDetailScreen extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.ios_share),
-                title: const Text('分享錄音檔'),
-                subtitle: const Text('傳到 Drive 或 Line'),
+                title: Text(l10n.shareRecording),
+                subtitle: Text(l10n.shareRecordingSubtitle),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _shareAudio(context, data);
@@ -150,20 +158,20 @@ class MeetingDetailScreen extends ConsumerWidget {
               data.meeting.minutesMarkdown ?? '',
             ) ??
             data.meeting.minutesMarkdown ??
-            '（尚無會議紀錄）',
+            context.l10n.noMinutesYetExport,
       )
       ..writeln()
-      ..writeln('## 逐字稿')
+      ..writeln('## ${context.l10n.headingTranscript}')
       ..writeln();
     for (final line in data.lines) {
       buffer.writeln(
-        '[${formatDuration(Duration(milliseconds: line.startMs))}] ${line.speaker}：${line.text}',
+        '[${formatDuration(Duration(milliseconds: line.startMs))}] ${line.speaker}: ${line.text}',
       );
     }
     if (data.notes.isNotEmpty) {
       buffer
         ..writeln()
-        ..writeln('## 筆記')
+        ..writeln('## ${context.l10n.headingNotes}')
         ..writeln();
       for (final note in data.notes) {
         buffer.writeln(
@@ -174,7 +182,7 @@ class MeetingDetailScreen extends ConsumerWidget {
     if (data.suggestions.isNotEmpty) {
       buffer
         ..writeln()
-        ..writeln('## 提示')
+        ..writeln('## ${context.l10n.headingPrompts}')
         ..writeln();
       for (final hint in data.suggestions) {
         buffer
@@ -204,7 +212,7 @@ class MeetingDetailScreen extends ConsumerWidget {
     if (source == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('這場會議沒有錄音檔可以儲存。')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.noRecordingToSave)));
       return;
     }
     try {
@@ -218,21 +226,22 @@ class MeetingDetailScreen extends ConsumerWidget {
       final inProject =
           projectFolder != null &&
           p.normalize(saved).startsWith(p.normalize(projectFolder));
+      final l10n = context.l10n;
       final where = inProject
           ? saved
           : Platform.isIOS
-          ? '檔案 App → 我的 iPhone → Cloakly'
+          ? l10n.iosFilesPath
           : Platform.isAndroid
-          ? '下載 / Cloakly'
+          ? l10n.androidDownloadsPath
           : saved;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('已存到 $where')));
+      ).showSnackBar(SnackBar(content: Text(l10n.savedTo(where))));
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('儲存失敗：$error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.saveFailed('$error'))),
+      );
     }
   }
 
@@ -242,7 +251,7 @@ class MeetingDetailScreen extends ConsumerWidget {
     if (source == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('這場會議沒有錄音檔可以分享。')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.noRecordingToShare)));
       return;
     }
 
@@ -297,7 +306,7 @@ class _MinutesTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text('還沒有會議紀錄。'),
+              Text(context.l10n.noMinutesBody),
             ],
           ),
         ),
@@ -330,7 +339,7 @@ class _NotesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (notes.isEmpty) {
-      return const Center(child: Text('這場會議沒有現場筆記。'));
+      return Center(child: Text(context.l10n.noLiveNotes));
     }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -363,7 +372,7 @@ class _HintsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (suggestions.isEmpty) {
-      return const Center(child: Text('這場會議沒有產生回答提示。'));
+      return Center(child: Text(context.l10n.noPrompts));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),

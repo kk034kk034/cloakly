@@ -20,5 +20,18 @@
 
 ## en
 
+- [`01-login.png`](en/01-login.png) — Sign in with email and password.
+- [`02-sign-up.png`](en/02-sign-up.png) — Create an account.
+- [`03-configuration.png`](en/03-configuration.png) — Startup screen before Supabase is configured.
+- [`04-startup-error.png`](en/04-startup-error.png) — Startup failed.
+- [`05-projects.png`](en/05-projects.png) — Project list and work in progress.
+- [`06-home.png`](en/06-home.png) — Project home: status, meetings, questions, and start a meeting.
+- [`07-meetings.png`](en/07-meetings.png) — Meeting list for this project.
+- [`08-meeting.png`](en/08-meeting.png) — Minutes for one meeting.
+- [`09-questions.png`](en/09-questions.png) — Project Q&A.
+- [`10-plan.png`](en/10-plan.png) — Schedule Gantt chart.
+- [`11-plan-board.png`](en/11-plan-board.png) — Schedule board.
+- [`12-project.png`](en/12-project.png) — Project settings, background, and vocabulary.
+- [`13-session.png`](en/13-session.png) — A meeting in progress and its transcript.
 - [`14-account.png`](en/14-account.png) — Account and subscription, with the current plan.
 - [`15-subscription.png`](en/15-subscription.png) — Plan, purchase, restore, and manage subscription.

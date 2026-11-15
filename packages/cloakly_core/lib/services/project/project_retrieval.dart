@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/data/repositories/meeting_repository.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/project/project_document_reader.dart';
 import 'package:cloakly_core/services/project/project_indexer.dart';
 
@@ -37,46 +38,51 @@ class ProjectEvidence {
   final List<ProjectSource> sources;
   final List<String> warnings;
 
-  String context(String projectName, ProjectQuestionMode mode) => jsonEncode({
-    'project': projectName,
-    'queriedAt': DateTime.now().toIso8601String(),
-    'mode': mode.name,
-    'coverage': '提問時掃描本專案資料夾內支援的文件與已儲存的會議資料；不是完整即時狀態。',
-    'warnings': [
-      ...warnings
-          .take(20)
-          .map(
-            (warning) => warning.length > 300
-                ? '${warning.substring(0, 300)}…'
-                : warning,
-          ),
-      if (warnings.length > 20) '另有 ${warnings.length - 20} 項讀取限制，介面可查看完整列表。',
-    ],
-    'sources': [
-      for (var i = 0; i < sources.length; i++)
-        {
-          'id': 'S${i + 1}',
-          'title': sources[i].title,
-          'location': sources[i].location,
-          'date': sources[i].date.toIso8601String(),
-          'dateMeaning': sources[i].meetingId == null
-              ? '檔案修改時間，非決議生效日'
-              : '會議時間',
-          'text': sources[i].text,
-        },
-    ],
-  });
+  String context(String projectName, ProjectQuestionMode mode) {
+    final l10n = CloaklyLocale.strings;
+    return jsonEncode({
+      'project': projectName,
+      'queriedAt': DateTime.now().toIso8601String(),
+      'mode': mode.name,
+      'coverage': l10n.coverageNote,
+      'warnings': [
+        ...warnings
+            .take(20)
+            .map(
+              (warning) => warning.length > 300
+                  ? '${warning.substring(0, 300)}…'
+                  : warning,
+            ),
+        if (warnings.length > 20) l10n.moreReadLimits(warnings.length - 20),
+      ],
+      'sources': [
+        for (var i = 0; i < sources.length; i++)
+          {
+            'id': 'S${i + 1}',
+            'title': sources[i].title,
+            'location': sources[i].location,
+            'date': sources[i].date.toIso8601String(),
+            'dateMeaning': sources[i].meetingId == null
+                ? l10n.fileModifiedNotDecision
+                : l10n.meetingTimeShort,
+            'text': sources[i].text,
+          },
+      ],
+    });
+  }
 
   Set<int> citations(String answer) {
     final found = <int>{};
     for (final match in RegExp(r'\[S(\d+)\]').allMatches(answer)) {
       final index = int.parse(match.group(1)!) - 1;
       if (index < 0 || index >= sources.length) {
-        throw StateError('回答引用了不存在的來源，請重新提問。');
+        throw StateError(CloaklyLocale.strings.citationMissing);
       }
       found.add(index);
     }
-    if (found.isEmpty) throw StateError('回答沒有附上來源，請重新提問或縮小問題。');
+    if (found.isEmpty) {
+      throw StateError(CloaklyLocale.strings.citationRequired);
+    }
     return found;
   }
 }
@@ -119,18 +125,18 @@ class ProjectRetrieval {
     try {
       root = await Directory(pack.folderPath).resolveSymbolicLinks();
     } on FileSystemException {
-      warnings.add('專案資料夾無法讀取，未搜尋文件。');
+      warnings.add(CloaklyLocale.strings.folderUnreadable);
     }
     if (root != null) {
       final discovered = await ProjectIndexer().index(root, id: pack.id);
       if (discovered.docs.length >= ProjectIndexer.maxDocs) {
-        warnings.add('資料夾掃描已達 ${ProjectIndexer.maxDocs} 份安全上限，可能還有未搜尋文件。');
+        warnings.add(CloaklyLocale.strings.scanCap(ProjectIndexer.maxDocs));
       }
       for (final doc in discovered.docs) {
         try {
           final content = await ProjectDocumentReader().read(pack, doc);
           warnings.addAll(
-            content.warnings.map((warning) => '${doc.relativePath}：$warning'),
+            content.warnings.map((warning) => '${doc.relativePath}: $warning'),
           );
           for (final section in content.sections) {
             collect(
@@ -145,9 +151,11 @@ class ProjectRetrieval {
             );
           }
         } on FileSystemException {
-          warnings.add('${doc.relativePath} 無法讀取或不在專案內，未搜尋。');
+          warnings.add(CloaklyLocale.strings.docUnreadable(doc.relativePath));
         } on FormatException catch (error) {
-          warnings.add('${doc.relativePath}：${error.message}，未搜尋。');
+          warnings.add(
+            CloaklyLocale.strings.docReadError(doc.relativePath, error.message),
+          );
         }
       }
     }
@@ -164,7 +172,7 @@ class ProjectRetrieval {
           meeting.minutesMarkdown ?? '',
           meeting.startedAt,
           group: group,
-          location: 'AI 會議紀錄（需核對逐字稿）',
+          location: CloaklyLocale.strings.aiMinutesLocation,
           meetingId: meeting.id,
         ),
       );
@@ -172,7 +180,9 @@ class ProjectRetrieval {
         meeting.id,
       )).where((line) => line.isFinal).toList();
       if (lines.isEmpty && (meeting.audioPath?.isNotEmpty ?? false)) {
-        warnings.add('${meeting.title} 有音檔但沒有定稿逐字稿；本次不會直接分析音檔。');
+        warnings.add(
+          CloaklyLocale.strings.audioWithoutTranscript(meeting.title),
+        );
       }
       // Keep adjacent utterances together: the next speaker often gives the
       // owner or deadline without repeating the feature name in the question.
@@ -190,8 +200,10 @@ class ProjectRetrieval {
                 .join('\n'),
             meeting.startedAt,
             group: group,
-            location:
-                '逐字稿 ${timestamp(block.first.startMs)}–${timestamp(block.last.endMs)}',
+            location: CloaklyLocale.strings.transcriptSpan(
+              timestamp(block.first.startMs),
+              timestamp(block.last.endMs),
+            ),
             meetingId: meeting.id,
           ),
         );
@@ -204,7 +216,7 @@ class ProjectRetrieval {
             note.text,
             meeting.startedAt,
             group: group,
-            location: '現場筆記',
+            location: CloaklyLocale.strings.liveNotesLocation,
             meetingId: meeting.id,
           ),
         );
@@ -212,7 +224,9 @@ class ProjectRetrieval {
     }
     final selected = rank(candidates, question, projectId: pack.id, mode: mode);
     if (scanned > selected.length) {
-      warnings.add('搜尋 $scanned 個段落，提供 ${selected.length} 個檢索片段；未命中不代表從未討論。');
+      warnings.add(
+        CloaklyLocale.strings.searchSummary(scanned, selected.length),
+      );
     }
     return ProjectEvidence(sources: selected, warnings: warnings);
   }
@@ -346,7 +360,7 @@ class ProjectRetrieval {
         yield ProjectSource(
           projectId: projectId,
           title: title,
-          location: '$location · 第 $firstLine–$i 行',
+          location: CloaklyLocale.strings.lineRange(location, firstLine, i),
           text: buffer.toString().trim(),
           date: date,
           group: group,
@@ -365,7 +379,11 @@ class ProjectRetrieval {
           yield ProjectSource(
             projectId: projectId,
             title: title,
-            location: '$location · 第 ${i + 1} 行，字元 ${offset + 1}',
+            location: CloaklyLocale.strings.lineOffset(
+              location,
+              i + 1,
+              offset + 1,
+            ),
             text: part,
             date: date,
             group: group,
@@ -382,7 +400,11 @@ class ProjectRetrieval {
       yield ProjectSource(
         projectId: projectId,
         title: title,
-        location: '$location · 第 $firstLine–${lines.length} 行',
+        location: CloaklyLocale.strings.lineRange(
+          location,
+          firstLine,
+          lines.length,
+        ),
         text: buffer.toString().trim(),
         date: date,
         group: group,

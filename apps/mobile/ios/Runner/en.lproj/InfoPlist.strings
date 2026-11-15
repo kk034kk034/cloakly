@@ -1,0 +1,7 @@
+"NSMicrophoneUsageDescription" = "Cloakly uses the microphone to turn meetings you start into a live transcript, notes, and answer prompts. Get the other participants' agreement first.";
+"NSPhotoLibraryUsageDescription" = "Cloakly only lets you choose a project folder. It does not read or upload photos or videos. The built-in file picker still includes a photo library component, so the system requires this description.";
+"NSCameraUsageDescription" = "Cloakly does not open the camera or take photos or video. The built-in file picker still includes a camera component, so the system requires this description.";
+"NSAppleMusicUsageDescription" = "Cloakly does not read your music library. The built-in file picker still includes a music picker, so the system requires this description.";
+"NSLocationWhenInUseUsageDescription" = "Cloakly does not request or use your location. The built-in file picker includes code that can read photo location, so the system requires this description.";
+"NSPhotoLibraryAddUsageDescription" = "Cloakly does not save files to your photo library. The built-in file picker still includes a component that can write to the photo library, so the system requires this description.";
+"CFBundleDisplayName" = "Cloakly";

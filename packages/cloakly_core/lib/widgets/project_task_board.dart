@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -44,18 +46,21 @@ class ProjectTaskBoard extends StatelessWidget {
   final ValueChanged<BoardTaskItem> onEdit;
   final Future<void> Function(BoardTaskItem, ProjectTaskStatus) onStatusChanged;
 
-  static const columns = [
+  static List<({String title, List<ProjectTaskStatus> statuses})> columnsFor(
+    AppLocalizations l10n,
+  ) => [
     (
-      title: '待辦',
+      title: l10n.kanbanTodo,
       statuses: [ProjectTaskStatus.planned, ProjectTaskStatus.uncertain],
     ),
-    (title: '進行中', statuses: [ProjectTaskStatus.inProgress]),
-    (title: '阻塞', statuses: [ProjectTaskStatus.blocked]),
-    (title: '完成', statuses: [ProjectTaskStatus.done]),
+    (title: l10n.statusInProgress, statuses: [ProjectTaskStatus.inProgress]),
+    (title: l10n.statusBlocked, statuses: [ProjectTaskStatus.blocked]),
+    (title: l10n.statusDone, statuses: [ProjectTaskStatus.done]),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final columns = columnsFor(context.l10n);
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth.isFinite
@@ -139,7 +144,7 @@ class ProjectTaskBoard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 child: Text(
-                  '拖曳工作到這裡',
+                  context.l10n.dropTaskHere,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -207,7 +212,9 @@ class ProjectTaskBoard extends StatelessWidget {
   }
 
   static String dateText(ProjectTask task) {
-    if (task.startDate == null && task.endDate == null) return '日期未設定';
+    if (task.startDate == null && task.endDate == null) {
+      return CloaklyLocale.strings.datesUnset;
+    }
     return '${task.startDate == null ? '?' : DateFormat('MM/dd').format(task.startDate!)} ～ ${task.endDate == null ? '?' : DateFormat('MM/dd').format(task.endDate!)}';
   }
 }

@@ -1,7 +1,7 @@
 name: cloakly_mobile
 description: Cloakly 官方託管手機版。
 publish_to: "none"
-version: 1.0.1+24
+version: 1.0.2+24
 
 environment:
   sdk: ^3.12.2
@@ -10,6 +10,8 @@ resolution: workspace
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   cloakly_core:
     path: ../../packages/cloakly_core
@@ -27,4 +29,5 @@ dev_dependencies:
   flutter_riverpod: ^2.6.1
 
 flutter:
+  generate: true
   uses-material-design: true

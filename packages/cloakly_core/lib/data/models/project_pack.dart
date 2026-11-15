@@ -1,15 +1,20 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+
 enum KnowledgeKind { background, wbs, spec, agenda, issue, commitment, other }
 
 extension KnowledgeKindX on KnowledgeKind {
-  String get label => switch (this) {
-    KnowledgeKind.background => '專案背景',
-    KnowledgeKind.wbs => 'WBS / 時程',
-    KnowledgeKind.spec => 'API / 規格',
-    KnowledgeKind.agenda => '會議議程',
-    KnowledgeKind.issue => '已知 Issue',
-    KnowledgeKind.commitment => '客戶承諾',
-    KnowledgeKind.other => '其他文件',
-  };
+  String get label {
+    final l10n = CloaklyLocale.strings;
+    return switch (this) {
+      KnowledgeKind.background => l10n.kindBackground,
+      KnowledgeKind.wbs => l10n.kindWbs,
+      KnowledgeKind.spec => l10n.kindSpec,
+      KnowledgeKind.agenda => l10n.kindAgenda,
+      KnowledgeKind.issue => l10n.kindIssue,
+      KnowledgeKind.commitment => l10n.kindCommitment,
+      KnowledgeKind.other => l10n.kindOther,
+    };
+  }
 }
 
 class KnowledgeDoc {
@@ -59,13 +64,16 @@ class KnowledgeDoc {
 enum ProjectTaskStatus { planned, inProgress, blocked, done, uncertain }
 
 extension ProjectTaskStatusX on ProjectTaskStatus {
-  String get label => switch (this) {
-    ProjectTaskStatus.planned => '預計',
-    ProjectTaskStatus.inProgress => '進行中',
-    ProjectTaskStatus.blocked => '阻塞',
-    ProjectTaskStatus.done => '完成',
-    ProjectTaskStatus.uncertain => '待確認',
-  };
+  String get label {
+    final l10n = CloaklyLocale.strings;
+    return switch (this) {
+      ProjectTaskStatus.planned => l10n.statusPlanned,
+      ProjectTaskStatus.inProgress => l10n.statusInProgress,
+      ProjectTaskStatus.blocked => l10n.statusBlocked,
+      ProjectTaskStatus.done => l10n.statusDone,
+      ProjectTaskStatus.uncertain => l10n.statusUncertain,
+    };
+  }
 
   /// Default completion % when legacy data has no explicit progress.
   int get defaultProgress => switch (this) {
@@ -128,7 +136,7 @@ class ProjectPhase {
     id: json['id'] as String,
     name: (json['name'] as String?)?.trim().isNotEmpty == true
         ? (json['name'] as String).trim()
-        : '未命名階段',
+        : CloaklyLocale.strings.unnamedPhase,
     sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     archived: json['archived'] as bool? ?? false,
     archivedAt: json['archivedAt'] == null
@@ -263,11 +271,14 @@ class ProjectTask {
   }
 }
 
-String projectTaskRoleLabel(int depth) => switch (depth) {
-  0 => '大項目',
-  1 => '子類別',
-  _ => '紀錄',
-};
+String projectTaskRoleLabel(int depth) {
+  final l10n = CloaklyLocale.strings;
+  return switch (depth) {
+    0 => l10n.roleGroup,
+    1 => l10n.roleCategory,
+    _ => l10n.roleRecord,
+  };
+}
 
 class ProjectPack {
   const ProjectPack({
@@ -469,7 +480,7 @@ class ProjectPack {
     if (tasks.isEmpty) return this;
     final phase = ProjectPhase(
       id: '${id}__phase_1',
-      name: '階段 1',
+      name: CloaklyLocale.strings.phaseNumber(1),
       sortOrder: 0,
     );
     return copyWith(
@@ -484,11 +495,15 @@ class ProjectPack {
   String nextPhaseName() {
     final numbers = <int>[
       for (final phase in phases)
-        if (RegExp(r'^階段\s*(\d+)$').firstMatch(phase.name) case final match?)
+        if (RegExp(
+              r'^(?:階段|Phase)\s*(\d+)$',
+              caseSensitive: false,
+            ).firstMatch(phase.name)
+            case final match?)
           int.parse(match.group(1)!),
     ];
     final next = (numbers.isEmpty ? phases.length : numbers.reduce(mathMax)) + 1;
-    return '階段 $next';
+    return CloaklyLocale.strings.phaseNumber(next);
   }
 
   static int mathMax(int a, int b) => a > b ? a : b;

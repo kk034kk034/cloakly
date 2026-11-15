@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/data/repositories/project_repository.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/project/project_context_builder.dart';
 import 'package:cloakly_core/services/project/project_indexer.dart';
 
@@ -42,7 +43,7 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
 
   Future<void> addFolder() async {
     final path = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: '新增專案資料夾',
+      dialogTitle: CloaklyLocale.strings.pickProjectFolder,
     );
     if (path == null) return;
     await indexFolder(path);
@@ -91,7 +92,7 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
 
   Future<void> updateDetails(String id, String background, String terms) async {
     final pack = _byId(id);
-    if (pack == null) throw StateError('專案已不存在');
+    if (pack == null) throw StateError(CloaklyLocale.strings.projectGone);
     await _replace(
       pack.copyWith(personalContext: background, transcriptionTerms: terms),
     );
@@ -99,7 +100,7 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
 
   Future<void> updateTasks(String id, List<ProjectTask> tasks) async {
     final pack = _byId(id);
-    if (pack == null) throw StateError('專案已不存在');
+    if (pack == null) throw StateError(CloaklyLocale.strings.projectGone);
     await _replace(pack.copyWith(tasks: tasks).withNormalizedPhases());
   }
 
@@ -111,7 +112,7 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
     bool clearActivePhaseId = false,
   }) async {
     final pack = _byId(id);
-    if (pack == null) throw StateError('專案已不存在');
+    if (pack == null) throw StateError(CloaklyLocale.strings.projectGone);
     await _replace(
       pack
           .copyWith(
@@ -144,13 +145,14 @@ class ProjectsNotifier extends AsyncNotifier<ProjectLibrary> {
     String? personalContext,
   }) async {
     final pack = _byId(projectId);
-    if (pack == null) return '（尚未選定專案資料夾）';
+    final l10n = CloaklyLocale.strings;
+    if (pack == null) return l10n.noProjectFolder;
     final background = (personalContext ?? pack.personalContext).trim();
     if (!Directory(pack.folderPath).existsSync()) {
       return [
-        '專案：${pack.name}',
-        if (background.isNotEmpty) '角色與背景：$background',
-        '（專案資料夾已不存在）',
+        l10n.projectLine(pack.name),
+        if (background.isNotEmpty) l10n.roleLine(background),
+        l10n.projectFolderMissing,
       ].join('\n');
     }
     return _contextBuilder.build(pack, personalContext: background);

@@ -1,0 +1,1122 @@
+{
+  "@@locale": "zh",
+  "cancel": "取消",
+  "delete": "刪除",
+  "save": "儲存",
+  "saved": "已儲存",
+  "close": "關閉",
+  "create": "建立",
+  "settings": "設定",
+  "backToProjects": "回專案列表",
+  "loadFailed": "讀取失敗：{error}",
+  "@loadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "儲存失敗：{error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "switchProject": "切換專案",
+  "unassigned": "未分類",
+  "projectSettings": "專案設定",
+  "demoBanner": "目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。",
+  "startMeeting": "開始會議",
+  "unassignedMeetings": "未分類會議",
+  "unassignedHint": "沒有綁定專案時，仍可直接開始會議。要依專案文件問答，請先選一個專案。",
+  "noPhaseYet": "尚未建立階段",
+  "phaseNoTasks": "{name} · 尚無工作",
+  "@phaseNoTasks": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phaseTaskSummary": "{name} · 進行中 {inProgress} · 阻塞 {blocked} · 未完成 {open}",
+  "@phaseTaskSummary": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "inProgress": {
+        "type": "int"
+      },
+      "blocked": {
+        "type": "int"
+      },
+      "open": {
+        "type": "int"
+      }
+    }
+  },
+  "projectStatus": "專案狀態",
+  "noMeetingsYet": "還沒有會議",
+  "noUnassignedMeetings": "還沒有未分類會議",
+  "meetingsRecent": "{count, plural, other{{count} 場}} · 最近 {when}",
+  "@meetingsRecent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "meetingsTitle": "會議紀錄",
+  "viewSubscription": "查看訂閱",
+  "freeMeetingQuotaMarker": "免費會議額度",
+  "startupPreparing": "正在準備會議",
+  "startupMicrophone": "正在確認麥克風",
+  "startupRecording": "正在啟動錄音",
+  "startupConnecting": "正在連線轉寫",
+  "meetingsTitleWithProject": "{name} · 會議紀錄",
+  "@meetingsTitleWithProject": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noUnassignedMeetingsSentence": "還沒有未分類會議。",
+  "noMeetingsSentence": "還沒有會議。開始後會收在這裡。",
+  "deleteMeetingTitle": "刪除這場會議？",
+  "deleteMeetingBody": "逐字稿、筆記與提示都會一起刪除。",
+  "streamingTitle": "多人即時逐字稿",
+  "sonioxKey": "Soniox API 金鑰",
+  "sonioxHelp": "持續串流辨識。文字與發言人會先暫定，再隨音訊更新。",
+  "projectLanguageHint": "自動辨識發言語言。各專案的背景與詞彙請到該專案右上角設定。",
+  "openaiKey": "OpenAI API 金鑰",
+  "chatModel": "對話模型",
+  "chatModelHelp": "用於回答建議與會議紀錄；即時轉寫使用上方的 Soniox 金鑰。",
+  "systemAudio": "系統聲音",
+  "captureSystemAudio": "擷取電腦正在播放的聲音",
+  "captureSystemAudioHelp": "戴耳機開線上會議時，麥克風是「我」，系統聲音由模型區分其他人。多人共用同一支麥克風時請關閉此項。",
+  "appearance": "外觀",
+  "themeLight": "淺色",
+  "themeDark": "深色",
+  "switchToLight": "切換為淺色模式",
+  "switchToDark": "切換為深色模式",
+  "triggerQuestions": "偵測到問題",
+  "triggerPause": "每次停頓",
+  "triggerOff": "關閉",
+  "triggerQuestionsHint": "對方提問後，自動草擬你可以說的回答",
+  "triggerPauseHint": "對話告一段落時，整理重點或建議下句",
+  "triggerOffHint": "只在你按下「給我提示」時才產生建議",
+  "paceFast": "快速",
+  "paceBalanced": "均衡",
+  "paceRelaxed": "從容",
+  "kindBackground": "專案背景",
+  "kindWbs": "WBS / 時程",
+  "kindSpec": "API / 規格",
+  "kindAgenda": "會議議程",
+  "kindIssue": "已知 Issue",
+  "kindCommitment": "客戶承諾",
+  "kindOther": "其他文件",
+  "statusPlanned": "預計",
+  "statusInProgress": "進行中",
+  "statusBlocked": "阻塞",
+  "statusDone": "完成",
+  "statusUncertain": "待確認",
+  "roleGroup": "大項目",
+  "roleCategory": "子類別",
+  "roleRecord": "紀錄",
+  "unnamedPhase": "未命名階段",
+  "phaseNumber": "階段 {number}",
+  "@phaseNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "phaseWord": "階段",
+  "speakerMe": "我",
+  "speakerRemote": "對方{letter}",
+  "@speakerRemote": {
+    "placeholders": {
+      "letter": {
+        "type": "String"
+      }
+    }
+  },
+  "speakerRoom": "發言人 {number}",
+  "@speakerRoom": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "speakerUnconfirmed": "發言人待確認",
+  "tentativeSuffix": "（暫定）",
+  "speakerSelfChunk": "我（片段 {chunk}・待確認）",
+  "@speakerSelfChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      }
+    }
+  },
+  "speakerOtherChunk": "發言人（片段 {chunk}・待確認）",
+  "@speakerOtherChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      }
+    }
+  },
+  "diarizationFailed": "發言人辨識失敗，本段改用文字辨識，發言人待確認",
+  "transcriptionFailedStatus": "語音辨識失敗：{status}",
+  "@transcriptionFailedStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "transcriptionBadPayload": "語音辨識回傳格式無法解析",
+  "missingSonioxKey": "請在設定填入 Soniox API 金鑰以啟用多人串流逐字稿。OpenAI 金鑰用於回答建議與會議紀錄。",
+  "missingSonioxKeyShort": "缺少 Soniox API 金鑰",
+  "needSonioxToStart": "請先在設定填入 Soniox API 金鑰，才能開始多人串流轉寫。",
+  "authTimeout": "取得會議授權逾時，請再試一次。",
+  "streamCancelled": "串流已取消",
+  "streamDropped": "串流連線中斷；請結束會議並保留錄音供重跑。",
+  "streamEndedEarly": "串流提前結束，尚未定稿的文字未完成辨識。",
+  "sonioxUnreachable": "無法連線至 Soniox，請檢查網路與設定。",
+  "sonioxRecognizeFailed": "Soniox 辨識失敗（{code}）；請檢查金鑰、額度或音訊設定。",
+  "@sonioxRecognizeFailed": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "streamParseFailed": "無法解析串流辨識結果，原始錄音仍會保留。",
+  "streamNotStarted": "串流尚未啟動",
+  "streamTailTimeout": "等待串流尾句逾時；未完成的文字保留為暫定，請用原始錄音重跑。",
+  "connectTimeout": "連線轉寫逾時，請再試一次。",
+  "noMicrophonePermission": "沒有麥克風權限",
+  "projectContextUnreadable": "（專案資料暫時無法讀取）",
+  "systemAudioFailed": "系統聲音啟動失敗：{error}",
+  "@systemAudioFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNoRemoteAudio": "手機無法擷取會議裡的對方聲音，請用電腦版。",
+  "streamHintRemote": "串流轉寫：你是「我」，對方在同一連線內持續區分。灰色文字與人物標籤可能更新。",
+  "streamHintRoom": "串流轉寫：同一支麥克風內持續區分發言人。灰色文字與人物標籤可能更新。",
+  "suggestionNeedsOpenAi": "逐字稿可繼續使用；回答建議需要 OpenAI API 金鑰。",
+  "syncQuotaFailed": "同步免費額度失敗，請保持網路連線：{error}",
+  "@syncQuotaFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "minutesFailed": "產生會議紀錄失敗：{error}",
+  "@minutesFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptSaveFailed": "逐字稿儲存失敗：{error}",
+  "@transcriptSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiUsageLine": "AI 用量：{usage}",
+  "@aiUsageLine": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultMeetingTitle": "{when} 會議",
+  "@defaultMeetingTitle": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "needOpenAiKey": "請先設定 OpenAI API 金鑰。",
+  "usageDisplay": "{model} · 輸入 {input} tokens · 輸出 {output} tokens · {cost}",
+  "@usageDisplay": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "input": {
+        "type": "int"
+      },
+      "output": {
+        "type": "int"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "noProjectFolder": "（尚未選定專案資料夾）",
+  "projectLine": "專案：{name}",
+  "@projectLine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "roleLine": "角色與背景：{background}",
+  "@roleLine": {
+    "placeholders": {
+      "background": {
+        "type": "String"
+      }
+    }
+  },
+  "projectFolderMissing": "（專案資料夾已不存在）",
+  "projectGone": "專案已不存在",
+  "folderMissing": "找不到資料夾：{path}",
+  "@folderMissing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "pickProjectFolder": "新增專案資料夾",
+  "databaseNotReady": "databaseProvider 必須在 main 裡 override",
+  "meetingNotFound": "找不到會議 {id}",
+  "@meetingNotFound": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyEncode": "m4a 編碼結果是空的",
+  "browserNoSystemAudio": "瀏覽器無法擷取系統聲音。",
+  "mobileNoCallAudio": "手機無法穩定擷取 Teams / Meet / Zoom 的對方聲音。請用 Windows / macOS / Linux 電腦版，戴耳機也能聽客戶。",
+  "systemAudioNotWired": "這個平台還沒接上系統聲音擷取。",
+  "systemAudioUnavailable": "系統聲音無法使用：{error}",
+  "@systemAudioUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "endMeetingTitle": "結束這場會議？",
+  "endMeetingBody": "結束後會依逐字稿與筆記產生會議紀錄。",
+  "keepGoing": "繼續",
+  "endAndSummarize": "結束並整理",
+  "liveMeeting": "即時會議",
+  "transcript": "逐字稿",
+  "hints": "提示",
+  "notes": "筆記",
+  "pause": "暫停",
+  "finish": "結束",
+  "share": "分享",
+  "demoPlaying": "示範模式：正在播放模擬對話，不必對著麥克風說話。",
+  "wrappingUp": "正在整理會議紀錄與發言人…",
+  "selectForReply": "點選發言，可多選後取得回覆建議。灰字與人物標籤仍可能更新。",
+  "selectedLines": "{count, plural, other{已選取 {count} 段發言}}",
+  "@selectedLines": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestReply": "建議回覆",
+  "clearSelection": "清除選取",
+  "hidePane": "隱藏{name}",
+  "@hidePane": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "showPane": "顯示{name}",
+  "@showPane": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesIntro": "邊聽邊記重點，結束後會一併寫進會議紀錄。",
+  "noteHint": "寫下現場筆記",
+  "enterToSend": "Enter 送出 · Shift+Enter 換行",
+  "enterToSendShort": "Enter 送出，Shift+Enter 換行",
+  "earlierPrompts": "稍早的提示",
+  "backToLatest": "回到最新",
+  "answerPrompts": "回答提示",
+  "draftingPrompt": "正在根據剛才的對話草擬提示…",
+  "selectThenSuggest": "選取一段或多段發言，再按「建議回覆」。",
+  "regarding": "針對：{text}",
+  "@regarding": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptEmpty": "開始後，發言會即時出現在這裡。",
+  "meetingNoTranscript": "這場會議沒有逐字稿。",
+  "shareMinutes": "分享會議紀錄",
+  "shareMinutesSubtitle": "文字，可貼到訊息或文件",
+  "saveRecording": "儲存錄音到檔案",
+  "saveRecordingNoProject": "沒有專案時會存到下載資料夾",
+  "saveRecordingInProject": "存到專案資料夾裡的「錄音」",
+  "shareRecording": "分享錄音檔",
+  "shareRecordingSubtitle": "傳到 Drive 或 Line",
+  "noMinutesYetExport": "（尚無會議紀錄）",
+  "headingTranscript": "逐字稿",
+  "headingNotes": "筆記",
+  "headingPrompts": "提示",
+  "noRecordingToSave": "這場會議沒有錄音檔可以儲存。",
+  "iosFilesPath": "檔案 App → 我的 iPhone → Cloakly",
+  "androidDownloadsPath": "下載 / Cloakly",
+  "savedTo": "已存到 {where}",
+  "@savedTo": {
+    "placeholders": {
+      "where": {
+        "type": "String"
+      }
+    }
+  },
+  "noRecordingToShare": "這場會議沒有錄音檔可以分享。",
+  "noMinutesBody": "還沒有會議紀錄。",
+  "noLiveNotes": "這場會議沒有現場筆記。",
+  "noPrompts": "這場會議沒有產生回答提示。",
+  "globalSettings": "全域設定",
+  "addProject": "新增專案",
+  "addProjectFolder": "新增專案資料夾",
+  "projectPhaseLine": "{name} · {phase}",
+  "@projectPhaseLine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "phase": {
+        "type": "String"
+      }
+    }
+  },
+  "allProjectBoards": "全部專案看板",
+  "boardFilterHelp": "顯示今天進行中、逾期，以及無日期的進行中／阻塞項目（僅現行未封存階段）。",
+  "noTasksOnBoards": "各專案現行階段尚無工作。進入專案時程可新增或請 AI 建議。",
+  "nothingDueToday": "今天沒有符合條件的工作。進入專案時程可查看全部項目。",
+  "chooseProject": "選擇專案",
+  "chooseProjectHelp": "每個資料夾是一個專案。選進去後可開始會議，提示會讀該專案的文件。",
+  "noProjects": "還沒有專案",
+  "noProjectsHelp": "選定一個本機資料夾當專案，裡面放規格、時程、Issue 等文件。",
+  "chooseFolder": "選定資料夾",
+  "lastIndexed": "上次",
+  "includedDocs": "{count, plural, other{納入 {count} 份文件}}",
+  "@includedDocs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activePhaseCount": "現行 {name} · {count, plural, other{{count} 項}}",
+  "@activePhaseCount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedPhaseCount": "{count, plural, other{已封存 {count} 階段}}",
+  "@archivedPhaseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "indexedAt": "索引 {when}",
+  "@indexedAt": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "unassignedSubtitle": "沒有綁定專案的會議",
+  "projectMissing": "找不到此專案。",
+  "projectMissingBack": "找不到此專案，請回到專案列表。",
+  "loadingProject": "載入專案中…",
+  "scheduleTitle": "{name} · 時程",
+  "@scheduleTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiSuggestSchedule": "AI 建議時程",
+  "aiSuggestNeedsSetup": "先設定 AI 才能建議時程",
+  "addMainItem": "新增大項目",
+  "phaseBoardHelp": "以階段（phase）拆看板：每個階段建議維持少數可完成項目；全部移到「完成」後可封存，再開下一階段，避免完成欄過長。",
+  "setupAiForSchedule": "設定 AI 服務後，即可依文件與會議建議分階段時程。",
+  "lastSuggestUsage": "上次 AI 建議用量：{usage}",
+  "@lastSuggestUsage": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "noPhaseCreateFirst": "尚未建立階段。先新增一個階段，再放工作項目。",
+  "addPhase": "新增階段",
+  "viewingArchived": "正在檢視已封存的「{name}」",
+  "@viewingArchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archivedNotOnBoard": "不佔用現行看板版面",
+  "backToCurrentPhase": "回到現行階段",
+  "phaseAllDone": "此階段工作已全部完成",
+  "archivePhaseHint": "封存後完成欄會收合，可安心開下一階段。",
+  "archivePhase": "封存階段",
+  "gantt": "甘特圖",
+  "kanban": "看板",
+  "phaseEmptyAdd": "這個階段還沒有工作。可新增大項目，或用 AI 建議時程。",
+  "addFirstMainItem": "新增第一個大項目",
+  "progressOverview": "{name} · 進度總覽",
+  "@progressOverview": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workBoard": "{name} · 工作看板",
+  "@workBoard": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phaseEmptyShort": "這個階段還沒有工作。",
+  "filterEmpty": "目前篩選條件下沒有符合的工作。可改為「全部」或調整日期區間。",
+  "phaseCompleteTitle": "階段已全部完成",
+  "archiveNowBody": "要封存這個階段嗎？封存後不會佔用看板版面，之後仍可從「已封存」檢視。",
+  "later": "稍後",
+  "archive": "封存",
+  "phaseName": "階段名稱",
+  "phaseNameHint": "例如：MVP、上線準備",
+  "renamePhase": "重新命名階段",
+  "archiveThisPhaseTitle": "封存此階段？",
+  "archiveThisPhaseBody": "封存後看板只顯示其他未封存階段，已完成項目不會再佔版面。",
+  "archivedAndOpenedNext": "已封存並開啟下一階段。",
+  "phaseArchived": "階段已封存。",
+  "planQuestion": "請依專案文件與會議資料整理可追蹤的工作、時程、期限與負責人，並拆成可陸續完成的階段。",
+  "notEnoughPlanEvidence": "目前沒有足夠的文件或會議資料可供建議。請先把時程、規格或會議紀錄放進專案資料夾。",
+  "noTrackableWork": "AI 沒有從現有資料找出可追蹤工作。",
+  "addedSuggestions": "{count, plural, other{已加入 {count} 項建議工作，請再確認日期與狀態。}}",
+  "@addedSuggestions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planSuggestFailed": "無法產生時程建議：{error}",
+  "@planSuggestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestedPlanTitle": "AI 建議的分階段時程",
+  "suggestedPlanHelp": "工作會依階段名稱分組；完成一個階段後可封存再開下一階段。勾選要加入的項目。",
+  "duplicateTask": "（同名工作已存在）",
+  "addSelected": "加入所選（{count}）",
+  "@addSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteTaskTitle": "刪除工作？",
+  "deleteTaskWithChildren": "「{title}」含 {count, plural, other{{count} 項下層內容，將一併刪除。}}",
+  "@deleteTaskWithChildren": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteTaskConfirm": "確定刪除「{title}」？",
+  "@deleteTaskConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "pickDateRange": "點一下選取開始～結束日期",
+  "addRole": "新增{role}",
+  "@addRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "editRole": "編輯{role}",
+  "@editRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "roleName": "{role}名稱",
+  "@roleName": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "ownerOptional": "負責人（選填）",
+  "notesLabel": "備註",
+  "notesHint": "可寫進度細節、重做原因、會議結論…",
+  "belongsToPhase": "所屬階段",
+  "statusLabel": "狀態",
+  "progress": "完成進度",
+  "progressFromChildren": "由子任務計算 · {percent}%",
+  "@progressFromChildren": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "progressValue": "完成進度 · {percent}%",
+  "@progressValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "dateRange": "日期區間",
+  "clearDates": "清除日期",
+  "pickStartEnd": "選取開始與結束日期",
+  "donePicking": "完成",
+  "sourcesTitle": "資料依據",
+  "saveAndConfirm": "儲存並確認",
+  "archiveShortBody": "要封存這個階段嗎？封存後不會佔用看板版面。",
+  "switchPhase": "切換階段",
+  "itemCount": "{count, plural, other{{count} 項}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addPhaseMenu": "新增階段",
+  "phaseMenuTitle": "{title} · {count, plural, other{{count} 項}}",
+  "@phaseMenuTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedCount": "已封存 {count}",
+  "@archivedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phaseOptions": "階段選項",
+  "rename": "重新命名",
+  "archiveThisPhase": "封存此階段",
+  "archivedPhasesTitle": "已封存階段 · {count}",
+  "@archivedPhasesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskCount": "{count, plural, other{{count} 項工作}}",
+  "@taskCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedOn": "封存於 {when}",
+  "@archivedOn": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "view": "檢視",
+  "unarchive": "解除封存",
+  "customRange": "自訂區間",
+  "all": "全部",
+  "today": "今天",
+  "adjustDates": "調整日期",
+  "rangeHelp": "只展開落在此區間的項目",
+  "apply": "套用",
+  "showLabel": "顯示",
+  "filterMainItems": "大項目",
+  "filterSubcategories": "＋子類別",
+  "filterAll": "全部",
+  "byDate": "依日期",
+  "dateFilter": "日期 {range}",
+  "@dateFilter": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "clearDateFilter": "清除日期",
+  "hierarchyHelp": "大項目 → 子類別 → 紀錄 · 可用 ↑↓ 調整同層順序",
+  "rangeIntersectionHelp": "只顯示與 {range} 有交集的項目（無日期者不顯示）",
+  "@rangeIntersectionHelp": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "noItems": "尚無項目",
+  "noItemsInRange": "這個日期區間沒有對應項目。",
+  "collapse": "收起",
+  "expand": "展開",
+  "dateNotSetShort": "尚未設定日期",
+  "moveUp": "上移",
+  "moveDown": "下移",
+  "addChildRole": "新增{role}",
+  "@addChildRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "kanbanTodo": "待辦",
+  "dropTaskHere": "拖曳工作到這裡",
+  "datesUnset": "日期未設定",
+  "projectQa": "專案問答",
+  "projectQaTitle": "{name} · 專案問答",
+  "@projectQaTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "qaCompactIntro": "直接在這頁查文件、進度與會議決議；每次提問獨立檢索。",
+  "qaIntro": "查找專案資料、決議與過去的承諾。每次提問獨立檢索；請寫出主題，不會沿用上一題。",
+  "qaScope": "每次提問會自動參考「{name}」資料夾與子資料夾的所有支援文件，以及此專案的全部會議、逐字稿與筆記。",
+  "@qaScope": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "qaPrivacy": "相關片段會送至 AI 服務產生回答。問答僅保留於本頁，離開後清除。",
+  "setupAiForAnswers": "先設定 AI 服務，才能產生專案回答。",
+  "summarizeStatus": "整理目前專案狀況",
+  "summarizeStatusQuery": "請整理目前專案進度、阻塞事項與待確認的承諾。",
+  "whichMeeting": "哪次會議提到…",
+  "whichMeetingQuery": "哪次會議提到",
+  "imageOmitted": "（圖片省略）",
+  "turnUsage": "本次 AI 用量：{usage}",
+  "@turnUsage": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "questionHint": "例如：哪次會議決定加入登入功能？",
+  "sendQuestion": "送出問題",
+  "insufficientEvidence": "目前檢索資料不足以確認。請改用具體功能名稱或關鍵字，確認文件放在專案資料夾內、會議已歸入此專案。詢問整體進度時會自動優先整理近期資料。",
+  "qaFailed": "無法完成問答，問題已保留，可重試。{error}",
+  "@qaFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fileModifiedTime": "檔案修改時間（非決議日期）",
+  "meetingTime": "會議時間",
+  "sourceTime": "{label}：{when}",
+  "@sourceTime": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceSnapshot": "此處顯示提問時的來源片段。",
+  "openMeeting": "開啟會議",
+  "projectSources": "專案資料來源",
+  "projectSourcesHelp": "每次專案問答會自動搜尋資料夾與子資料夾內所有支援文件，以及此專案的全部會議紀錄。單次掃描安全上限為 2,000 份文件。",
+  "deleteThisProject": "刪除此專案",
+  "meetingPromptTitle": "此專案的會議提示",
+  "roleField": "我在此專案的角色與背景（選填）",
+  "roleFieldHint": "例如：博士生，研究主題是語音辨識。",
+  "roleFieldHelp": "只提供給此專案的 AI 建議與會議紀錄。",
+  "vocabField": "辨識詞彙提示（選填）",
+  "vocabFieldHint": "例如：陳教授、Cloakly、LoRA；以逗號或換行分隔",
+  "vocabFieldHelp": "協助辨識此專案少見的人名與術語。",
+  "saving": "儲存中…",
+  "projectSettingsSaved": "已儲存此專案設定",
+  "deleteProjectTitle": "刪除「{name}」？",
+  "@deleteProjectTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteProjectEmpty": "會從 App 移除此專案。電腦上的資料夾本身不會刪。",
+  "deleteProjectWithMeetings": "{count, plural, other{此專案底下的 {count} 場會議紀錄、逐字稿、筆記、提示，以及尚未另存的錄音都會消失，無法復原。\n\n資料夾本身不會刪。若還需要錄音，請先到各場會議另存檔案。}}",
+  "@deleteProjectWithMeetings": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteProjectAck": "我已另存需要保留的錄音，確定刪除這些紀錄",
+  "deleteProject": "刪除專案",
+  "unassignedProjectSettings": "目前在未分類，沒有專案可設定。",
+  "coverageNote": "提問時掃描本專案資料夾內支援的文件與已儲存的會議資料；不是完整即時狀態。",
+  "moreReadLimits": "{count, plural, other{另有 {count} 項讀取限制，介面可查看完整列表。}}",
+  "@moreReadLimits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileModifiedNotDecision": "檔案修改時間，非決議生效日",
+  "meetingTimeShort": "會議時間",
+  "citationMissing": "回答引用了不存在的來源，請重新提問。",
+  "citationRequired": "回答沒有附上來源，請重新提問或縮小問題。",
+  "folderUnreadable": "專案資料夾無法讀取，未搜尋文件。",
+  "scanCap": "資料夾掃描已達 {count} 份安全上限，可能還有未搜尋文件。",
+  "@scanCap": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "docUnreadable": "{path} 無法讀取或不在專案內，未搜尋。",
+  "@docUnreadable": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "docReadError": "{path}：{error}，未搜尋。",
+  "@docReadError": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiMinutesLocation": "AI 會議紀錄（需核對逐字稿）",
+  "audioWithoutTranscript": "{title} 有音檔但沒有定稿逐字稿；本次不會直接分析音檔。",
+  "@audioWithoutTranscript": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptSpan": "逐字稿 {start}–{end}",
+  "@transcriptSpan": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "liveNotesLocation": "現場筆記",
+  "searchSummary": "搜尋 {scanned} 個段落，提供 {selected} 個檢索片段；未命中不代表從未討論。",
+  "@searchSummary": {
+    "placeholders": {
+      "scanned": {
+        "type": "int"
+      },
+      "selected": {
+        "type": "int"
+      }
+    }
+  },
+  "lineRange": "{location} · 第 {start}–{end} 行",
+  "@lineRange": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      },
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
+  "lineOffset": "{location} · 第 {line} 行，字元 {offset}",
+  "@lineOffset": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      },
+      "line": {
+        "type": "int"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "docOutsideProject": "文件不在專案資料夾內",
+  "linkOutsideProject": "文件連結超出專案資料夾",
+  "unsupportedOffice": "不支援此格式；舊版 PPT、XLS、DOC 請另存為 PPTX、XLSX、DOCX",
+  "officeTooLarge": "文件超過 50 MB",
+  "textTooLarge": "文字或程式檔超過 256 KB",
+  "documentSection": "文件",
+  "officeUnreadable": "無法讀取 Office 文件，請確認未加密且檔案完整",
+  "pdfTooLarge": "PDF 超過 50 MB",
+  "pdfTooManyPages": "PDF 超過 500 頁，請拆分文件",
+  "pdfTextLayerWarning": "PDF 讀取文字層；未辨識圖片內容，複雜表格與多欄閱讀順序需核對。",
+  "pdfTooMuchText": "PDF 文字過多，請拆分文件",
+  "pdfPageNoText": "第 {page} 頁沒有文字層，可能需要 OCR。",
+  "@pdfPageNoText": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfPage": "PDF 第 {page} 頁",
+  "@pdfPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfUnreadable": "PDF 無法讀取，請確認未加密且檔案完整",
+  "xmlTooLarge": "文件 XML 過大，請拆分",
+  "contentUndecompressible": "文件內容無法解壓縮",
+  "notDocx": "不是有效的 DOCX",
+  "wordParagraph": "Word 段落 {index}",
+  "@wordParagraph": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "wordWarning": "Word 讀取本文與表格段落；未辨識圖片、頁首頁尾或追蹤修訂語意。段落位置不是列印頁碼。",
+  "notXlsx": "不是有效的 XLSX",
+  "sheetMissing": "Excel 工作表內容遺失",
+  "sheetDefault": "工作表",
+  "cachedFormula": "{cell}: {value}（公式 ={formula}；此值為檔案快取，未重算）",
+  "@cachedFormula": {
+    "placeholders": {
+      "cell": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      },
+      "formula": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetRow": "工作表「{sheet}」· 第 {row} 列",
+  "@sheetRow": {
+    "placeholders": {
+      "sheet": {
+        "type": "String"
+      },
+      "row": {
+        "type": "String"
+      }
+    }
+  },
+  "headerRowNote": "首個非空列（可能為欄名，需核對）：{header}\n{values}",
+  "@headerRowNote": {
+    "placeholders": {
+      "header": {
+        "type": "String"
+      },
+      "values": {
+        "type": "String"
+      }
+    }
+  },
+  "excelWarning": "Excel 讀取儲存格原值與公式快取，不執行公式；日期可能呈現序號，未套用數字格式、圖表或圖片。",
+  "pptxXmlTooLarge": "PPTX XML 內容過大，請拆分簡報",
+  "pptxUndecompressible": "PPTX 內容無法解壓縮",
+  "notPptx": "不是有效的 PPTX 簡報",
+  "pptxTooManySlides": "簡報超過 300 頁，請拆分後選取",
+  "pptxWarning": "PPTX 僅讀取可選取文字、表格文字與講者備忘稿；圖片、圖表數值、SmartArt 與嵌入物件尚未辨識。",
+  "slideMissing": "第 {page} 頁的內容遺失",
+  "@slideMissing": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "slidePage": "投影片第 {page} 頁",
+  "@slidePage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "slideNotes": "投影片第 {page} 頁 · 講者備忘稿",
+  "@slideNotes": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "slideNoText": "第 {page} 頁沒有可擷取文字。",
+  "@slideNoText": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "planFormatError": "WBS 回傳格式不正確",
+  "noLocalNotes": "（沒有現場筆記）",
+  "localNotesItem": "- （沒有現場筆記）",
+  "localSummaryHeading": "摘要",
+  "localNotesHeading": "現場筆記",
+  "localTranscriptHeading": "依發言人的逐字稿",
+  "localSummaryBody": "（尚未設定 OpenAI 金鑰，以下保留現場筆記與逐字稿，未產生 AI 摘要。）",
+  "demoAnswer": "【示範提示】尚未設定 API 金鑰時，會顯示這種範本。\n\n建議開場：\n「我先確認一下你的問題，再補上目前掌握的數字。」\n\n可以說的要點：\n1. 先複述問題，避免答錯題\n2. 給 1 個具體現況，不確定的標「會後補」\n3. 主動說下一步與時間\n\n到設定頁填入 OpenAI API 金鑰後，提示會依真實對話產生。",
+  "noProjectForPrompt": "（尚未選定專案資料夾。沒有規格、WBS、Issue 時，禁止編造時程與承諾。）",
+  "mockLine1": "我們開始今天的產品週會，先對一下本週進度。",
+  "mockLine2": "好，登入流程這週把錯誤處理補完了，目前內部測試看起來穩定。",
+  "mockLine3": "那登入頁的錯誤率有下降嗎？能不能講一下具體數字？",
+  "mockLine4": "錯誤率大概從百分之四降到百分之一點五，主要是 token 過期沒導回登入頁。",
+  "mockLine5": "下週要上線，你覺得最大的風險是什麼？",
+  "mockLine6": "我補一句，客服那邊還在等新的說明文件，不然上線當天一定會被問爆。",
+  "mockLine7": "那會議結束前，請各自確認待辦，我們三點後同步文件。",
+  "folderLine": "資料夾：{path}",
+  "@folderLine": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "docUnreadableContent": "（{path} 無法讀取，未提供內容）",
+  "@docUnreadableContent": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "truncated": "…（已截斷）",
+  "noSupportedFiles": "（專案資料夾內沒有找到支援的文件）",
+  "noBuiltInPrice": "此模型尚無內建單價",
+  "estimatedCost": "約 {usd}／{ntd}",
+  "@estimatedCost": {
+    "placeholders": {
+      "usd": {
+        "type": "String"
+      },
+      "ntd": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailed": "語言模型失敗：{status} {body}",
+  "@modelFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      },
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "minutesUnavailable": "（無法產生會議紀錄）"
+}
