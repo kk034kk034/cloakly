@@ -1,6 +1,7 @@
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/features/session/session_controller.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/state/providers.dart';
@@ -18,20 +19,21 @@ class HomeScreen extends ConsumerWidget {
     final meetings = ref.watch(meetingsProvider);
     final isDemo = ref.watch(demoModeProvider);
     final active = ref.watch(projectsProvider).valueOrNull?.active;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: '切換專案',
+          tooltip: l10n.switchProject,
           onPressed: () => context.go('/'),
           icon: const Icon(Icons.arrow_back),
         ),
-        title: Text(active?.name ?? '未分類'),
+        title: Text(active?.name ?? l10n.unassigned),
         actions: [
           const ThemeModeToggleButton(),
           if (active != null)
             IconButton(
-              tooltip: '專案設定',
+              tooltip: l10n.projectSettings,
               onPressed: () => context.push('/home/project'),
               icon: const Icon(Icons.settings_outlined),
             ),
@@ -39,7 +41,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: meetings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('讀取失敗：$error')),
+        error: (error, _) => Center(child: Text(l10n.loadFailed('$error'))),
         data: (items) {
           if (active == null) {
             return _UnassignedBody(isDemo: isDemo, items: items);
@@ -49,11 +51,11 @@ class HomeScreen extends ConsumerWidget {
             children: [
               if (isDemo)
                 MaterialBanner(
-                  content: const Text('目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。'),
+                  content: Text(l10n.demoBanner),
                   actions: [
                     TextButton(
                       onPressed: () => context.go('/'),
-                      child: const Text('回專案列表'),
+                      child: Text(l10n.backToProjects),
                     ),
                   ],
                 ),
@@ -108,6 +110,7 @@ class _StartMeetingBar extends ConsumerWidget {
     final label = session.startupStep == SessionStartupStep.none
         ? SessionStartupStep.preparing.label
         : session.startupStep.label;
+    final l10n = context.l10n;
 
     return SafeArea(
       top: false,
@@ -129,7 +132,7 @@ class _StartMeetingBar extends ConsumerWidget {
                     onPressed: () => ref
                         .read(sessionControllerProvider.notifier)
                         .cancelStart(),
-                    child: const Text('取消'),
+                    child: Text(l10n.cancel),
                   ),
                 ],
               )
@@ -137,7 +140,7 @@ class _StartMeetingBar extends ConsumerWidget {
                 key: const Key('start-meeting-button'),
                 onPressed: () => _startMeeting(context, ref),
                 icon: const Icon(Icons.mic_none),
-                label: const Text('開始會議'),
+                label: Text(l10n.startMeeting),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                 ),
@@ -161,12 +164,14 @@ Future<void> _startMeeting(BuildContext context, WidgetRef ref) async {
   final error = session.error;
   if (error == null || error.isEmpty) return;
   final hosted = ref.read(hostedModeProvider);
-  final needsSubscription = hosted && error.contains('免費會議額度');
+  final l10n = context.l10n;
+  final needsSubscription =
+      hosted && error.contains(l10n.freeMeetingQuotaMarker);
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(error),
       action: SnackBarAction(
-        label: needsSubscription ? '查看訂閱' : '回專案列表',
+        label: needsSubscription ? l10n.viewSubscription : l10n.backToProjects,
         onPressed: () => context.go(needsSubscription ? '/settings' : '/'),
       ),
     ),
@@ -182,6 +187,7 @@ class _UnassignedBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -193,19 +199,19 @@ class _UnassignedBody extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: MaterialBanner(
-                    content: const Text('目前是示範模式。金鑰與系統聲音請到專案列表右上角的設定填寫。'),
+                    content: Text(l10n.demoBanner),
                     actions: [
                       TextButton(
                         onPressed: () => context.go('/'),
-                        child: const Text('回專案列表'),
+                        child: Text(l10n.backToProjects),
                       ),
                     ],
                   ),
                 ),
-              Text('未分類會議', style: theme.textTheme.titleMedium),
+              Text(l10n.unassignedMeetings, style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
-                '沒有綁定專案時，仍可直接開始會議。要依專案文件問答，請先選一個專案。',
+                l10n.unassignedHint,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   height: 1.4,
@@ -236,6 +242,7 @@ class _ProjectStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final normalized = project.withNormalizedPhases();
     final phase = normalized.activePhase;
     final tasks = normalized.activePhaseTasks;
@@ -251,10 +258,10 @@ class _ProjectStatusCard extends StatelessWidget {
     final open = tasks.length - done;
 
     final subtitle = phase == null
-        ? '尚未建立階段'
+        ? l10n.noPhaseYet
         : tasks.isEmpty
-        ? '${phase.name} · 尚無工作'
-        : '${phase.name} · 進行中 $inProgress · 阻塞 $blocked · 未完成 $open';
+        ? l10n.phaseNoTasks(phase.name)
+        : l10n.phaseTaskSummary(phase.name, inProgress, blocked, open);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -270,7 +277,7 @@ class _ProjectStatusCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('專案狀態', style: theme.textTheme.titleSmall),
+                    Text(l10n.projectStatus, style: theme.textTheme.titleSmall),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
@@ -309,9 +316,13 @@ class _MeetingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final subtitle = items.isEmpty
-        ? (hasProject ? '還沒有會議' : '還沒有未分類會議')
-        : '${items.length} 場 · 最近 ${DateFormat('MM/dd HH:mm').format(items.first.startedAt)}';
+        ? (hasProject ? l10n.noMeetingsYet : l10n.noUnassignedMeetings)
+        : l10n.meetingsRecent(
+            items.length,
+            DateFormat('MM/dd HH:mm').format(items.first.startedAt),
+          );
 
     return Card(
       margin: EdgeInsets.zero,
@@ -327,7 +338,7 @@ class _MeetingsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('會議紀錄', style: theme.textTheme.titleSmall),
+                    Text(l10n.meetingsTitle, style: theme.textTheme.titleSmall),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,

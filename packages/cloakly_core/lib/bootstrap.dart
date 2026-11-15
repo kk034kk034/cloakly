@@ -1,11 +1,12 @@
 import 'package:cloakly_core/app.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
 import 'package:cloakly_core/data/db/app_database.dart';
 import 'package:cloakly_core/data/repositories/meeting_repository.dart';
 import 'package:cloakly_core/data/repositories/project_repository.dart';
 import 'package:cloakly_core/data/repositories/settings_repository.dart';
 import 'package:cloakly_core/state/providers.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> runCloaklyApp({
@@ -16,18 +17,23 @@ Future<void> runCloaklyApp({
   bool hostedMode = false,
   WidgetBuilder? settingsBuilder,
   Widget Function(Widget child)? appShellBuilder,
+  List<LocalizationsDelegate<dynamic>> localizationsDelegates = const [],
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = await AppDatabase.open();
   bootSettings = await SettingsRepository().load();
   bootThemeMode = await loadThemeMode();
+  bootAppLanguage = await loadAppLanguage();
   final migrated = await ProjectRepository().loadLibrary();
   if (migrated.migratedProjectId != null) {
     await MeetingRepository(
       database,
     ).assignUnassignedTo(migrated.migratedProjectId!);
   }
-  final app = CloaklyApp(settingsBuilder: settingsBuilder);
+  final app = CloaklyApp(
+    settingsBuilder: settingsBuilder,
+    localizationsDelegates: localizationsDelegates,
+  );
   runApp(
     ProviderScope(
       overrides: [

@@ -1,4 +1,6 @@
 import 'package:cloakly_core/data/repositories/settings_repository.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,7 +42,16 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
-        const ProviderScope(child: MaterialApp(home: SettingsScreen())),
+        ProviderScope(
+          child: MaterialApp(
+            locale: cloaklyZhHant,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localeResolutionCallback: resolveCloaklyLocale,
+            builder: cloaklyLocaleBuilder,
+            home: const SettingsScreen(),
+          ),
+        ),
       );
       expect(find.text('Soniox API 金鑰'), findsOneWidget);
       final fields = tester

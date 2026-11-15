@@ -1,3 +1,5 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:flutter/services.dart';
 
 class HostedDeviceId {
@@ -9,12 +11,15 @@ class HostedDeviceId {
   }
 
   static Future<String> _load() async {
-    final id = (await _channel.invokeMethod<String>('getDeviceId'))?.trim() ?? '';
+    final id =
+        (await _channel.invokeMethod<String>('getDeviceId'))?.trim() ?? '';
     final separator = id.indexOf(':');
     final prefix = separator > 0 ? id.substring(0, separator) : '';
     final body = separator >= 0 ? id.substring(separator + 1) : '';
     if ((prefix != 'android' && prefix != 'ios') || body.isEmpty) {
-      throw StateError('無法讀取這支手機的識別。');
+      throw StateError(
+        lookupHostedLocalizations(CloaklyLocale.current).deviceIdUnreadable,
+      );
     }
     return id;
   }

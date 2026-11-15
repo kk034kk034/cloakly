@@ -1,0 +1,242 @@
+{
+  "@@locale": "zh",
+  "accountTitle": "帳號與訂閱",
+  "currentPlan": "目前方案",
+  "refresh": "重新整理",
+  "emailMissing": "未提供 Email",
+  "signOut": "登出",
+  "deleteAccount": "刪除帳號",
+  "free": "免費",
+  "planLoadFailed": "無法載入",
+  "planNotConfigured": "尚未設定",
+  "billingUnavailable": "尚未設定 RevenueCat 公開 SDK key，因此目前不能顯示或購買訂閱。",
+  "proActiveHint": "目前已有有效 Pro 權益。若換機，可按下方「恢復購買」。",
+  "freePlanSummary": "免費方案：會議每天合計 30 分鐘；專案問答 5 次、計畫建議 5 次。同一支手機每天只能使用一個帳號的免費額度。",
+  "noOfferings": "還沒有可購買的方案。請到 RevenueCat 的 Current Offering，加入 {store} 商品。",
+  "@noOfferings": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "restorePurchases": "恢復購買",
+  "manageSubscription": "管理商店訂閱",
+  "restoreSuccess": "已恢復 Pro 購買。",
+  "restoreEmpty": "沒有找到可恢復的 Pro 購買。",
+  "purchaseFailed": "購買未完成：{error}",
+  "@purchaseFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreFailed": "無法恢復購買：{error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "manageFailed": "無法開啟商店訂閱頁。請到 Google Play 或 App Store 的「付款與訂閱」取消。",
+  "linkFailed": "無法開啟連結。",
+  "privacyLabel": "隱私權政策",
+  "termsLabel": "使用條款（EULA）",
+  "autoRenewDisclosure": "Cloakly Pro 是自動續訂訂閱。月繳：USD 19.99／月，期間 1 個月。年繳：USD 199.99／年，期間 1 年。每個方案上的價格與期間就是這次訂閱的價格與長度。這裡列出的是美元價格；確認購買前，商店會顯示你所在地區的價格、稅與幣別。除非你在目前週期結束前至少 24 小時取消，否則訂閱會自動續約，並在週期結束前 24 小時內扣款。iOS 請到「設定 > Apple ID > 訂閱」管理或取消；Android 請到 Google Play 的「付款與訂閱」。若商店提供免費試用，在該商店規則適用時，購買付費訂閱會放棄未使用的試用。刪除 Cloakly 帳號、登出或卸載 App 都不會取消訂閱，也不會自動退款。",
+  "planTitlePro": "目前方案：Pro",
+  "planTitleFree": "目前方案：免費",
+  "validUntil": "有效至 {when}",
+  "@validUntil": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "lifetimePro": "永久 Pro 權益",
+  "productLine": "商品：{productId}",
+  "@productLine": {
+    "placeholders": {
+      "productId": {
+        "type": "String"
+      }
+    }
+  },
+  "proValidUntil": "Pro · 有效至 {when}",
+  "@proValidUntil": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "proLifetime": "Pro · 永久",
+  "freeSecondsLeft": "免費 · 今日剩餘 {seconds} 秒",
+  "@freeSecondsLeft": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "freeMinutesLeft": "免費 · 今日剩餘 {minutes} 分鐘",
+  "@freeMinutesLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "freeMinutesSecondsLeft": "免費 · 今日剩餘 {minutes} 分 {seconds} 秒",
+  "@freeMinutesSecondsLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "allowanceSeconds": "今日免費額度剩餘 {seconds} 秒",
+  "@allowanceSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "allowanceMinutes": "今日免費額度剩餘 {minutes} 分鐘",
+  "@allowanceMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "allowanceMinutesSeconds": "今日免費額度剩餘 {minutes} 分 {seconds} 秒",
+  "@allowanceMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteNeedsEmail": "此帳號沒有 Email，無法在這裡刪除。",
+  "deleteIntro": "刪除後無法復原。雲端帳號與訂閱權益紀錄會刪除。同一個 Email 今天已使用的免費時間會保留到今天結束，重新註冊會接著計算。這台手機上的會議、逐字稿與專案會留在裝置裡。",
+  "deleteStoreWarning": "Google Play 或 App Store 的訂閱要另外到商店取消。刪除 Cloakly 帳號後，商店仍可能在下一期續扣，也不會自動退款。",
+  "deleteAcknowledge": "我了解必須另外到商店取消訂閱",
+  "deletePasswordLabel": "輸入密碼以確認",
+  "wrongPassword": "密碼不正確，帳號尚未刪除。",
+  "deleteFailed": "無法刪除帳號：{error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteConfirmationMismatch": "確認資料不一致，帳號尚未刪除。",
+  "deleteAuthExpired": "登入已失效，請重新登入後再刪除。",
+  "deleteIncomplete": "刪除尚未完成，請再試一次。帳號可能還在。",
+  "deleteNotDeployed": "後端尚未部署刪除帳號，帳號尚未刪除。",
+  "deleteFailedStatus": "無法刪除帳號（{status}）。帳號尚未刪除。",
+  "@deleteFailedStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "periodAnnual": "年繳",
+  "periodSixMonth": "半年繳",
+  "periodThreeMonth": "季繳",
+  "periodTwoMonth": "兩個月",
+  "periodMonthly": "月繳",
+  "periodWeekly": "週繳",
+  "periodLifetime": "永久",
+  "periodSubscription": "訂閱",
+  "signUpTitle": "建立 Cloakly 帳號",
+  "signInTitle": "登入 Cloakly",
+  "password": "密碼",
+  "hidePassword": "隱藏密碼",
+  "showPassword": "顯示密碼",
+  "working": "處理中…",
+  "signUp": "註冊",
+  "signIn": "登入",
+  "switchToSignIn": "已有帳號？登入",
+  "switchToSignUp": "沒有帳號？註冊",
+  "credentialsHint": "請輸入 Email，密碼至少 8 個字元。",
+  "connectionFailed": "無法連線：{error}",
+  "@connectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "emailNotConfirmed": "請先到信箱點確認信，確認後才能登入。",
+  "hostedNotConfigured": "手機 Hosted 版尚未設定",
+  "hostedConfigHelp": "請使用 --dart-define 提供 SUPABASE_URL 和 SUPABASE_PUBLISHABLE_KEY。RevenueCat 金鑰可在完成商店設定後加入。",
+  "startupFailed": "啟動失敗",
+  "freePoolExhausted": "今天的免費會議名額已滿，請明天再試或升級 Pro。",
+  "freeDailyLimit": "今天的免費會議額度已使用完畢。可到帳號與訂閱頁升級 Pro。",
+  "freeQuestionLimit": "今天的免費專案問答已使用 5 次。",
+  "freePlanLimit": "今天的免費計畫建議已使用 5 次。",
+  "deviceFreeAccountInUse": "這支手機今天已經使用過另一個帳號的免費額度。",
+  "deviceRequired": "無法確認這支手機，請更新 App 後再試。",
+  "meetingAllowanceRequired": "請先開始今天的會議，或升級 Pro。",
+  "allowanceReservationFailed": "無法預約會議額度。若剛才開會中斷，請等幾分鐘再試；持續失敗請回報。",
+  "duplicateClientRequest": "這次會議授權已經送出，請稍後再試。",
+  "transcriptionNotConfigured": "後端尚未設定轉寫服務。",
+  "transcriptionProviderFailed": "轉寫服務暫時無法使用，請稍後再試。",
+  "serverError": "伺服器暫時發生錯誤，請稍後再試。",
+  "hostedFallback": "{fallback}（{code}）",
+  "@hostedFallback": {
+    "placeholders": {
+      "fallback": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "hostedNoAnswer": "Hosted AI 沒有回傳專案回答",
+  "hostedNoSuggestion": "Hosted AI 沒有回傳回答建議",
+  "hostedNoPlan": "Hosted AI 沒有回傳 WBS",
+  "hostedFeatureFailed": "無法完成這個 AI 功能（{status}）。",
+  "@hostedFeatureFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "hostedBadPayload": "Hosted API 回傳格式無法解析",
+  "deviceIdUnreadable": "無法讀取這支手機的識別。",
+  "meetingAuthTimeout": "取得會議授權逾時",
+  "meetingAuthCancelled": "已取消會議授權",
+  "meetingAuthFailed": "無法取得會議授權。",
+  "noTemporaryKey": "後端沒有回傳 Soniox 短效金鑰",
+  "sessionNotDeployed": "手機版後端尚未部署 create-meeting-session。",
+  "sessionSignedOut": "登入已失效，請登出後重新登入。",
+  "freeAllowanceBlocked": "這次免費額度無法使用。",
+  "sonioxKeyRejected": "Soniox 金鑰無效、權限不足，或轉寫服務暫時無法使用。",
+  "sonioxKeyMissingServer": "後端尚未設定 Soniox API 金鑰。",
+  "meetingAuthStatus": "無法取得會議授權（{status}）。",
+  "@meetingAuthStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "meetingAuthUnreadable": "無法解析會議授權",
+  "coordinatorNeedsClient": "HostedSessionCoordinator 需要 Supabase 或測試用 invoker"
+}

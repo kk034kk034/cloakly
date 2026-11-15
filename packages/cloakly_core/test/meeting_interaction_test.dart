@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
 import 'package:cloakly_core/services/project/project_context_builder.dart';
 import 'package:cloakly_core/widgets/meeting_widgets.dart';
@@ -25,6 +27,11 @@ void main() {
       Future<void> render() async {
         await tester.pumpWidget(
           MaterialApp(
+            locale: cloaklyZhHant,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localeResolutionCallback: resolveCloaklyLocale,
+            builder: cloaklyLocaleBuilder,
             home: Scaffold(
               body: TranscriptList(lines: lines, followLatest: true),
             ),
@@ -58,6 +65,11 @@ void main() {
     final selected = <String>{};
     await tester.pumpWidget(
       MaterialApp(
+        locale: cloaklyZhHant,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localeResolutionCallback: resolveCloaklyLocale,
+        builder: cloaklyLocaleBuilder,
         home: Scaffold(
           body: TranscriptList(
             lines: [line(0), line(1, finalText: false)],

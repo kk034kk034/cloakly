@@ -82,10 +82,10 @@ class RecordingKeepAliveService : Service() {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "會議錄音",
+                getString(R.string.recording_channel_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "會議進行中時，關閉畫面仍繼續錄音"
+                description = getString(R.string.recording_channel_description)
                 setShowBadge(false)
             },
         )
@@ -101,8 +101,8 @@ class RecordingKeepAliveService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Cloakly 正在錄音")
-            .setContentText("關閉畫面後仍會繼續擷取會議音訊")
+            .setContentTitle(getString(R.string.recording_notification_title))
+            .setContentText(getString(R.string.recording_notification_text))
             .setSmallIcon(R.drawable.ic_stat_mic)
             .setOngoing(true)
             .setSilent(true)

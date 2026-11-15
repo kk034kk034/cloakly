@@ -1,0 +1,1126 @@
+{
+  "@@locale": "en",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "save": "Save",
+  "saved": "Saved",
+  "close": "Close",
+  "create": "Create",
+  "settings": "Settings",
+  "backToProjects": "Back to projects",
+  "loadFailed": "Couldn't load: {error}",
+  "@loadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "Couldn't save: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "switchProject": "Switch project",
+  "unassigned": "Unassigned",
+  "projectSettings": "Project settings",
+  "demoBanner": "Demo mode is on. Add API keys and system audio from Settings on the project list.",
+  "startMeeting": "Start meeting",
+  "unassignedMeetings": "Unassigned meetings",
+  "unassignedHint": "You can start a meeting without a project. To ask questions from project files, choose a project first.",
+  "noPhaseYet": "No phase yet",
+  "phaseNoTasks": "{name} · No tasks yet",
+  "@phaseNoTasks": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phaseTaskSummary": "{name} · {inProgress} in progress · {blocked} blocked · {open} open",
+  "@phaseTaskSummary": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "inProgress": {
+        "type": "int"
+      },
+      "blocked": {
+        "type": "int"
+      },
+      "open": {
+        "type": "int"
+      }
+    }
+  },
+  "projectStatus": "Project status",
+  "noMeetingsYet": "No meetings yet",
+  "noUnassignedMeetings": "No unassigned meetings yet",
+  "meetingsRecent": "{count, plural, =1{1 meeting} other{{count} meetings}} · latest {when}",
+  "@meetingsRecent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "meetingsTitle": "Meetings",
+  "viewSubscription": "View subscription",
+  "freeMeetingQuotaMarker": "free meeting allowance",
+  "startupPreparing": "Preparing the meeting",
+  "startupMicrophone": "Checking the microphone",
+  "startupRecording": "Starting the recording",
+  "startupConnecting": "Connecting transcription",
+  "meetingsTitleWithProject": "{name} · Meetings",
+  "@meetingsTitleWithProject": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noUnassignedMeetingsSentence": "No unassigned meetings yet.",
+  "noMeetingsSentence": "No meetings yet. They show up here after you start one.",
+  "deleteMeetingTitle": "Delete this meeting?",
+  "deleteMeetingBody": "The transcript, notes, and prompts are deleted with it.",
+  "streamingTitle": "Live multi-speaker transcript",
+  "sonioxKey": "Soniox API key",
+  "sonioxHelp": "Streaming recognition. Text and speakers start as tentative, then update as more audio arrives.",
+  "projectLanguageHint": "Language is detected automatically. Set a project's background and vocabulary from that project's settings.",
+  "openaiKey": "OpenAI API key",
+  "chatModel": "Chat model",
+  "chatModelHelp": "Used for answer suggestions and minutes. Live transcription uses the Soniox key above.",
+  "systemAudio": "System audio",
+  "captureSystemAudio": "Capture audio playing on this computer",
+  "captureSystemAudioHelp": "On a headset call, the microphone is you and system audio is other people. Turn this off when several people share one microphone.",
+  "appearance": "Appearance",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "switchToLight": "Switch to light mode",
+  "switchToDark": "Switch to dark mode",
+  "language": "Language",
+  "languageSystem": "Follow system",
+  "languageZhHant": "繁體中文",
+  "languageEnglish": "English",
+  "triggerQuestions": "When a question is detected",
+  "triggerPause": "After each pause",
+  "triggerOff": "Off",
+  "triggerQuestionsHint": "After someone asks a question, draft a reply you can say",
+  "triggerPauseHint": "When the conversation pauses, summarize or suggest the next line",
+  "triggerOffHint": "Only draft a suggestion when you ask for one",
+  "paceFast": "Fast",
+  "paceBalanced": "Balanced",
+  "paceRelaxed": "Relaxed",
+  "kindBackground": "Project background",
+  "kindWbs": "WBS / schedule",
+  "kindSpec": "API / spec",
+  "kindAgenda": "Agenda",
+  "kindIssue": "Known issues",
+  "kindCommitment": "Commitments",
+  "kindOther": "Other files",
+  "statusPlanned": "Planned",
+  "statusInProgress": "In progress",
+  "statusBlocked": "Blocked",
+  "statusDone": "Done",
+  "statusUncertain": "Needs confirmation",
+  "roleGroup": "Main item",
+  "roleCategory": "Subcategory",
+  "roleRecord": "Entry",
+  "unnamedPhase": "Untitled phase",
+  "phaseNumber": "Phase {number}",
+  "@phaseNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "phaseWord": "Phase",
+  "speakerMe": "Me",
+  "speakerRemote": "Speaker {letter}",
+  "@speakerRemote": {
+    "placeholders": {
+      "letter": {
+        "type": "String"
+      }
+    }
+  },
+  "speakerRoom": "Speaker {number}",
+  "@speakerRoom": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "speakerUnconfirmed": "Speaker not confirmed yet",
+  "tentativeSuffix": " (tentative)",
+  "speakerSelfChunk": "Me (part {chunk}, unconfirmed)",
+  "@speakerSelfChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      }
+    }
+  },
+  "speakerOtherChunk": "Speaker (part {chunk}, unconfirmed)",
+  "@speakerOtherChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      }
+    }
+  },
+  "diarizationFailed": "Speaker detection failed for this part. Text was kept, but the speaker is unconfirmed.",
+  "transcriptionFailedStatus": "Transcription failed: {status}",
+  "@transcriptionFailedStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "transcriptionBadPayload": "The transcription response could not be read.",
+  "missingSonioxKey": "Add a Soniox API key in Settings to turn on the live multi-speaker transcript. The OpenAI key is for answer suggestions and minutes.",
+  "missingSonioxKeyShort": "Soniox API key is missing",
+  "needSonioxToStart": "Add a Soniox API key in Settings before starting a live multi-speaker transcript.",
+  "authTimeout": "Getting meeting access timed out. Try again.",
+  "streamCancelled": "The stream was cancelled",
+  "streamDropped": "The stream disconnected. End the meeting and keep the recording so it can be run again.",
+  "streamEndedEarly": "The stream ended early. Text that was not finalized was not fully recognized.",
+  "sonioxUnreachable": "Couldn't reach Soniox. Check the network and settings.",
+  "sonioxRecognizeFailed": "Soniox recognition failed ({code}). Check the key, quota, or audio settings.",
+  "@sonioxRecognizeFailed": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "streamParseFailed": "The streaming result could not be read. The original recording is kept.",
+  "streamNotStarted": "The stream has not started",
+  "streamTailTimeout": "Waiting for the final words timed out. Unfinished text stays tentative. Run the original recording again.",
+  "connectTimeout": "Connecting transcription timed out. Try again.",
+  "noMicrophonePermission": "Microphone permission was not granted",
+  "projectContextUnreadable": "(Project files could not be read just now)",
+  "systemAudioFailed": "System audio failed to start: {error}",
+  "@systemAudioFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNoRemoteAudio": "This phone cannot capture the other side of a call. Use the desktop app.",
+  "streamHintRemote": "Live transcript: you are “Me”, and other people stay separated on the same connection. Gray text and speaker labels may still change.",
+  "streamHintRoom": "Live transcript: speakers stay separated on one microphone. Gray text and speaker labels may still change.",
+  "suggestionNeedsOpenAi": "The transcript keeps working. Answer suggestions need an OpenAI API key.",
+  "syncQuotaFailed": "Couldn't sync the free allowance. Stay online: {error}",
+  "@syncQuotaFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "minutesFailed": "Couldn't write the minutes: {error}",
+  "@minutesFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptSaveFailed": "Couldn't save the transcript: {error}",
+  "@transcriptSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiUsageLine": "AI usage: {usage}",
+  "@aiUsageLine": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultMeetingTitle": "Meeting {when}",
+  "@defaultMeetingTitle": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "needOpenAiKey": "Add an OpenAI API key first.",
+  "usageDisplay": "{model} · {input} input tokens · {output} output tokens · {cost}",
+  "@usageDisplay": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "input": {
+        "type": "int"
+      },
+      "output": {
+        "type": "int"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "noProjectFolder": "(No project folder selected)",
+  "projectLine": "Project: {name}",
+  "@projectLine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "roleLine": "Role and background: {background}",
+  "@roleLine": {
+    "placeholders": {
+      "background": {
+        "type": "String"
+      }
+    }
+  },
+  "projectFolderMissing": "(The project folder is gone)",
+  "projectGone": "That project no longer exists",
+  "folderMissing": "Folder not found: {path}",
+  "@folderMissing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "pickProjectFolder": "Choose a project folder",
+  "databaseNotReady": "databaseProvider must be overridden in main",
+  "meetingNotFound": "Meeting {id} was not found",
+  "@meetingNotFound": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyEncode": "The m4a encoding was empty",
+  "browserNoSystemAudio": "The browser cannot capture system audio.",
+  "mobileNoCallAudio": "A phone cannot reliably capture the other side of Teams, Meet, or Zoom. Use the Windows, macOS, or Linux app. Headphones still let you hear the other people.",
+  "systemAudioNotWired": "System-audio capture is not available on this platform yet.",
+  "systemAudioUnavailable": "System audio is unavailable: {error}",
+  "@systemAudioUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "endMeetingTitle": "End this meeting?",
+  "endMeetingBody": "Minutes are written from the transcript and your notes.",
+  "keepGoing": "Continue",
+  "endAndSummarize": "End and write up",
+  "liveMeeting": "Live meeting",
+  "transcript": "Transcript",
+  "hints": "Prompts",
+  "notes": "Notes",
+  "pause": "Pause",
+  "finish": "End",
+  "share": "Share",
+  "demoPlaying": "Demo mode: a sample conversation is playing. You don't need to speak.",
+  "wrappingUp": "Writing the minutes and speaker names…",
+  "selectForReply": "Tap one or more lines to draft a reply. Gray text and speaker labels may still change.",
+  "selectedLines": "{count, plural, =1{1 line selected} other{{count} lines selected}}",
+  "@selectedLines": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "suggestReply": "Suggest a reply",
+  "clearSelection": "Clear selection",
+  "hidePane": "Hide {name}",
+  "@hidePane": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "showPane": "Show {name}",
+  "@showPane": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesIntro": "Jot notes while you listen. They are included when the minutes are written.",
+  "noteHint": "Write a note",
+  "enterToSend": "Enter to send · Shift+Enter for a new line",
+  "enterToSendShort": "Enter to send, Shift+Enter for a new line",
+  "earlierPrompts": "Earlier prompts",
+  "backToLatest": "Jump to latest",
+  "answerPrompts": "Answer prompts",
+  "draftingPrompt": "Drafting a prompt from the conversation…",
+  "selectThenSuggest": "Select one or more lines, then tap Suggest a reply.",
+  "regarding": "About: {text}",
+  "@regarding": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptEmpty": "Lines appear here as people speak.",
+  "meetingNoTranscript": "This meeting has no transcript.",
+  "shareMinutes": "Share minutes",
+  "shareMinutesSubtitle": "Text you can paste into a message or a document",
+  "saveRecording": "Save the recording",
+  "saveRecordingNoProject": "Without a project, it is saved to Downloads",
+  "saveRecordingInProject": "Saved in the project folder, under “錄音”",
+  "shareRecording": "Share the recording",
+  "shareRecordingSubtitle": "Send it to Drive, Line, or another app",
+  "noMinutesYetExport": "(No minutes yet)",
+  "headingTranscript": "Transcript",
+  "headingNotes": "Notes",
+  "headingPrompts": "Prompts",
+  "noRecordingToSave": "This meeting has no recording to save.",
+  "iosFilesPath": "Files app → On My iPhone → Cloakly",
+  "androidDownloadsPath": "Downloads / Cloakly",
+  "savedTo": "Saved to {where}",
+  "@savedTo": {
+    "placeholders": {
+      "where": {
+        "type": "String"
+      }
+    }
+  },
+  "noRecordingToShare": "This meeting has no recording to share.",
+  "noMinutesBody": "No minutes yet.",
+  "noLiveNotes": "This meeting has no notes.",
+  "noPrompts": "This meeting has no answer prompts.",
+  "globalSettings": "Settings",
+  "addProject": "Add project",
+  "addProjectFolder": "Add a project folder",
+  "projectPhaseLine": "{name} · {phase}",
+  "@projectPhaseLine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "phase": {
+        "type": "String"
+      }
+    }
+  },
+  "allProjectBoards": "All project boards",
+  "boardFilterHelp": "Shows today's in-progress and overdue work, plus undated in-progress or blocked items, from the current unarchived phase only.",
+  "noTasksOnBoards": "The current phase of each project has no tasks. Open a project's schedule to add some, or ask for AI suggestions.",
+  "nothingDueToday": "Nothing matches today. Open a project's schedule to see every item.",
+  "chooseProject": "Choose a project",
+  "chooseProjectHelp": "Each folder is a project. Open one to start a meeting. Prompts read that project's files.",
+  "noProjects": "No projects yet",
+  "noProjectsHelp": "Choose a local folder as a project and put specs, schedules, issues, and other files in it.",
+  "chooseFolder": "Choose a folder",
+  "lastIndexed": "Last",
+  "includedDocs": "{count, plural, =1{1 file included} other{{count} files included}}",
+  "@includedDocs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activePhaseCount": "Current {name} · {count, plural, =1{1 item} other{{count} items}}",
+  "@activePhaseCount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedPhaseCount": "{count, plural, =1{1 phase archived} other{{count} phases archived}}",
+  "@archivedPhaseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "indexedAt": "Indexed {when}",
+  "@indexedAt": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "unassignedSubtitle": "Meetings that are not in a project",
+  "projectMissing": "This project was not found.",
+  "projectMissingBack": "This project was not found. Go back to the project list.",
+  "loadingProject": "Loading the project…",
+  "scheduleTitle": "{name} · Schedule",
+  "@scheduleTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiSuggestSchedule": "AI schedule suggestions",
+  "aiSuggestNeedsSetup": "Set up AI before it can suggest a schedule",
+  "addMainItem": "Add a main item",
+  "phaseBoardHelp": "Split the board into phases. Keep each phase small enough to finish. When everything is Done, archive it and start the next phase so the Done column stays short.",
+  "setupAiForSchedule": "After AI is set up, it can suggest a phased schedule from your files and meetings.",
+  "lastSuggestUsage": "Last AI suggestion usage: {usage}",
+  "@lastSuggestUsage": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "noPhaseCreateFirst": "No phase yet. Add a phase, then put work in it.",
+  "addPhase": "Add a phase",
+  "viewingArchived": "Viewing archived “{name}”",
+  "@viewingArchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archivedNotOnBoard": "It does not take space on the current board",
+  "backToCurrentPhase": "Back to the current phase",
+  "phaseAllDone": "Every task in this phase is done",
+  "archivePhaseHint": "Archiving collapses the Done column so you can start the next phase.",
+  "archivePhase": "Archive phase",
+  "gantt": "Gantt",
+  "kanban": "Board",
+  "phaseEmptyAdd": "This phase has no tasks. Add a main item, or ask AI for a schedule.",
+  "addFirstMainItem": "Add the first main item",
+  "progressOverview": "{name} · Progress",
+  "@progressOverview": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workBoard": "{name} · Task board",
+  "@workBoard": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phaseEmptyShort": "This phase has no tasks.",
+  "filterEmpty": "Nothing matches this filter. Choose All, or change the date range.",
+  "phaseCompleteTitle": "This phase is complete",
+  "archiveNowBody": "Archive this phase? It leaves the board, and you can still open it under Archived.",
+  "later": "Not now",
+  "archive": "Archive",
+  "phaseName": "Phase name",
+  "phaseNameHint": "For example: MVP, launch prep",
+  "renamePhase": "Rename phase",
+  "archiveThisPhaseTitle": "Archive this phase?",
+  "archiveThisPhaseBody": "The board then shows only other open phases. Finished items no longer take space.",
+  "archivedAndOpenedNext": "Archived, and the next phase is open.",
+  "phaseArchived": "Phase archived.",
+  "planQuestion": "From the project files and meetings, list trackable work, dates, deadlines, and owners, split into phases that can be finished one after another.",
+  "notEnoughPlanEvidence": "There is not enough in the files or meetings to suggest a plan. Add a schedule, a spec, or meeting notes to the project folder.",
+  "noTrackableWork": "AI did not find trackable work in the current files.",
+  "addedSuggestions": "{count, plural, =1{Added 1 suggested task. Check the date and status.} other{Added {count} suggested tasks. Check the dates and status.}}",
+  "@addedSuggestions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planSuggestFailed": "Couldn't suggest a schedule: {error}",
+  "@planSuggestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestedPlanTitle": "Suggested phased schedule",
+  "suggestedPlanHelp": "Tasks are grouped by phase. Finish a phase, archive it, then start the next one. Select what to add.",
+  "duplicateTask": "(A task with this name already exists)",
+  "addSelected": "Add selected ({count})",
+  "@addSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteTaskTitle": "Delete this task?",
+  "deleteTaskWithChildren": "{count, plural, =1{“{title}” has 1 item under it. It will be deleted too.} other{“{title}” has {count} items under it. They will be deleted too.}}",
+  "@deleteTaskWithChildren": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteTaskConfirm": "Delete “{title}”?",
+  "@deleteTaskConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "pickDateRange": "Tap to choose a start and end date",
+  "addRole": "Add {role}",
+  "@addRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "editRole": "Edit {role}",
+  "@editRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "roleName": "{role} name",
+  "@roleName": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "ownerOptional": "Owner (optional)",
+  "notesLabel": "Notes",
+  "notesHint": "Progress, why it was redone, a decision from the meeting…",
+  "belongsToPhase": "Phase",
+  "statusLabel": "Status",
+  "progress": "Progress",
+  "progressFromChildren": "Calculated from subtasks · {percent}%",
+  "@progressFromChildren": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "progressValue": "Progress · {percent}%",
+  "@progressValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "dateRange": "Date range",
+  "clearDates": "Clear dates",
+  "pickStartEnd": "Choose a start and end date",
+  "donePicking": "Done",
+  "sourcesTitle": "Sources",
+  "saveAndConfirm": "Save and confirm",
+  "archiveShortBody": "Archive this phase? It will leave the board.",
+  "switchPhase": "Switch phase",
+  "itemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addPhaseMenu": "Add a phase",
+  "phaseMenuTitle": "{title} · {count, plural, =1{1 item} other{{count} items}}",
+  "@phaseMenuTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedCount": "Archived {count}",
+  "@archivedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phaseOptions": "Phase options",
+  "rename": "Rename",
+  "archiveThisPhase": "Archive this phase",
+  "archivedPhasesTitle": "Archived phases · {count}",
+  "@archivedPhasesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskCount": "{count, plural, =1{1 task} other{{count} tasks}}",
+  "@taskCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedOn": "Archived on {when}",
+  "@archivedOn": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "view": "View",
+  "unarchive": "Unarchive",
+  "customRange": "Custom range",
+  "all": "All",
+  "today": "Today",
+  "adjustDates": "Change dates",
+  "rangeHelp": "Only expand items in this range",
+  "apply": "Apply",
+  "showLabel": "Show",
+  "filterMainItems": "Main items",
+  "filterSubcategories": "+ Subcategories",
+  "filterAll": "All",
+  "byDate": "By date",
+  "dateFilter": "Dates {range}",
+  "@dateFilter": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "clearDateFilter": "Clear dates",
+  "hierarchyHelp": "Main item → subcategory → entry. Use the arrows to reorder siblings.",
+  "rangeIntersectionHelp": "Only items that overlap {range}. Undated items are hidden.",
+  "@rangeIntersectionHelp": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "noItems": "No items yet",
+  "noItemsInRange": "Nothing falls in this date range.",
+  "collapse": "Collapse",
+  "expand": "Expand",
+  "dateNotSetShort": "No date yet",
+  "moveUp": "Move up",
+  "moveDown": "Move down",
+  "addChildRole": "Add {role}",
+  "@addChildRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "kanbanTodo": "To do",
+  "dropTaskHere": "Drop a task here",
+  "datesUnset": "Dates not set",
+  "projectQa": "Project Q&A",
+  "projectQaTitle": "{name} · Project Q&A",
+  "@projectQaTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "qaCompactIntro": "Look up files, progress, and decisions on this page. Each question is searched on its own.",
+  "qaIntro": "Look up project files, decisions, and past commitments. Each question is searched on its own. Name the topic; the previous question is not reused.",
+  "qaScope": "Each question searches every supported file in “{name}” and its subfolders, plus this project's meetings, transcripts, and notes.",
+  "@qaScope": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "qaPrivacy": "Matching passages are sent to the AI service. Questions stay on this page and are cleared when you leave.",
+  "setupAiForAnswers": "Set up the AI service before it can answer from the project.",
+  "summarizeStatus": "Summarize the project",
+  "summarizeStatusQuery": "Summarize current progress, blockers, and commitments that still need confirmation.",
+  "whichMeeting": "Which meeting mentioned…",
+  "whichMeetingQuery": "Which meeting mentioned",
+  "imageOmitted": "(Image omitted)",
+  "turnUsage": "AI usage this turn: {usage}",
+  "@turnUsage": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "questionHint": "For example: which meeting decided to add sign-in?",
+  "sendQuestion": "Send question",
+  "insufficientEvidence": "The retrieved material is not enough to confirm this. Use a specific feature name or keyword, and check that the files are in the project folder and the meetings belong to this project. Questions about overall status prefer recent material.",
+  "qaFailed": "Couldn't finish the question. It is still here, so you can retry. {error}",
+  "@qaFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fileModifiedTime": "File modified (not the decision date)",
+  "meetingTime": "Meeting time",
+  "sourceTime": "{label}: {when}",
+  "@sourceTime": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceSnapshot": "This is the passage retrieved when you asked.",
+  "openMeeting": "Open meeting",
+  "projectSources": "Project sources",
+  "projectSourcesHelp": "Each project question searches every supported file in the folder and its subfolders, plus all of this project's meetings. One scan stops at 2,000 files.",
+  "deleteThisProject": "Delete this project",
+  "meetingPromptTitle": "Meeting prompts for this project",
+  "roleField": "My role and background in this project (optional)",
+  "roleFieldHint": "For example: PhD student working on speech recognition.",
+  "roleFieldHelp": "Used only for this project's AI suggestions and minutes.",
+  "vocabField": "Vocabulary hints (optional)",
+  "vocabFieldHint": "For example: Professor Chen, Cloakly, LoRA. Separate with commas or new lines.",
+  "vocabFieldHelp": "Helps recognition of uncommon names and terms in this project.",
+  "saving": "Saving…",
+  "projectSettingsSaved": "Project settings saved",
+  "deleteProjectTitle": "Delete “{name}”?",
+  "@deleteProjectTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteProjectEmpty": "This removes the project from the app. The folder on disk is not deleted.",
+  "deleteProjectWithMeetings": "{count, plural, =1{This project's 1 meeting, its transcript, notes, prompts, and any recording you have not saved elsewhere are deleted and cannot be restored.\n\nThe folder itself is not deleted. Save the recording first if you still need it.} other{This project's {count} meetings, transcripts, notes, prompts, and recordings you have not saved elsewhere are deleted and cannot be restored.\n\nThe folder itself is not deleted. Save any recordings you still need from each meeting first.}}",
+  "@deleteProjectWithMeetings": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteProjectAck": "I have saved the recordings I need, and I want these records deleted",
+  "deleteProject": "Delete project",
+  "unassignedProjectSettings": "You are in Unassigned. There is no project to configure.",
+  "coverageNote": "The question searched supported files in this project folder and saved meeting material. It is not a complete live status.",
+  "moreReadLimits": "{count, plural, =1{1 more reading limit. The full list is on screen.} other{{count} more reading limits. The full list is on screen.}}",
+  "@moreReadLimits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileModifiedNotDecision": "File modified time, not the date a decision took effect",
+  "meetingTimeShort": "Meeting time",
+  "citationMissing": "The answer cited a source that is not there. Ask again.",
+  "citationRequired": "The answer did not include a source. Ask again, or narrow the question.",
+  "folderUnreadable": "The project folder could not be read, so files were not searched.",
+  "scanCap": "The folder scan hit the safety limit of {count} files. Some files may not have been searched.",
+  "@scanCap": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "docUnreadable": "{path} could not be read or is outside the project, so it was not searched.",
+  "@docUnreadable": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "docReadError": "{path}: {error}. Not searched.",
+  "@docReadError": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiMinutesLocation": "AI minutes (check them against the transcript)",
+  "audioWithoutTranscript": "{title} has audio but no finalized transcript. This question will not analyze the audio.",
+  "@audioWithoutTranscript": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "transcriptSpan": "Transcript {start}–{end}",
+  "@transcriptSpan": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "liveNotesLocation": "Notes",
+  "searchSummary": "Searched {scanned} passages and returned {selected} excerpts. A miss does not mean it was never discussed.",
+  "@searchSummary": {
+    "placeholders": {
+      "scanned": {
+        "type": "int"
+      },
+      "selected": {
+        "type": "int"
+      }
+    }
+  },
+  "lineRange": "{location} · lines {start}–{end}",
+  "@lineRange": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      },
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
+  "lineOffset": "{location} · line {line}, character {offset}",
+  "@lineOffset": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      },
+      "line": {
+        "type": "int"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "docOutsideProject": "The file is outside the project folder",
+  "linkOutsideProject": "The file link points outside the project folder",
+  "unsupportedOffice": "This format is not supported. Save older PPT, XLS, or DOC files as PPTX, XLSX, or DOCX.",
+  "officeTooLarge": "The file is over 50 MB",
+  "textTooLarge": "The text or source file is over 256 KB",
+  "documentSection": "Document",
+  "officeUnreadable": "Couldn't read the Office file. Check that it is not encrypted and that the file is intact.",
+  "pdfTooLarge": "The PDF is over 50 MB",
+  "pdfTooManyPages": "The PDF is over 500 pages. Split it.",
+  "pdfTextLayerWarning": "The PDF text layer was read. Images were not recognized. Check complex tables and multi-column reading order.",
+  "pdfTooMuchText": "The PDF has too much text. Split it.",
+  "pdfPageNoText": "Page {page} has no text layer and may need OCR.",
+  "@pdfPageNoText": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfPage": "PDF page {page}",
+  "@pdfPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfUnreadable": "Couldn't read the PDF. Check that it is not encrypted and that the file is intact.",
+  "xmlTooLarge": "The document XML is too large. Split it.",
+  "contentUndecompressible": "The document contents could not be decompressed",
+  "notDocx": "This is not a valid DOCX file",
+  "wordParagraph": "Word paragraph {index}",
+  "@wordParagraph": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "wordWarning": "Word text and table paragraphs were read. Images, headers, footers, and tracked-change meaning were not. Paragraph position is not a printed page number.",
+  "notXlsx": "This is not a valid XLSX file",
+  "sheetMissing": "An Excel sheet's contents are missing",
+  "sheetDefault": "Sheet",
+  "cachedFormula": "{cell}: {value} (formula ={formula}; this is the cached value, not recalculated)",
+  "@cachedFormula": {
+    "placeholders": {
+      "cell": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      },
+      "formula": {
+        "type": "String"
+      }
+    }
+  },
+  "sheetRow": "Sheet “{sheet}”, row {row}",
+  "@sheetRow": {
+    "placeholders": {
+      "sheet": {
+        "type": "String"
+      },
+      "row": {
+        "type": "String"
+      }
+    }
+  },
+  "headerRowNote": "First non-empty row (it may be column names; check it): {header}\n{values}",
+  "@headerRowNote": {
+    "placeholders": {
+      "header": {
+        "type": "String"
+      },
+      "values": {
+        "type": "String"
+      }
+    }
+  },
+  "excelWarning": "Excel cell values and cached formulas were read. Formulas were not recalculated. Dates may appear as serial numbers. Number formats, charts, and images were not applied.",
+  "pptxXmlTooLarge": "The PPTX XML is too large. Split the deck.",
+  "pptxUndecompressible": "The PPTX contents could not be decompressed",
+  "notPptx": "This is not a valid PPTX deck",
+  "pptxTooManySlides": "The deck is over 300 slides. Split it, then choose a part.",
+  "pptxWarning": "PPTX selectable text, table text, and speaker notes were read. Images, chart values, SmartArt, and embedded objects were not recognized.",
+  "slideMissing": "Slide {page} is missing its contents",
+  "@slideMissing": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "slidePage": "Slide {page}",
+  "@slidePage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "slideNotes": "Slide {page} · speaker notes",
+  "@slideNotes": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "slideNoText": "Slide {page} has no text that could be extracted.",
+  "@slideNoText": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "planFormatError": "The plan response was not in the expected format",
+  "noLocalNotes": "(No notes)",
+  "localNotesItem": "- (No notes)",
+  "localSummaryHeading": "Summary",
+  "localNotesHeading": "Notes",
+  "localTranscriptHeading": "Transcript by speaker",
+  "localSummaryBody": "(No OpenAI key yet. Notes and the transcript are kept below. No AI summary was written.)",
+  "demoAnswer": "[Demo prompt] This sample is shown until an API key is set.\n\nSuggested opening:\n“Let me restate the question, then add the numbers I have.”\n\nPoints you can say:\n1. Restate the question so you answer the right one\n2. Give one concrete status, and mark anything uncertain as “I'll follow up”\n3. Offer the next step and when\n\nAdd an OpenAI API key in Settings and prompts will follow the real conversation.",
+  "noProjectForPrompt": "(No project folder selected. Do not invent dates or commitments without a spec, WBS, or issue list.)",
+  "mockLine1": "Let's start the product meeting and check this week's progress.",
+  "mockLine2": "The sign-in flow's error handling is done this week. Internal testing looks stable.",
+  "mockLine3": "Did the error rate on the sign-in page go down? Can you give a number?",
+  "mockLine4": "It dropped from about 4% to 1.5%, mostly expired tokens that never returned to sign-in.",
+  "mockLine5": "We ship next week. What is the biggest risk?",
+  "mockLine6": "Support is still waiting on the new guide. Without it, launch day will be all questions.",
+  "mockLine7": "Before we wrap, confirm your tasks. We'll sync the doc after 3.",
+  "folderLine": "Folder: {path}",
+  "@folderLine": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "docUnreadableContent": "({path} could not be read, so its contents were left out)",
+  "@docUnreadableContent": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "truncated": "…(truncated)",
+  "noSupportedFiles": "(No supported files were found in the project folder)",
+  "noBuiltInPrice": "No built-in price for this model",
+  "estimatedCost": "about {usd} / {ntd}",
+  "@estimatedCost": {
+    "placeholders": {
+      "usd": {
+        "type": "String"
+      },
+      "ntd": {
+        "type": "String"
+      }
+    }
+  },
+  "modelFailed": "The language model failed: {status} {body}",
+  "@modelFailed": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      },
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "minutesUnavailable": "(Couldn't write the minutes)"
+}

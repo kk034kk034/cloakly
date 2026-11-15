@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/services/hosted_access.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:flutter/material.dart';
@@ -98,27 +102,37 @@ class _AuthApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ThemeModeBuilder(
-      builder: (context, mode) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        themeMode: mode,
-        home: _EmailPasswordScreen(notice: notice),
+      builder: (context, mode) => AppLocaleBuilder(
+        builder: (context, locale) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: mode,
+          locale: locale,
+          localizationsDelegates: const [
+            HostedLocalizations.delegate,
+            ...AppLocalizations.localizationsDelegates,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          localeResolutionCallback: resolveCloaklyLocale,
+          builder: cloaklyLocaleBuilder,
+          home: HostedLoginScreen(notice: notice),
+        ),
       ),
     );
   }
 }
 
-class _EmailPasswordScreen extends StatefulWidget {
-  const _EmailPasswordScreen({this.notice});
+class HostedLoginScreen extends StatefulWidget {
+  const HostedLoginScreen({this.notice, super.key});
 
   final String? notice;
 
   @override
-  State<_EmailPasswordScreen> createState() => _EmailPasswordScreenState();
+  State<HostedLoginScreen> createState() => _HostedLoginScreenState();
 }
 
-class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
+class _HostedLoginScreenState extends State<HostedLoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   var _signUp = false;
@@ -143,7 +157,9 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.length < 8) {
-      setState(() => _message = '請輸入 Email，密碼至少 8 個字元。');
+      setState(
+        () => _message = HostedLocalizations.of(context).credentialsHint,
+      );
       return;
     }
     setState(() {
@@ -182,7 +198,13 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
         setState(() => _message = hostedAuthErrorMessage(error.message));
       }
     } catch (error) {
-      if (mounted) setState(() => _message = '無法連線：$error');
+      if (mounted) {
+        setState(
+          () => _message = HostedLocalizations.of(
+            context,
+          ).connectionFailed('$error'),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -190,6 +212,7 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = HostedLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -207,7 +230,7 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
                   const Icon(Icons.graphic_eq, size: 58),
                   const SizedBox(height: 18),
                   Text(
-                    _signUp ? '建立 Cloakly 帳號' : '登入 Cloakly',
+                    _signUp ? l10n.signUpTitle : l10n.signInTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
@@ -224,9 +247,11 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
                     obscureText: !_showPassword,
                     autofillHints: const [AutofillHints.password],
                     decoration: InputDecoration(
-                      labelText: '密碼',
+                      labelText: l10n.password,
                       suffixIcon: IconButton(
-                        tooltip: _showPassword ? '隱藏密碼' : '顯示密碼',
+                        tooltip: _showPassword
+                            ? l10n.hidePassword
+                            : l10n.showPassword,
                         onPressed: () =>
                             setState(() => _showPassword = !_showPassword),
                         icon: Icon(
@@ -245,7 +270,11 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
                   const SizedBox(height: 18),
                   FilledButton(
                     onPressed: _busy ? null : _submit,
-                    child: Text(_busy ? '處理中…' : (_signUp ? '註冊' : '登入')),
+                    child: Text(
+                      _busy
+                          ? l10n.working
+                          : (_signUp ? l10n.signUp : l10n.signIn),
+                    ),
                   ),
                   TextButton(
                     onPressed: _busy
@@ -255,7 +284,9 @@ class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
                             _showPassword = false;
                             _message = null;
                           }),
-                    child: Text(_signUp ? '已有帳號？登入' : '沒有帳號？註冊'),
+                    child: Text(
+                      _signUp ? l10n.switchToSignIn : l10n.switchToSignUp,
+                    ),
                   ),
                 ],
               ),

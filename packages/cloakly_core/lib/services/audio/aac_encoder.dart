@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
@@ -23,7 +24,7 @@ class AacEncoder {
     });
     final out = File(outputPath);
     if (!await out.exists() || await out.length() < 64) {
-      throw StateError('m4a 編碼結果是空的');
+      throw StateError(CloaklyLocale.strings.emptyEncode);
     }
     return outputPath;
   }

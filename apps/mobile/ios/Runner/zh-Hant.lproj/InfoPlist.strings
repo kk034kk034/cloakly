@@ -1,0 +1,7 @@
+"NSMicrophoneUsageDescription" = "Cloakly 會使用麥克風，把你按下開始的會議轉成即時逐字稿、筆記與回答提示。請先取得其他參與者的同意。";
+"NSPhotoLibraryUsageDescription" = "Cloakly 只讓你選專案資料夾，不會讀取或上傳照片與影片。內含的檔案選擇元件仍帶有相簿程式，所以系統要求這段說明。";
+"NSCameraUsageDescription" = "Cloakly 不會開啟相機，也不會拍照或錄影。內含的檔案選擇元件仍帶有相機程式，所以系統要求這段說明。";
+"NSAppleMusicUsageDescription" = "Cloakly 不會讀取音樂資料庫。內含的檔案選擇元件仍帶有音樂選擇程式，所以系統要求這段說明。";
+"NSLocationWhenInUseUsageDescription" = "Cloakly 不會要求或使用你的位置。內含的檔案選擇元件含有可讀取照片位置資訊的程式，所以系統要求這段說明。";
+"NSPhotoLibraryAddUsageDescription" = "Cloakly 不會把檔案存進你的相簿。內含的檔案選擇元件仍帶有寫入相簿的程式，所以系統要求這段說明。";
+"CFBundleDisplayName" = "Cloakly";

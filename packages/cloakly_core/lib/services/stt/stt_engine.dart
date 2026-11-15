@@ -1,3 +1,5 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+
 enum SttLane {
   /// Headset mic in an online call: always you.
   self,
@@ -27,10 +29,11 @@ class SpeakerId {
   }
 
   static String label({required SttLane lane, int diarized = 0}) {
+    final l10n = CloaklyLocale.strings;
     return switch (lane) {
-      SttLane.self => '我',
-      SttLane.remote => '對方${letter(diarized)}',
-      SttLane.room => '發言人 ${diarized + 1}',
+      SttLane.self => l10n.speakerMe,
+      SttLane.remote => l10n.speakerRemote(letter(diarized)),
+      SttLane.room => l10n.speakerRoom(diarized + 1),
     };
   }
 }

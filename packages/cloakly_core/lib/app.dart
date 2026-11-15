@@ -1,5 +1,8 @@
 import 'package:cloakly_core/core/theme/app_theme.dart';
 import 'package:cloakly_core/core/theme/theme_controller.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/features/home/home_screen.dart';
 import 'package:cloakly_core/features/home/meetings_list_screen.dart';
 import 'package:cloakly_core/features/meeting_detail/meeting_detail_screen.dart';
@@ -10,7 +13,6 @@ import 'package:cloakly_core/features/project/project_question_screen.dart';
 import 'package:cloakly_core/features/session/session_screen.dart';
 import 'package:cloakly_core/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -66,9 +68,14 @@ GoRouter createAppRouter({
 );
 
 class CloaklyApp extends ConsumerStatefulWidget {
-  const CloaklyApp({super.key, this.settingsBuilder});
+  const CloaklyApp({
+    super.key,
+    this.settingsBuilder,
+    this.localizationsDelegates = const [],
+  });
 
   final WidgetBuilder? settingsBuilder;
+  final List<LocalizationsDelegate<dynamic>> localizationsDelegates;
 
   @override
   ConsumerState<CloaklyApp> createState() => _CloaklyAppState();
@@ -93,13 +100,14 @@ class _CloaklyAppState extends ConsumerState<CloaklyApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
-      locale: const Locale('zh', 'TW'),
-      supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+      locale: localeOverrideFor(ref.watch(appLanguageProvider)),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: [
+        ...widget.localizationsDelegates,
+        ...AppLocalizations.localizationsDelegates,
       ],
+      localeResolutionCallback: resolveCloaklyLocale,
+      builder: cloaklyLocaleBuilder,
       routerConfig: _router,
     );
   }

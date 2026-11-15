@@ -113,7 +113,7 @@ No other login method works.
 
 Cloakly is an on-screen meeting assistant. It is not a hidden window and it
 does not type into other apps. Please allow the microphone. On Android a
-notification, "Cloakly 正在錄音", stays visible while a meeting you started
+notification, "Cloakly is recording", stays visible while a meeting you started
 is recording, including if the screen turns off. Stop the meeting and the
 notification and microphone service stop. On iOS the system microphone
 indicator stays on; background audio mode is only for that in-progress meeting.
@@ -137,7 +137,7 @@ Play Console → 應用程式內容 → 前景服務權限 → 麥克風。
 
 ```
 Cloakly starts a microphone foreground service only after the user taps start
-on a meeting. The ongoing notification title is "Cloakly 正在錄音" and the text
+on a meeting. The ongoing notification title is "Cloakly is recording" and the text
 says recording continues if the screen turns off. The service type is
 microphone. It stops when the meeting ends or the task is removed. It is not
 used to listen in the background when no meeting is running.

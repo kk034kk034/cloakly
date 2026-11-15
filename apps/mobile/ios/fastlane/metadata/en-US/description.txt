@@ -1,4 +1,4 @@
-Cloakly is an on-screen meeting assistant for project work. Transcripts, notes, and suggestions stay visible inside Cloakly. It is not a hidden window, a concealed overlay, or a tool for cheating on interviews or exams.
+Cloakly is for AI meeting notes: live transcription, summaries, and action items, plus a project Gantt and kanban. Transcripts, notes, and suggestions stay visible inside Cloakly. A free account can transcribe up to 30 minutes total per UTC day.
 
 Record only after everyone in the meeting has agreed. You must tell participants before you record, and you must follow the law that applies to that conversation.
 
@@ -6,10 +6,13 @@ Features
 • Live transcript from the microphone, with speaker labels on the same recording. Labels are model guesses, not verified names.
 • Notes while the meeting is still going.
 • Answer suggestions when a question is detected, after a pause, or when you ask. Suggestions appear in Cloakly and are not typed into other apps.
-• Minutes when you stop: summary, decisions, and action items from the transcript and your notes.
+• Minutes when you stop: summary, decisions, and action items from the transcript and your notes. That write-up is the AI meeting notes for the session.
 • Project Q&A. Choose a folder. Answers include the source passage, page or line, and meeting time. Questions about current status prefer recent material.
 • A phase board in a Gantt view and a kanban. Add work yourself or review AI suggestions for title, dates, owner, and status. Archive a phase when it is finished.
 • Token estimates for project Q&A, answer suggestions, minutes, and plan suggestions.
+
+What it is
+Cloakly keeps AI meeting notes on screen: live transcription, summaries, action items, and a project Gantt and kanban. It is not a hidden window, a concealed overlay, or a tool for cheating on interviews or exams.
 
 iPhone audio
 Cloakly records the microphone. It cannot take audio from inside Teams, Meet, Zoom, or other apps. Other people are included only when the microphone can hear them, such as on speakerphone.

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:cloakly_core/core/constants.dart';
 import 'package:cloakly_core/data/models/models.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/audio/wav.dart';
 import 'package:cloakly_core/services/stt/stt_engine.dart';
 import 'package:http/http.dart' as http;
@@ -114,20 +115,23 @@ class WhisperStt implements SttEngine {
       return http.Response.fromStream(streamed);
     })().timeout(const Duration(seconds: 30));
     final body = response.body;
+    final l10n = CloaklyLocale.strings;
     if (response.statusCode < 200 || response.statusCode >= 300) {
       if (diarize &&
           (response.statusCode == 400 || response.statusCode == 422)) {
-        _controller.addError(StateError('發言人辨識失敗，本段改用文字辨識，發言人待確認'));
+        _controller.addError(StateError(l10n.diarizationFailed));
         await _transcribe(pcm, diarize: false, startMs: startMs, chunk: chunk);
         return;
       }
-      _controller.addError(StateError('語音辨識失敗：${response.statusCode}'));
+      _controller.addError(
+        StateError(l10n.transcriptionFailedStatus(response.statusCode)),
+      );
       return;
     }
 
     final json = jsonDecode(body);
     if (json is! Map<String, dynamic>) {
-      _controller.addError(StateError('語音辨識回傳格式無法解析'));
+      _controller.addError(StateError(l10n.transcriptionBadPayload));
       return;
     }
 
@@ -147,9 +151,12 @@ class WhisperStt implements SttEngine {
           text: event.text,
           isFinal: event.isFinal,
           speakerIndex: lane == SttLane.self ? 0 : event.speakerIndex,
-          speakerLabel: lane == SttLane.self
-              ? '我'
-              : '${diarize ? event.speakerLabel : '發言人'}（片段 $chunk・待確認）',
+          speakerLabel: _chunkSpeakerLabel(
+            lane: lane,
+            diarize: diarize,
+            diarizedLabel: event.speakerLabel,
+            chunk: chunk,
+          ),
           speakerVerified: lane == SttLane.self,
           startMs: startMs + localStart,
           endMs: startMs + localEnd,
@@ -220,6 +227,29 @@ List<TranscriptEvent> eventsFromOpenAiDiarizedJson(
     );
   }
   return events;
+}
+
+String _chunkSpeakerLabel({
+  required SttLane lane,
+  required bool diarize,
+  required String? diarizedLabel,
+  required int chunk,
+}) {
+  final l10n = CloaklyLocale.strings;
+  if (lane == SttLane.self) return l10n.speakerMe;
+  if (!diarize || diarizedLabel == null || diarizedLabel.isEmpty) {
+    return l10n.speakerOtherChunk(chunk);
+  }
+  return _namedUnconfirmedChunk(l10n.speakerOtherChunk(chunk), diarizedLabel);
+}
+
+/// Keeps a diarized name and the unconfirmed-chunk suffix from speakerOtherChunk.
+String _namedUnconfirmedChunk(String generic, String name) {
+  final open = generic.indexOf(RegExp('[(\uFF08]'));
+  if (open < 0) return '$name $generic';
+  final suffix = generic.substring(open);
+  if (open > 0 && generic[open - 1] == ' ') return '$name $suffix';
+  return '$name$suffix';
 }
 
 int diarizedIndexFromSpeaker(Object? speaker) {

@@ -1,5 +1,7 @@
 import 'package:cloakly_core/bootstrap.dart';
+import 'package:cloakly_core/l10n/app_language.dart';
 import 'package:cloakly_mobile/auth/hosted_auth_gate.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
 import 'package:cloakly_mobile/features/configuration_error_app.dart';
 import 'package:cloakly_mobile/features/hosted_account_screen.dart';
@@ -27,7 +29,8 @@ Future<void> main() async {
 
 Future<void> _start() async {
   if (!HostedConfig.hasSupabase) {
-    runApp(const ConfigurationErrorApp());
+    final choice = await loadAppLanguage();
+    runApp(ConfigurationErrorApp(locale: localeOverrideFor(choice)));
     return;
   }
 
@@ -53,5 +56,6 @@ Future<void> _start() async {
     abandonSessionAuthorization: usageCoordinator.abandonPendingAuthorization,
     appShellBuilder: (child) => HostedAuthGate(billing: billing, child: child),
     settingsBuilder: (_) => HostedAccountScreen(billing: billing),
+    localizationsDelegates: [HostedLocalizations.delegate],
   );
 }

@@ -1,4 +1,5 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/services/llm/llm_service.dart';
 import 'package:cloakly_core/services/project/project_retrieval.dart';
 import 'package:cloakly_core/state/providers.dart';
@@ -57,6 +58,7 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
   Widget build(BuildContext context) {
     final configured = ref.watch(aiServiceProvider).isConfigured;
     final project = widget.project;
+    final l10n = context.l10n;
     return Column(
       children: [
         Expanded(
@@ -66,32 +68,30 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
             children: [
               if (widget.compactIntro) ...[
                 Text(
-                  '專案問答',
+                  l10n.projectQa,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '直接在這頁查文件、進度與會議決議；每次提問獨立檢索。',
+                  l10n.qaCompactIntro,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ] else ...[
-                const Text('查找專案資料、決議與過去的承諾。每次提問獨立檢索；請寫出主題，不會沿用上一題。'),
+                Text(l10n.qaIntro),
                 const SizedBox(height: 8),
-                Text(
-                  '每次提問會自動參考「${project.name}」資料夾與子資料夾的所有支援文件，以及此專案的全部會議、逐字稿與筆記。',
-                ),
+                Text(l10n.qaScope(project.name)),
                 const SizedBox(height: 8),
-                const Text('相關片段會送至 AI 服務產生回答。問答僅保留於本頁，離開後清除。'),
+                Text(l10n.qaPrivacy),
               ],
               if (!configured)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('先設定 AI 服務，才能產生專案回答。'),
+                  title: Text(l10n.setupAiForAnswers),
                   trailing: TextButton(
                     onPressed: () => context.push('/settings'),
-                    child: const Text('設定'),
+                    child: Text(l10n.settings),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -100,22 +100,22 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
                 runSpacing: 8,
                 children: [
                   ActionChip(
-                    label: const Text('整理目前專案狀況'),
+                    label: Text(l10n.summarizeStatus),
                     onPressed: _busy
                         ? null
                         : () {
                             setState(() {
-                              _question.text = '請整理目前專案進度、阻塞事項與待確認的承諾。';
+                              _question.text = l10n.summarizeStatusQuery;
                             });
                           },
                   ),
                   ActionChip(
-                    label: const Text('哪次會議提到…'),
+                    label: Text(l10n.whichMeeting),
                     onPressed: _busy
                         ? null
                         : () {
                             setState(() {
-                              _question.text = '哪次會議提到';
+                              _question.text = l10n.whichMeetingQuery;
                             });
                           },
                   ),
@@ -143,7 +143,7 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
                       _showSource(turn.evidence.sources[index - 1]);
                     }
                   },
-                  sizedImageBuilder: (_) => const Text('（圖片省略）'),
+                  sizedImageBuilder: (_) => Text(l10n.imageOmitted),
                 ),
                 for (final index in turn.citations)
                   ListTile(
@@ -166,7 +166,7 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
-                      '本次 AI 用量：${turn.usage!.display}',
+                      l10n.turnUsage(turn.usage!.display),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -226,8 +226,8 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
                         onSubmitted: _busy || !configured
                             ? null
                             : (_) => _ask(project),
-                        decoration: const InputDecoration(
-                          hintText: '例如：哪次會議決定加入登入功能？',
+                        decoration: InputDecoration(
+                          hintText: l10n.questionHint,
                           counterText: '',
                         ),
                       ),
@@ -235,16 +235,17 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    tooltip: '送出問題',
-                    onPressed:
-                        _busy || !configured ? null : () => _ask(project),
+                    tooltip: l10n.sendQuestion,
+                    onPressed: _busy || !configured
+                        ? null
+                        : () => _ask(project),
                     icon: const Icon(Icons.send),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                'Enter 送出，Shift+Enter 換行',
+                l10n.enterToSendShort,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -274,7 +275,7 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
           () => _turns.add(
             ProjectQuestionTurn(
               question,
-              '目前檢索資料不足以確認。請改用具體功能名稱或關鍵字，確認文件放在專案資料夾內、會議已歸入此專案。詢問整體進度時會自動優先整理近期資料。',
+              context.l10n.insufficientEvidence,
               evidence,
               {},
             ),
@@ -311,7 +312,7 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
         }
       });
     } catch (error) {
-      if (mounted) setState(() => _error = '無法完成問答，問題已保留，可重試。$error');
+      if (mounted) setState(() => _error = context.l10n.qaFailed('$error'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -320,45 +321,53 @@ class ProjectQuestionPanelState extends ConsumerState<ProjectQuestionPanel> {
   void _showSource(ProjectSource source) {
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(source.title),
-        content: SizedBox(
-          width: 600,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(source.location),
-                Text(
-                  '${source.meetingId == null ? '檔案修改時間（非決議日期）' : '會議時間'}：${source.date.toLocal()}',
-                ),
-                const SizedBox(height: 12),
-                SelectableText(source.text),
-                const SizedBox(height: 12),
-                const Text('此處顯示提問時的來源片段。'),
-              ],
+      builder: (dialogContext) {
+        final l10n = dialogContext.l10n;
+        return AlertDialog(
+          title: Text(source.title),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(source.location),
+                  Text(
+                    l10n.sourceTime(
+                      source.meetingId == null
+                          ? l10n.fileModifiedTime
+                          : l10n.meetingTime,
+                      '${source.date.toLocal()}',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(source.text),
+                  const SizedBox(height: 12),
+                  Text(l10n.sourceSnapshot),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          if (source.meetingId != null)
+          actions: [
+            if (source.meetingId != null)
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  ref.invalidate(meetingBundleProvider(source.meetingId!));
+                  context.push(
+                    '/home/meeting/${Uri.encodeComponent(source.meetingId!)}',
+                  );
+                },
+                child: Text(l10n.openMeeting),
+              ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                ref.invalidate(meetingBundleProvider(source.meetingId!));
-                context.push(
-                  '/home/meeting/${Uri.encodeComponent(source.meetingId!)}',
-                );
-              },
-              child: const Text('開啟會議'),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.close),
             ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('關閉'),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }

@@ -1,8 +1,13 @@
 import 'dart:convert';
 
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const unconfirmedEmailMessage = '請先到信箱點確認信，確認後才能登入。';
+HostedLocalizations _hostedStrings() =>
+    lookupHostedLocalizations(CloaklyLocale.current);
+
+String get unconfirmedEmailMessage => _hostedStrings().emailNotConfirmed;
 
 bool hostedEmailConfirmed(User user) {
   final email = user.email?.trim() ?? '';
@@ -31,22 +36,25 @@ String? hostedErrorCode(Object? details) {
 
 String hostedQuotaMessage(Object? details, {required String fallback}) {
   final code = hostedErrorCode(details);
+  final l10n = _hostedStrings();
   return switch (code) {
-    'FREE_POOL_EXHAUSTED' => '今天的免費會議名額已滿，請明天再試或升級 Pro。',
-    'FREE_DAILY_LIMIT_REACHED' => '今天的免費會議額度已使用完畢。可到帳號與訂閱頁升級 Pro。',
-    'FREE_QUESTION_LIMIT_REACHED' => '今天的免費專案問答已使用 5 次。',
-    'FREE_PLAN_LIMIT_REACHED' => '今天的免費計畫建議已使用 5 次。',
-    'DEVICE_FREE_ACCOUNT_IN_USE' => '這支手機今天已經使用過另一個帳號的免費額度。',
-    'DEVICE_REQUIRED' => '無法確認這支手機，請更新 App 後再試。',
-    'EMAIL_NOT_CONFIRMED' => unconfirmedEmailMessage,
-    'MEETING_ALLOWANCE_REQUIRED' => '請先開始今天的會議，或升級 Pro。',
-    'ALLOWANCE_RESERVATION_FAILED' =>
-      '無法預約會議額度。若剛才開會中斷，請等幾分鐘再試；持續失敗請回報。',
-    'DUPLICATE_CLIENT_REQUEST' => '這次會議授權已經送出，請稍後再試。',
-    'TRANSCRIPTION_NOT_CONFIGURED' => '後端尚未設定轉寫服務。',
-    'TRANSCRIPTION_PROVIDER_FAILED' => '轉寫服務暫時無法使用，請稍後再試。',
-    'INTERNAL_ERROR' => '伺服器暫時發生錯誤，請稍後再試。',
-    _ => code == null || code.isEmpty ? fallback : '$fallback（$code）',
+    'FREE_POOL_EXHAUSTED' => l10n.freePoolExhausted,
+    'FREE_DAILY_LIMIT_REACHED' => l10n.freeDailyLimit,
+    'FREE_QUESTION_LIMIT_REACHED' => l10n.freeQuestionLimit,
+    'FREE_PLAN_LIMIT_REACHED' => l10n.freePlanLimit,
+    'DEVICE_FREE_ACCOUNT_IN_USE' => l10n.deviceFreeAccountInUse,
+    'DEVICE_REQUIRED' => l10n.deviceRequired,
+    'EMAIL_NOT_CONFIRMED' => l10n.emailNotConfirmed,
+    'MEETING_ALLOWANCE_REQUIRED' => l10n.meetingAllowanceRequired,
+    'ALLOWANCE_RESERVATION_FAILED' => l10n.allowanceReservationFailed,
+    'DUPLICATE_CLIENT_REQUEST' => l10n.duplicateClientRequest,
+    'TRANSCRIPTION_NOT_CONFIGURED' => l10n.transcriptionNotConfigured,
+    'TRANSCRIPTION_PROVIDER_FAILED' => l10n.transcriptionProviderFailed,
+    'INTERNAL_ERROR' => l10n.serverError,
+    _ =>
+      code == null || code.isEmpty
+          ? fallback
+          : l10n.hostedFallback(fallback, code),
   };
 }
 

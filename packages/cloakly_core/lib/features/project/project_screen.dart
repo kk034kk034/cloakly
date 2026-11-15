@@ -1,4 +1,5 @@
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/state/project_provider.dart';
 import 'package:cloakly_core/state/providers.dart';
 import 'package:flutter/material.dart';
@@ -13,10 +14,11 @@ class ProjectScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(projectsProvider).valueOrNull;
     final pack = library?.active;
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('專案設定')),
+      appBar: AppBar(title: Text(l10n.projectSettings)),
       body: pack == null
-          ? const Center(child: Text('目前在未分類，沒有專案可設定。'))
+          ? Center(child: Text(l10n.unassignedProjectSettings))
           : _ProjectSettingsBody(pack: pack),
     );
   }
@@ -29,18 +31,20 @@ class _ProjectSettingsBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
-        Text('專案資料來源', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          l10n.projectSources,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         Card(
           child: ListTile(
             leading: const Icon(Icons.folder_outlined),
             title: Text(pack.folderPath),
-            subtitle: const Text(
-              '每次專案問答會自動搜尋資料夾與子資料夾內所有支援文件，以及此專案的全部會議紀錄。單次掃描安全上限為 2,000 份文件。',
-            ),
+            subtitle: Text(l10n.projectSourcesHelp),
           ),
         ),
         const SizedBox(height: 24),
@@ -53,7 +57,7 @@ class _ProjectSettingsBody extends ConsumerWidget {
             color: Theme.of(context).colorScheme.error,
           ),
           label: Text(
-            '刪除此專案',
+            l10n.deleteThisProject,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ),
@@ -93,16 +97,19 @@ class _ProjectDetailsSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('此專案的會議提示', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          context.l10n.meetingPromptTitle,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 12),
         TextField(
           controller: _background,
           minLines: 2,
           maxLines: 6,
-          decoration: const InputDecoration(
-            labelText: '我在此專案的角色與背景（選填）',
-            hintText: '例如：博士生，研究主題是語音辨識。',
-            helperText: '只提供給此專案的 AI 建議與會議紀錄。',
+          decoration: InputDecoration(
+            labelText: context.l10n.roleField,
+            hintText: context.l10n.roleFieldHint,
+            helperText: context.l10n.roleFieldHelp,
             helperMaxLines: 2,
           ),
         ),
@@ -111,17 +118,17 @@ class _ProjectDetailsSectionState
           controller: _terms,
           minLines: 2,
           maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: '辨識詞彙提示（選填）',
-            hintText: '例如：陳教授、Cloakly、LoRA；以逗號或換行分隔',
-            helperText: '協助辨識此專案少見的人名與術語。',
+          decoration: InputDecoration(
+            labelText: context.l10n.vocabField,
+            hintText: context.l10n.vocabFieldHint,
+            helperText: context.l10n.vocabFieldHelp,
             helperMaxLines: 2,
           ),
         ),
         const SizedBox(height: 12),
         FilledButton(
           onPressed: _saving ? null : _save,
-          child: Text(_saving ? '儲存中…' : '儲存'),
+          child: Text(_saving ? context.l10n.saving : context.l10n.save),
         ),
       ],
     );
@@ -138,15 +145,15 @@ class _ProjectDetailsSectionState
             _terms.text.trim(),
           );
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已儲存此專案設定')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.projectSettingsSaved)),
+        );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('儲存失敗：$error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.saveFailed('$error'))),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -169,17 +176,17 @@ Future<void> _confirmDeleteProject(
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final l10n = context.l10n;
           return AlertDialog(
-            title: Text('刪除「${pack.name}」？'),
+            title: Text(l10n.deleteProjectTitle(pack.name)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   count == 0
-                      ? '會從 App 移除此專案。電腦上的資料夾本身不會刪。'
-                      : '此專案底下的 $count 場會議紀錄、逐字稿、筆記、提示，以及尚未另存的錄音都會消失，無法復原。\n\n'
-                            '資料夾本身不會刪。若還需要錄音，請先到各場會議另存檔案。',
+                      ? l10n.deleteProjectEmpty
+                      : l10n.deleteProjectWithMeetings(count),
                 ),
                 if (count > 0) ...[
                   const SizedBox(height: 12),
@@ -188,7 +195,7 @@ Future<void> _confirmDeleteProject(
                     value: savedAudio,
                     onChanged: (value) =>
                         setState(() => savedAudio = value ?? false),
-                    title: const Text('我已另存需要保留的錄音，確定刪除這些紀錄'),
+                    title: Text(l10n.deleteProjectAck),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                 ],
@@ -197,7 +204,7 @@ Future<void> _confirmDeleteProject(
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
@@ -207,7 +214,7 @@ Future<void> _confirmDeleteProject(
                 onPressed: savedAudio
                     ? () => Navigator.pop(context, true)
                     : null,
-                child: const Text('刪除專案'),
+                child: Text(l10n.deleteProject),
               ),
             ],
           );

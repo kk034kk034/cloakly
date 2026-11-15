@@ -4,9 +4,23 @@ import 'dart:isolate';
 
 import 'package:archive/archive.dart';
 import 'package:cloakly_core/data/models/project_pack.dart';
+import 'package:cloakly_core/l10n/app_localizations.dart';
+import 'package:cloakly_core/l10n/app_localizations_en.dart';
+import 'package:cloakly_core/l10n/app_localizations_zh.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
 import 'package:pdfrx/pdfrx.dart';
+
+/// Locale lookup that does not construct a [Locale]. Safe inside [Isolate.run],
+/// which cannot use dart:ui.
+AppLocalizations _stringsForIsolate(String languageCode, String? scriptCode) {
+  if (languageCode == 'zh') {
+    if (scriptCode == 'Hant') return AppLocalizationsZhHant();
+    return AppLocalizationsZh();
+  }
+  return AppLocalizationsEn();
+}
 
 class DocumentSection {
   const DocumentSection(this.location, this.text);
@@ -101,75 +115,85 @@ class ProjectDocumentReader {
   Future<ProjectDocument> read(ProjectPack pack, KnowledgeDoc doc) async {
     final root = await Directory(pack.folderPath).resolveSymbolicLinks();
     final candidate = p.normalize(p.join(root, doc.relativePath));
-    if (!p.isWithin(root, candidate)) throw const FormatException('文件不在專案資料夾內');
+    final l10n = CloaklyLocale.strings;
+    if (!p.isWithin(root, candidate)) {
+      throw FormatException(l10n.docOutsideProject);
+    }
     final resolved = await File(candidate).resolveSymbolicLinks();
-    if (!p.isWithin(root, resolved)) throw const FormatException('文件連結超出專案資料夾');
+    if (!p.isWithin(root, resolved)) {
+      throw FormatException(l10n.linkOutsideProject);
+    }
     return readFile(resolved);
   }
 
   Future<ProjectDocument> readFile(String path) {
     if (p.extension(path).toLowerCase() == '.pdf') return _pdf(path);
+    final locale = CloaklyLocale.current;
+    final languageCode = locale.languageCode;
+    final scriptCode = locale.scriptCode;
     return Isolate.run(() {
+      final l10n = _stringsForIsolate(languageCode, scriptCode);
       final ext = p.extension(path).toLowerCase();
       if (!supports(path)) {
-        throw const FormatException(
-          '不支援此格式；舊版 PPT、XLS、DOC 請另存為 PPTX、XLSX、DOCX',
-        );
+        throw FormatException(l10n.unsupportedOffice);
       }
       final file = File(path);
       final stat = file.statSync();
       if (stat.size > maxBytes(path)) {
         throw FormatException(
-          officeExtensions.contains(ext) ? '文件超過 50 MB' : '文字或程式檔超過 256 KB',
+          officeExtensions.contains(ext)
+              ? l10n.officeTooLarge
+              : l10n.textTooLarge,
         );
       }
       if (!officeExtensions.contains(ext)) {
         return ProjectDocument(
-          [DocumentSection('文件', file.readAsStringSync())],
+          [DocumentSection(l10n.documentSection, file.readAsStringSync())],
           stat.modified,
           const [],
         );
       }
       try {
         return ext == '.pptx'
-            ? _presentation(file.readAsBytesSync(), stat.modified)
-            : _office(file.readAsBytesSync(), stat.modified, ext);
+            ? _presentation(file.readAsBytesSync(), stat.modified, l10n)
+            : _office(file.readAsBytesSync(), stat.modified, ext, l10n);
       } on FormatException {
         rethrow;
       } catch (_) {
-        throw const FormatException('無法讀取 Office 文件，請確認未加密且檔案完整');
+        throw FormatException(l10n.officeUnreadable);
       }
     });
   }
 
   static Future<ProjectDocument> _pdf(String path) async {
+    final l10n = CloaklyLocale.strings;
     final stat = await File(path).stat();
-    if (stat.size > maxPptxBytes) throw const FormatException('PDF 超過 50 MB');
+    if (stat.size > maxPptxBytes) throw FormatException(l10n.pdfTooLarge);
     await pdfrxFlutterInitialize();
     PdfDocument? document;
     try {
       document = await PdfDocument.openFile(path);
       if (document.pages.length > 500) {
-        throw const FormatException('PDF 超過 500 頁，請拆分文件');
+        throw FormatException(l10n.pdfTooManyPages);
       }
       final sections = <DocumentSection>[];
-      final warnings = <String>['PDF 讀取文字層；未辨識圖片內容，複雜表格與多欄閱讀順序需核對。'];
+      final warnings = <String>[l10n.pdfTextLayerWarning];
       var total = 0;
       for (final page in document.pages) {
         final text = (await page.loadText())?.fullText.trim() ?? '';
         total += text.length;
-        if (total > 2000000) throw const FormatException('PDF 文字過多，請拆分文件');
+        if (total > 2000000) throw FormatException(l10n.pdfTooMuchText);
         if (text.isEmpty) {
-          warnings.add('第 ${page.pageNumber} 頁沒有文字層，可能需要 OCR。');
+          warnings.add(l10n.pdfPageNoText(page.pageNumber));
         } else {
-          sections.add(DocumentSection('PDF 第 ${page.pageNumber} 頁', text));
+          sections.add(DocumentSection(l10n.pdfPage(page.pageNumber), text));
         }
       }
       return ProjectDocument(sections, stat.modified, warnings);
     } on FormatException {
       rethrow;
     } catch (_) {
-      throw const FormatException('PDF 無法讀取，請確認未加密且檔案完整');
+      throw FormatException(l10n.pdfUnreadable);
     } finally {
       await document?.dispose();
     }
@@ -179,6 +203,7 @@ class ProjectDocumentReader {
     List<int> bytes,
     DateTime modified,
     String ext,
+    AppLocalizations l10n,
   ) {
     final archive = ZipDecoder().decodeBytes(bytes);
     var total = 0;
@@ -187,10 +212,10 @@ class ProjectDocumentReader {
       if (entry == null) return null;
       total += entry.size;
       if (entry.size > 8 * 1024 * 1024 || total > 24 * 1024 * 1024) {
-        throw const FormatException('文件 XML 過大，請拆分');
+        throw FormatException(l10n.xmlTooLarge);
       }
       final content = entry.readBytes();
-      if (content == null) throw const FormatException('文件內容無法解壓縮');
+      if (content == null) throw FormatException(l10n.contentUndecompressible);
       return XmlDocument.parse(utf8.decode(content));
     }
 
@@ -201,7 +226,7 @@ class ProjectDocumentReader {
     final sections = <DocumentSection>[];
     if (ext == '.docx') {
       final body = xml('word/document.xml');
-      if (body == null) throw const FormatException('不是有效的 DOCX');
+      if (body == null) throw FormatException(l10n.notDocx);
       var i = 0;
       for (final paragraph in elements(body, 'p')) {
         final value = elements(
@@ -209,17 +234,15 @@ class ProjectDocumentReader {
           't',
         ).map((e) => e.innerText).join().trim();
         if (value.isNotEmpty) {
-          sections.add(DocumentSection('Word 段落 ${++i}', value));
+          sections.add(DocumentSection(l10n.wordParagraph(++i), value));
         }
       }
-      return ProjectDocument(sections, modified, [
-        'Word 讀取本文與表格段落；未辨識圖片、頁首頁尾或追蹤修訂語意。段落位置不是列印頁碼。',
-      ]);
+      return ProjectDocument(sections, modified, [l10n.wordWarning]);
     }
     final workbook = xml('xl/workbook.xml');
     final rels = xml('xl/_rels/workbook.xml.rels');
     if (workbook == null || rels == null) {
-      throw const FormatException('不是有效的 XLSX');
+      throw FormatException(l10n.notXlsx);
     }
     final strings = xml('xl/sharedStrings.xml');
     final shared = [
@@ -245,8 +268,8 @@ class ProjectDocumentReader {
                   .normalize(p.posix.join('xl', target))
                   .replaceFirst(RegExp(r'^/'), ''),
             );
-      if (part == null) throw const FormatException('Excel 工作表內容遺失');
-      final sheetName = sheet.getAttribute('name') ?? '工作表';
+      if (part == null) throw FormatException(l10n.sheetMissing);
+      final sheetName = sheet.getAttribute('name') ?? l10n.sheetDefault;
       String? firstRow;
       for (final row in elements(part, 'row')) {
         final cells = <String>[];
@@ -267,8 +290,11 @@ class ProjectDocumentReader {
               : raw;
           final formula = elements(cell, 'f').firstOrNull?.innerText;
           if (value.isNotEmpty || formula != null) {
+            final cellRef = cell.getAttribute('r') ?? '';
             cells.add(
-              '${cell.getAttribute('r') ?? ''}: $value${formula == null ? '' : '（公式 =$formula；此值為檔案快取，未重算）'}',
+              formula == null
+                  ? '$cellRef: $value'
+                  : l10n.cachedFormula(cellRef, value, formula),
             );
           }
         }
@@ -276,20 +302,22 @@ class ProjectDocumentReader {
           final values = cells.join(' | ');
           sections.add(
             DocumentSection(
-              '工作表「$sheetName」· 第 ${row.getAttribute('r') ?? '?'} 列',
-              firstRow == null ? values : '首個非空列（可能為欄名，需核對）：$firstRow\n$values',
+              l10n.sheetRow(sheetName, row.getAttribute('r') ?? '?'),
+              firstRow == null ? values : l10n.headerRowNote(firstRow, values),
             ),
           );
           firstRow ??= values;
         }
       }
     }
-    return ProjectDocument(sections, modified, [
-      'Excel 讀取儲存格原值與公式快取，不執行公式；日期可能呈現序號，未套用數字格式、圖表或圖片。',
-    ]);
+    return ProjectDocument(sections, modified, [l10n.excelWarning]);
   }
 
-  static ProjectDocument _presentation(List<int> bytes, DateTime modified) {
+  static ProjectDocument _presentation(
+    List<int> bytes,
+    DateTime modified,
+    AppLocalizations l10n,
+  ) {
     final archive = ZipDecoder().decodeBytes(bytes);
     var xmlBytes = 0;
     XmlDocument? xml(String path) {
@@ -297,10 +325,10 @@ class ProjectDocumentReader {
       if (entry == null) return null;
       xmlBytes += entry.size;
       if (entry.size > 2 * 1024 * 1024 || xmlBytes > 16 * 1024 * 1024) {
-        throw const FormatException('PPTX XML 內容過大，請拆分簡報');
+        throw FormatException(l10n.pptxXmlTooLarge);
       }
       final content = entry.readBytes();
-      if (content == null) throw const FormatException('PPTX 內容無法解壓縮');
+      if (content == null) throw FormatException(l10n.pptxUndecompressible);
       return XmlDocument.parse(utf8.decode(content));
     }
 
@@ -362,14 +390,12 @@ class ProjectDocumentReader {
     }
 
     final presentation = xml('ppt/presentation.xml');
-    if (presentation == null) throw const FormatException('不是有效的 PPTX 簡報');
+    if (presentation == null) throw FormatException(l10n.notPptx);
     final slides = relationships('ppt/presentation.xml', 'slide');
     final ids = elements(presentation, 'sldId').toList();
-    if (ids.length > 300) throw const FormatException('簡報超過 300 頁，請拆分後選取');
+    if (ids.length > 300) throw FormatException(l10n.pptxTooManySlides);
     final sections = <DocumentSection>[];
-    final warnings = <String>[
-      'PPTX 僅讀取可選取文字、表格文字與講者備忘稿；圖片、圖表數值、SmartArt 與嵌入物件尚未辨識。',
-    ];
+    final warnings = <String>[l10n.pptxWarning];
     for (var i = 0; i < ids.length; i++) {
       final ref = ids[i].attributes
           .where((a) => a.name.local == 'id' && a.name.prefix != null)
@@ -377,10 +403,10 @@ class ProjectDocumentReader {
           ?.value;
       final path = slides[ref];
       final slide = path == null ? null : xml(path);
-      if (slide == null) throw FormatException('第 ${i + 1} 頁的內容遺失');
+      if (slide == null) throw FormatException(l10n.slideMissing(i + 1));
       final body = text(slide);
       if (body.isNotEmpty) {
-        sections.add(DocumentSection('投影片第 ${i + 1} 頁', body));
+        sections.add(DocumentSection(l10n.slidePage(i + 1), body));
       }
       var notesText = '';
       for (final notePath in relationships(path!, 'notesSlide').values) {
@@ -388,12 +414,10 @@ class ProjectDocumentReader {
         if (notes != null) notesText += '${text(notes, notes: true)}\n';
       }
       if (notesText.trim().isNotEmpty) {
-        sections.add(
-          DocumentSection('投影片第 ${i + 1} 頁 · 講者備忘稿', notesText.trim()),
-        );
+        sections.add(DocumentSection(l10n.slideNotes(i + 1), notesText.trim()));
       }
       if (body.isEmpty && notesText.trim().isEmpty) {
-        warnings.add('第 ${i + 1} 頁沒有可擷取文字。');
+        warnings.add(l10n.slideNoText(i + 1));
       }
     }
     return ProjectDocument(sections, modified, warnings);

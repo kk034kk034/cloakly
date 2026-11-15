@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cloakly_core/core/constants.dart';
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_core/data/models/models.dart';
 import 'package:cloakly_core/services/audio/aac_encoder.dart';
 import 'package:cloakly_core/services/audio/audio_capture_service.dart';
@@ -27,13 +28,16 @@ enum SessionPhase { idle, live, paused, wrappingUp, done }
 enum SessionStartupStep { none, preparing, microphone, recording, connecting }
 
 extension SessionStartupStepLabel on SessionStartupStep {
-  String get label => switch (this) {
-    SessionStartupStep.none => '',
-    SessionStartupStep.preparing => '正在準備會議',
-    SessionStartupStep.microphone => '正在確認麥克風',
-    SessionStartupStep.recording => '正在啟動錄音',
-    SessionStartupStep.connecting => '正在連線轉寫',
-  };
+  String get label {
+    final l10n = CloaklyLocale.strings;
+    return switch (this) {
+      SessionStartupStep.none => '',
+      SessionStartupStep.preparing => l10n.startupPreparing,
+      SessionStartupStep.microphone => l10n.startupMicrophone,
+      SessionStartupStep.recording => l10n.startupRecording,
+      SessionStartupStep.connecting => l10n.startupConnecting,
+    };
+  }
 }
 
 class SessionStartCancelled implements Exception {
@@ -226,7 +230,7 @@ class SessionController extends Notifier<SessionState> {
       state = state.copyWith(
         busyHint: false,
         startupStep: SessionStartupStep.none,
-        error: '請先在設定填入 Soniox API 金鑰，才能開始多人串流轉寫。',
+        error: CloaklyLocale.strings.needSonioxToStart,
       );
       _starting = false;
       _cancelStart = null;
@@ -249,10 +253,15 @@ class SessionController extends Notifier<SessionState> {
       final id = _uuid.v4();
       meetingId = id;
       final requestedAt = DateTime.now();
+      final titleWhen = DateFormat(
+        CloaklyLocale.current.languageCode == 'zh'
+            ? 'M月d日 HH:mm'
+            : 'MMM d, HH:mm',
+      ).format(requestedAt);
       final meeting = Meeting(
         id: id,
         title: title.trim().isEmpty
-            ? DateFormat('M月d日 HH:mm 會議').format(requestedAt)
+            ? CloaklyLocale.strings.defaultMeetingTitle(titleWhen)
             : title.trim(),
         startedAt: requestedAt,
         status: MeetingStatus.recording,
@@ -323,12 +332,12 @@ class SessionController extends Notifier<SessionState> {
             _systemStt = null;
             _systemSttSub = null;
             await _systemWav.close();
-            systemHint = '系統聲音啟動失敗：$error';
+            systemHint = CloaklyLocale.strings.systemAudioFailed('$error');
             systemOn = false;
           }
         }
       } else if (!SystemAudioCapture.isDesktop) {
-        systemHint = '手機無法擷取會議裡的對方聲音，請用電腦版。';
+        systemHint = CloaklyLocale.strings.phoneNoRemoteAudio;
       }
 
       _micStt = sttFactory(
@@ -349,12 +358,12 @@ class SessionController extends Notifier<SessionState> {
             _connectBudget,
             onTimeout: () {
               ref.read(abandonSessionAuthorizationProvider)?.call();
-              throw TimeoutException('連線轉寫逾時');
+              throw TimeoutException(CloaklyLocale.strings.connectTimeout);
             },
           ),
         );
       } on TimeoutException {
-        throw StateError('連線轉寫逾時，請再試一次。');
+        throw StateError(CloaklyLocale.strings.connectTimeout);
       }
       _flushPendingAudio();
 
@@ -444,7 +453,7 @@ class SessionController extends Notifier<SessionState> {
             );
       } catch (_) {
         if (_projectContext.isEmpty) {
-          _projectContext = '（專案資料暫時無法讀取）';
+          _projectContext = CloaklyLocale.strings.projectContextUnreadable;
         }
       }
     }();
@@ -480,7 +489,9 @@ class SessionController extends Notifier<SessionState> {
       throw const SessionStartCancelled();
     }
     if (result is Object && result is! bool) throw result;
-    if (result != true) throw StateError('沒有麥克風權限');
+    if (result != true) {
+      throw StateError(CloaklyLocale.strings.noMicrophonePermission);
+    }
   }
 
   void _throwIfCancelled() {
@@ -554,11 +565,13 @@ class SessionController extends Notifier<SessionState> {
     required bool systemOn,
     String? fallback,
   }) {
+    final l10n = CloaklyLocale.strings;
     if (hasStt && systemOn) {
-      return '串流轉寫：你是「我」，對方在同一連線內持續區分。灰色文字與人物標籤可能更新。';
+      return l10n.streamHintRemote;
     }
     if (hasStt && !systemOn) {
-      return '${fallback == null || fallback.isEmpty ? '' : '$fallback\n'}串流轉寫：同一支麥克風內持續區分發言人。灰色文字與人物標籤可能更新。';
+      final prefix = fallback == null || fallback.isEmpty ? '' : '$fallback\n';
+      return '$prefix${l10n.streamHintRoom}';
     }
     return fallback;
   }
@@ -601,7 +614,9 @@ class SessionController extends Notifier<SessionState> {
       return;
     }
     if (!ref.read(aiServiceProvider).isConfigured && !state.isDemo) {
-      state = state.copyWith(error: '逐字稿可繼續使用；回答建議需要 OpenAI API 金鑰。');
+      state = state.copyWith(
+        error: CloaklyLocale.strings.suggestionNeedsOpenAi,
+      );
       return;
     }
     final selected = state.lines
@@ -621,7 +636,7 @@ class SessionController extends Notifier<SessionState> {
         .toList();
     await _requestSuggestion(
       trigger: selected
-          .map((line) => '${line.speaker}：${line.text}')
+          .map((line) => '${line.speaker}: ${line.text}')
           .join('\n'),
       contextLines: contextLines,
     );
@@ -637,7 +652,9 @@ class SessionController extends Notifier<SessionState> {
       try {
         await reportUsage(durationSeconds: state.elapsed.inSeconds);
       } catch (error) {
-        state = state.copyWith(error: '同步免費額度失敗，請保持網路連線：$error');
+        state = state.copyWith(
+          error: CloaklyLocale.strings.syncQuotaFailed('$error'),
+        );
       }
     }
 
@@ -661,7 +678,8 @@ class SessionController extends Notifier<SessionState> {
         status: MeetingStatus.completed,
         minutesMarkdown: [
           result.minutesMarkdown,
-          if (result.usage != null) '\n---\n_AI 用量：${result.usage!.display}_',
+          if (result.usage != null)
+            '\n---\n_${CloaklyLocale.strings.aiUsageLine(result.usage!.display)}_',
         ].join(),
         audioPath: _audioPath,
       );
@@ -672,7 +690,7 @@ class SessionController extends Notifier<SessionState> {
           endedAt: DateTime.now(),
           status: MeetingStatus.completed,
           audioPath: _audioPath,
-          minutesMarkdown: '產生會議紀錄失敗：$error',
+          minutesMarkdown: CloaklyLocale.strings.minutesFailed('$error'),
         ),
       );
     }
@@ -750,7 +768,11 @@ class SessionController extends Notifier<SessionState> {
         },
         onError: (Object error) {
           _lineWrites.remove(write);
-          if (!_disposed) state = state.copyWith(error: '逐字稿儲存失敗：$error');
+          if (!_disposed) {
+            state = state.copyWith(
+              error: CloaklyLocale.strings.transcriptSaveFailed('$error'),
+            );
+          }
         },
       ),
     );
@@ -778,7 +800,8 @@ class SessionController extends Notifier<SessionState> {
         triggerText: trigger,
         answer: [
           result.content,
-          if (result.usage != null) '\n\nAI 用量：${result.usage!.display}',
+          if (result.usage != null)
+            '\n\n${CloaklyLocale.strings.aiUsageLine(result.usage!.display)}',
         ].join(),
         createdAt: DateTime.now(),
       );

@@ -2,7 +2,7 @@
 
 內部測試仍走 [store-release.md](store-release.md) 的 **Mobile Internal Release**。這份說明是第一次公開上架用的文案、截圖位置，以及只上傳文案、不送審的 workflow。
 
-App 內顯示名稱是 `Cloakly`。App Store Connect 的英文名稱維持 `Cloakly Project Meetings`。套件／Bundle ID：`com.cloud52.cloakly`。
+App 內顯示名稱是 `Cloakly`。App Store 與 Google Play 的英文標題是 `Cloakly: AI Meeting Notes`，繁中標題是 `Cloakly AI會議記錄・逐字稿・語音轉文字`。套件／Bundle ID：`com.cloud52.cloakly`。
 
 ## 文案放哪裡
 

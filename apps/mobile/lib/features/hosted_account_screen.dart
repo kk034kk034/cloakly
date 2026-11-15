@@ -1,19 +1,33 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:cloakly_core/features/settings/language_setting.dart';
 import 'package:cloakly_core/features/settings/theme_mode_setting.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
+import 'package:cloakly_mobile/features/account_copy.dart';
+import 'package:cloakly_mobile/features/current_plan_row.dart';
+import 'package:cloakly_mobile/features/hosted_subscription_screen.dart';
 import 'package:cloakly_mobile/services/hosted_billing.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+typedef HostedPlanLoader = Future<HostedPlanSnapshot?> Function();
 
 class HostedAccountScreen extends StatefulWidget {
-  const HostedAccountScreen({this.billing, super.key});
+  const HostedAccountScreen({
+    this.billing,
+    this.accountEmail,
+    this.planLoader,
+    super.key,
+  });
 
   final HostedBilling? billing;
+
+  /// When set, the screen does not read Supabase for the email line.
+  final String? accountEmail;
+
+  /// When set, replaces the store and entitlement fetch. Production leaves this null.
+  final HostedPlanLoader? planLoader;
 
   @override
   State<HostedAccountScreen> createState() => _HostedAccountScreenState();
@@ -22,17 +36,21 @@ class HostedAccountScreen extends StatefulWidget {
 class _HostedAccountScreenState extends State<HostedAccountScreen> {
   CustomerInfo? _customerInfo;
   HostedPlanSnapshot? _plan;
-  List<Package> _packages = const [];
-  String? _error;
-  var _busy = false;
+  PlanRowPhase _phase = PlanRowPhase.loading;
+  var _deleting = false;
   CustomerInfoUpdateListener? _listener;
 
-  bool get _ready => widget.billing != null;
+  bool get _isPro =>
+      _plan?.isPro == true ||
+      _customerInfo?.entitlements.all[HostedConfig.entitlementId]?.isActive ==
+          true;
 
   @override
   void initState() {
     super.initState();
-    if (_ready) {
+    final willLoad = widget.planLoader != null || widget.billing != null;
+    _phase = willLoad ? PlanRowPhase.loading : PlanRowPhase.unavailable;
+    if (widget.planLoader == null && widget.billing != null) {
       _listener = (info) {
         if (!mounted) return;
         setState(() => _customerInfo = info);
@@ -40,7 +58,11 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
       };
       Purchases.addCustomerInfoUpdateListener(_listener!);
     }
-    _reload();
+    if (willLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_reload());
+      });
+    }
   }
 
   @override
@@ -53,84 +75,74 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
   }
 
   Future<void> _reload() async {
-    final billing = widget.billing;
-    if (billing == null) {
-      await _reloadPlan(null);
+    final loader = widget.planLoader;
+    if (loader != null) {
+      await _load(loader);
       return;
     }
-    setState(() {
-      _busy = true;
-      _error = null;
+    final billing = widget.billing;
+    if (billing == null) {
+      if (mounted) setState(() => _phase = PlanRowPhase.unavailable);
+      return;
+    }
+    await _load(() async {
+      CustomerInfo? info = _customerInfo;
+      try {
+        info = await billing.loadCustomerInfo();
+        if (mounted) setState(() => _customerInfo = info);
+      } catch (_) {}
+      return billing.loadPlan(customerInfo: info);
     });
+  }
+
+  Future<void> _load(HostedPlanLoader loader) async {
+    final showSkeleton = _phase != PlanRowPhase.ready;
+    if (showSkeleton && _phase != PlanRowPhase.loading && mounted) {
+      setState(() => _phase = PlanRowPhase.loading);
+    }
     try {
-      final store = await billing.loadStore();
+      final plan = await loader();
       if (!mounted) return;
       setState(() {
-        _customerInfo = store.$1;
-        _packages = store.$2;
+        _plan = plan;
+        _phase = PlanRowPhase.ready;
       });
-      await _reloadPlan(store.$1);
-    } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _busy = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_phase != PlanRowPhase.ready) _phase = PlanRowPhase.failed;
+      });
     }
   }
 
   Future<void> _reloadPlan(CustomerInfo? info) async {
     final billing = widget.billing;
-    if (billing == null) return;
+    if (billing == null || widget.planLoader != null) return;
     try {
       final plan = await billing.loadPlan(customerInfo: info);
-      if (mounted) setState(() => _plan = plan);
+      if (!mounted) return;
+      setState(() {
+        _plan = plan;
+        if (_phase != PlanRowPhase.loading) _phase = PlanRowPhase.ready;
+      });
     } catch (_) {}
   }
 
-  Future<void> _purchase(Package package) async {
-    final billing = widget.billing;
-    if (billing == null) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final info = await billing.purchase(package);
-      if (!mounted) return;
-      setState(() => _customerInfo = info);
-      await _reloadPlan(info);
-    } catch (error) {
-      if (!mounted || isPurchaseCancelled(error)) return;
-      setState(() => _error = '購買未完成：$error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _restore() async {
-    final billing = widget.billing;
-    if (billing == null) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final info = await billing.restore();
-      if (!mounted) return;
-      setState(() => _customerInfo = info);
-      await _reloadPlan(info);
-      if (!mounted) return;
-      final active =
-          info.entitlements.all[HostedConfig.entitlementId]?.isActive == true;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(active ? '已恢復 Pro 購買。' : '沒有找到可恢復的 Pro 購買。'),
+  Future<void> _openPlan() async {
+    final navigator = Navigator.of(context);
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (context) => HostedSubscriptionScreen(
+          billing: widget.billing,
+          onCustomerInfo: (info) {
+            if (!mounted) return;
+            setState(() => _customerInfo = info);
+            unawaited(_reloadPlan(info));
+          },
         ),
-      );
-    } catch (error) {
-      if (mounted) setState(() => _error = '無法恢復購買：$error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+      ),
+    );
+    if (mounted) unawaited(_reload());
   }
 
   Future<void> _signOut() async {
@@ -138,33 +150,18 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
     await Supabase.instance.client.auth.signOut();
   }
 
-  Future<void> _manageSubscription() async {
-    final fromStore = _customerInfo?.managementURL;
-    final uri = (fromStore != null && fromStore.isNotEmpty)
-        ? Uri.tryParse(fromStore)
-        : null;
-    final target =
-        uri ??
-        (Platform.isIOS
-            ? Uri.parse('https://apps.apple.com/account/subscriptions')
-            : Uri.parse(
-                'https://play.google.com/store/account/subscriptions?package=com.cloud52.cloakly',
-              ));
-    final opened = await launchUrl(
-      target,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!opened && mounted) {
-      setState(
-        () => _error = '無法開啟商店訂閱頁。請到 Google Play 或 App Store 的「付款與訂閱」取消。',
-      );
-    }
+  void _report(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _deleteAccount() async {
+    final copy = AccountCopy.of(context);
     final email = Supabase.instance.client.auth.currentUser?.email?.trim();
     if (email == null || email.isEmpty) {
-      setState(() => _error = '此帳號沒有 Email，無法在這裡刪除。');
+      _report(copy.deleteNeedsEmail);
       return;
     }
 
@@ -177,35 +174,30 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
           builder: (context, setDialogState) {
             final canDelete = acknowledged && password.text.isNotEmpty;
             return AlertDialog(
-              title: const Text('刪除帳號'),
+              title: Text(copy.deleteAccount),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '刪除後無法復原。雲端帳號與訂閱權益紀錄會刪除。'
-                      '同一個 Email 今天已使用的免費時間會保留到今天結束，重新註冊會接著計算。'
-                      '這台手機上的會議、逐字稿與專案會留在裝置裡。',
-                    ),
+                    Text(copy.deleteIntro),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Google Play 或 App Store 的訂閱要另外到商店取消。'
-                      '刪除 Cloakly 帳號後，商店仍可能在下一期續扣，也不會自動退款。',
-                    ),
+                    Text(copy.deleteStoreWarning),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       value: acknowledged,
                       onChanged: (value) {
                         setDialogState(() => acknowledged = value ?? false);
                       },
-                      title: const Text('我了解必須另外到商店取消訂閱'),
+                      title: Text(copy.deleteAcknowledge),
                       controlAffinity: ListTileControlAffinity.leading,
                     ),
                     TextField(
                       controller: password,
                       obscureText: true,
-                      decoration: const InputDecoration(labelText: '輸入密碼以確認'),
+                      decoration: InputDecoration(
+                        labelText: copy.deletePasswordLabel,
+                      ),
                       onChanged: (_) => setDialogState(() {}),
                     ),
                   ],
@@ -214,14 +206,14 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('取消'),
+                  child: Text(copy.cancel),
                 ),
                 TextButton(
                   onPressed: canDelete
                       ? () => Navigator.pop(dialogContext, true)
                       : null,
                   child: Text(
-                    '刪除帳號',
+                    copy.deleteAccount,
                     style: TextStyle(
                       color: canDelete
                           ? Theme.of(dialogContext).colorScheme.error
@@ -239,10 +231,7 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
     password.dispose();
     if (confirmed != true || !mounted) return;
 
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+    setState(() => _deleting = true);
     try {
       await Supabase.instance.client.auth.signInWithPassword(
         email: email,
@@ -260,32 +249,35 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
         await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
       } catch (_) {}
     } on AuthException {
-      if (mounted) setState(() => _error = '密碼不正確，帳號尚未刪除。');
+      _report(copy.wrongPassword);
     } on FunctionException catch (error) {
-      if (mounted) setState(() => _error = _deleteAccountError(error));
+      _report(deleteAccountErrorMessage(error, copy));
     } catch (error) {
-      if (mounted) setState(() => _error = '無法刪除帳號：$error');
+      _report(copy.deleteFailed(error));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _deleting = false);
     }
+  }
+
+  String _email(AccountCopy copy) {
+    final override = widget.accountEmail?.trim();
+    if (override != null && override.isNotEmpty) return override;
+    final current = Supabase.instance.client.auth.currentUser?.email?.trim();
+    if (current != null && current.isNotEmpty) return current;
+    return copy.emailMissing;
   }
 
   @override
   Widget build(BuildContext context) {
-    final email =
-        Supabase.instance.client.auth.currentUser?.email ?? '未提供 Email';
-    final plan = _plan;
-    final isPro =
-        plan?.isPro == true ||
-        _customerInfo?.entitlements.all[HostedConfig.entitlementId]?.isActive ==
-            true;
+    final copy = AccountCopy.of(context);
+    final failed = _phase == PlanRowPhase.failed;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('帳號與訂閱'),
+        title: Text(copy.accountTitle),
         actions: [
           IconButton(
-            tooltip: '重新整理',
-            onPressed: _busy ? null : _reload,
+            tooltip: copy.refresh,
+            onPressed: _deleting ? null : _reload,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -296,82 +288,27 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-            title: Text(email),
-            subtitle: Text(
-              isPro
-                  ? 'Pro 訂閱有效'
-                  : '免費方案：會議每天合計 30 分鐘；專案問答 5 次、計畫建議 5 次。同一支手機每天只能使用一個帳號的免費額度。',
-            ),
+            title: Text(_email(copy)),
           ),
           const SizedBox(height: 8),
           const ThemeModeSetting(),
-          if (plan != null) ...[
-            const SizedBox(height: 8),
-            _PlanStatusCard(plan: plan, isPro: isPro),
-          ],
-          const SizedBox(height: 12),
-          if (!_ready)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('尚未設定 RevenueCat 公開 SDK key，因此目前不能顯示或購買訂閱。'),
-              ),
-            )
-          else ...[
-            if (_busy) const LinearProgressIndicator(),
-            if (isPro)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('目前已有有效 Pro 權益。若換機，可按下方「恢復購買」。'),
-              )
-            else ...[
-              for (final package in _packages)
-                Card(
-                  child: ListTile(
-                    title: Text(
-                      displayStoreProductTitle(package.storeProduct.title),
-                    ),
-                    subtitle: Text(_packageSubtitle(package)),
-                    trailing: FilledButton(
-                      onPressed: _busy ? null : () => _purchase(package),
-                      child: Text(package.storeProduct.priceString),
-                    ),
-                  ),
-                ),
-              if (!_busy && _packages.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    '還沒有可購買的方案。請到 RevenueCat 的 Current Offering，'
-                    '加入 ${Platform.isIOS ? 'App Store' : 'Google Play'} 商品。',
-                  ),
-                ),
-            ],
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: _busy ? null : _restore,
-              child: const Text('恢復購買'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: _busy ? null : _manageSubscription,
-              child: const Text('管理商店訂閱'),
-            ),
-          ],
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
+          const SizedBox(height: 16),
+          const LanguageSetting(),
+          const SizedBox(height: 8),
+          CurrentPlanRow(
+            title: copy.currentPlan,
+            status: copy.rowStatus(phase: _phase, isPro: _isPro, plan: _plan),
+            loading: _phase == PlanRowPhase.loading,
+            statusColor: failed ? Theme.of(context).colorScheme.error : null,
+            onTap: _openPlan,
+          ),
           const SizedBox(height: 24),
           const Divider(),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.logout),
-            title: const Text('登出'),
-            onTap: _busy ? null : _signOut,
+            title: Text(copy.signOut),
+            onTap: _deleting ? null : _signOut,
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -380,10 +317,10 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
               color: Theme.of(context).colorScheme.error,
             ),
             title: Text(
-              '刪除帳號',
+              copy.deleteAccount,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-            onTap: _busy ? null : _deleteAccount,
+            onTap: _deleting ? null : _deleteAccount,
           ),
         ],
       ),
@@ -391,67 +328,16 @@ class _HostedAccountScreenState extends State<HostedAccountScreen> {
   }
 }
 
-String _deleteAccountError(FunctionException error) {
+String deleteAccountErrorMessage(FunctionException error, AccountCopy copy) {
   final details = error.details;
   final code = details is Map ? details['error']?.toString() : null;
   return switch (code) {
-    'CONFIRMATION_MISMATCH' => '確認資料不一致，帳號尚未刪除。',
-    'AUTH_REQUIRED' || 'INVALID_ACCESS_TOKEN' => '登入已失效，請重新登入後再刪除。',
-    'ACCOUNT_DELETE_FAILED' => '刪除尚未完成，請再試一次。帳號可能還在。',
+    'CONFIRMATION_MISMATCH' => copy.deleteConfirmationMismatch,
+    'AUTH_REQUIRED' || 'INVALID_ACCESS_TOKEN' => copy.deleteAuthExpired,
+    'ACCOUNT_DELETE_FAILED' => copy.deleteIncomplete,
     _ =>
       error.status == 404
-          ? '後端尚未部署刪除帳號，帳號尚未刪除。'
-          : '無法刪除帳號（${error.status}）。帳號尚未刪除。',
+          ? copy.deleteNotDeployed
+          : copy.deleteFailedStatus(error.status),
   };
-}
-
-String _packageSubtitle(Package package) {
-  final period = packagePeriodLabel(package);
-  final description = package.storeProduct.description.trim();
-  if (description.isEmpty) return period;
-  return '$period · $description';
-}
-
-class _PlanStatusCard extends StatelessWidget {
-  const _PlanStatusCard({required this.plan, required this.isPro});
-
-  final HostedPlanSnapshot plan;
-  final bool isPro;
-
-  @override
-  Widget build(BuildContext context) {
-    final expires = plan.expiresAt;
-    final lines = <String>[
-      if (isPro && expires != null)
-        '有效至 ${DateFormat('yyyy/MM/dd HH:mm').format(expires.toLocal())}',
-      if (isPro && expires == null) '永久 Pro 權益',
-      if (!isPro) formatRemainingFreeTime(plan.remainingFreeSeconds),
-      if (plan.productId != null && plan.productId!.isNotEmpty)
-        '商品：${plan.productId}',
-    ];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isPro ? '目前方案：Pro' : '目前方案：免費',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(lines.join('\n')),
-            if (!isPro) ...[
-              const SizedBox(height: 12),
-              LinearProgressIndicator(
-                value: hostedFreeDailyLimitSeconds == 0
-                    ? 0
-                    : plan.usedFreeSeconds / hostedFreeDailyLimitSeconds,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 }

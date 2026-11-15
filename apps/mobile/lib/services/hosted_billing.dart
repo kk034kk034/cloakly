@@ -1,4 +1,6 @@
+import 'package:cloakly_core/l10n/cloakly_locale.dart';
 import 'package:cloakly_mobile/config/hosted_config.dart';
+import 'package:cloakly_mobile/l10n/hosted_localizations.dart';
 import 'package:cloakly_mobile/services/hosted_plan.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,17 +9,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 export 'package:cloakly_mobile/services/hosted_plan.dart';
 
-String packagePeriodLabel(Package package) {
-  return switch (package.packageType) {
-    PackageType.annual => '年繳',
-    PackageType.sixMonth => '半年繳',
-    PackageType.threeMonth => '季繳',
-    PackageType.twoMonth => '兩個月',
-    PackageType.monthly => '月繳',
-    PackageType.weekly => '週繳',
-    PackageType.lifetime => '永久',
-    _ => '訂閱',
+String packagePeriodLabel(Package package, {bool english = false}) {
+  return periodLabelForType(package.packageType, english: english);
+}
+
+String periodLabelForType(PackageType type, {bool english = false}) {
+  final l10n = lookupHostedLocalizations(english ? cloaklyEn : cloaklyZhHant);
+  return switch (type) {
+    PackageType.annual => l10n.periodAnnual,
+    PackageType.sixMonth => l10n.periodSixMonth,
+    PackageType.threeMonth => l10n.periodThreeMonth,
+    PackageType.twoMonth => l10n.periodTwoMonth,
+    PackageType.monthly => l10n.periodMonthly,
+    PackageType.weekly => l10n.periodWeekly,
+    PackageType.lifetime => l10n.periodLifetime,
+    _ => l10n.periodSubscription,
   };
+}
+
+String packageSubtitle(Package package, {bool english = false}) {
+  final period = packagePeriodLabel(package, english: english);
+  final description = package.storeProduct.description.trim();
+  if (description.isEmpty) return period;
+  return '$period · $description';
 }
 
 bool isPurchaseCancelled(Object error) {
@@ -102,8 +116,10 @@ class HostedBilling {
     return info;
   }
 
+  Future<CustomerInfo> loadCustomerInfo() => Purchases.getCustomerInfo();
+
   Future<(CustomerInfo, List<Package>)> loadStore() async {
-    final info = await Purchases.getCustomerInfo();
+    final info = await loadCustomerInfo();
     try {
       final offerings = await Purchases.getOfferings();
       return (info, offerings.current?.availablePackages ?? const <Package>[]);
