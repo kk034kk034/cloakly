@@ -103,22 +103,22 @@ class _AuthApp extends StatelessWidget {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: mode,
-        home: _EmailPasswordScreen(notice: notice),
+        home: HostedLoginScreen(notice: notice),
       ),
     );
   }
 }
 
-class _EmailPasswordScreen extends StatefulWidget {
-  const _EmailPasswordScreen({this.notice});
+class HostedLoginScreen extends StatefulWidget {
+  const HostedLoginScreen({this.notice, super.key});
 
   final String? notice;
 
   @override
-  State<_EmailPasswordScreen> createState() => _EmailPasswordScreenState();
+  State<HostedLoginScreen> createState() => _HostedLoginScreenState();
 }
 
-class _EmailPasswordScreenState extends State<_EmailPasswordScreen> {
+class _HostedLoginScreenState extends State<HostedLoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   var _signUp = false;
