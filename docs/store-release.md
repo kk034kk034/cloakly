@@ -2,7 +2,7 @@
 
 目標：用 GitHub Actions 建置並上傳 **Play 內部測試** 與 **TestFlight**。  
 App ID：`com.cloud52.cloakly`  
-商店名稱（ASC）：`Cloakly Project Meetings`  
+商店名稱（ASC en-US）：`Cloakly: AI Meeting Notes`；zh-Hant：`Cloakly AI會議記錄・逐字稿・語音轉文字`  
 桌面顯示名：`Cloakly`
 
 ## 標準流程（記得照這個走）
